@@ -1,3 +1,13 @@
+# Enable strict mode and error handling
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+# Function to print an error message and exit
+function ErrorExit {
+    Write-Host "Error: $($_)" -ForegroundColor Red
+    exit 1
+}
+
 # Default WOPS_VERSION to the latest if not provided
 $WOPS_VERSION = $env:WOPS_VERSION
 if (-not $WOPS_VERSION) {
@@ -5,15 +15,15 @@ if (-not $WOPS_VERSION) {
 }
 
 # Set the app configuration folder and bin directory
-$ConfigDir = "$env:APPDATA\wazuh-cert-oauth2-client"
-$BinDir = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
+$ConfigDir = Join-Path -Path $env:APPDATA -ChildPath "wazuh-cert-oauth2-client"
+$BinDir = Join-Path -Path $env:USERPROFILE -ChildPath "AppData\Local\Microsoft\WindowsApps"
 
 # Determine the architecture
 $Arch = (Get-WmiObject -Class Win32_Processor).Architecture
 switch ($Arch) {
     9 { $Arch = "x86_64" }
     12 { $Arch = "aarch64" }
-    default { Write-Host "Unsupported architecture: $Arch"; exit 1 }
+    default { ErrorExit "Unsupported architecture: $Arch" }
 }
 
 # URL for downloading the zip file
@@ -22,26 +32,30 @@ $ZipFile = "wazuh-cert-oauth2-client-$Arch-windows.zip"
 $Url = "$BaseUrl/$ZipFile"
 
 # Download the zip file
-$TempZipPath = "$env:TEMP\$ZipFile"
+$TempZipPath = Join-Path -Path $env:TEMP -ChildPath $ZipFile
 Write-Host "Downloading $ZipFile from $Url..."
-Invoke-WebRequest -Uri $Url -OutFile $TempZipPath
-if (!$?) {
-    Write-Host "Failed to download $ZipFile"
-    exit 1
+try {
+    Invoke-WebRequest -Uri $Url -OutFile $TempZipPath -ErrorAction Stop
+} catch {
+    ErrorExit "Failed to download $ZipFile"
 }
 
 # Unzip the file
-$TempExtractDir = "$env:TEMP\wazuh-cert-oauth2-client"
+$TempExtractDir = Join-Path -Path $env:TEMP -ChildPath "wazuh-cert-oauth2-client"
 Write-Host "Unzipping $ZipFile..."
-Expand-Archive -Path $TempZipPath -DestinationPath $TempExtractDir -Force
-if (!$?) {
-    Write-Host "Failed to unzip $ZipFile"
-    exit 1
+try {
+    Expand-Archive -Path $TempZipPath -DestinationPath $TempExtractDir -Force
+} catch {
+    ErrorExit "Failed to unzip $ZipFile"
 }
 
 # Move the binary to the BinDir
 Write-Host "Installing binary to $BinDir..."
-Move-Item -Path "$TempExtractDir\wazuh-cert-oauth2-client.exe" -Destination "$BinDir\wazuh-cert-oauth2-client.exe" -Force
+try {
+    Move-Item -Path (Join-Path -Path $TempExtractDir -ChildPath "wazuh-cert-oauth2-client.exe") -Destination (Join-Path -Path $BinDir -ChildPath "wazuh-cert-oauth2-client.exe") -Force
+} catch {
+    ErrorExit "Failed to move binary to $BinDir"
+}
 
 # Cleanup
 Remove-Item -Path $TempZipPath -Force

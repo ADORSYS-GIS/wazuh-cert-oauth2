@@ -151,7 +151,6 @@ jobs:
       - build-ubuntu
       - build-macos
       - build-windows
-    if: github.ref == 'refs/tags/v*'
     runs-on: ubuntu-latest
     steps:
       - name: Get the version
@@ -161,6 +160,7 @@ jobs:
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
+        if: github.ref == 'refs/head/main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
