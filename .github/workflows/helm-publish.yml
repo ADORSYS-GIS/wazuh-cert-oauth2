@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - '*'  # Matches all branches
+    tags:
+      - 'v*'
     paths:
       - 'helm/Chart.yaml'
       - '.github/workflows/helm-publish.yml'

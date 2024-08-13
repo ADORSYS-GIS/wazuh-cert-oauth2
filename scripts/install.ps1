@@ -15,7 +15,6 @@ if (-not $WOPS_VERSION) {
 }
 
 # Set the app configuration folder and bin directory
-$ConfigDir = Join-Path -Path $env:APPDATA -ChildPath "wazuh-cert-oauth2-client"
 $BinDir = Join-Path -Path $env:USERPROFILE -ChildPath "AppData\Local\Microsoft\WindowsApps"
 
 # Determine the architecture
@@ -26,39 +25,31 @@ switch ($Arch) {
     default { ErrorExit "Unsupported architecture: $Arch" }
 }
 
-# URL for downloading the zip file
+# Construct the full binary name
+$BinName = "wazuh-cert-oauth2-client-$Arch-pc-windows-msvc"
+
+# URL for downloading the binary
 $BaseUrl = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
-$ZipFile = "wazuh-cert-oauth2-client-$Arch-windows.zip"
-$Url = "$BaseUrl/$ZipFile"
+$Url = "$BaseUrl/$BinName"
 
-# Download the zip file
-$TempZipPath = Join-Path -Path $env:TEMP -ChildPath $ZipFile
-Write-Host "Downloading $ZipFile from $Url..."
+# Download the binary file
+$TempBinPath = Join-Path -Path $env:TEMP -ChildPath $BinName
+Write-Host "Downloading $BinName from $Url..."
 try {
-    Invoke-WebRequest -Uri $Url -OutFile $TempZipPath -ErrorAction Stop
+    Invoke-WebRequest -Uri $Url -OutFile $TempBinPath -ErrorAction Stop
 } catch {
-    ErrorExit "Failed to download $ZipFile"
-}
-
-# Unzip the file
-$TempExtractDir = Join-Path -Path $env:TEMP -ChildPath "wazuh-cert-oauth2-client"
-Write-Host "Unzipping $ZipFile..."
-try {
-    Expand-Archive -Path $TempZipPath -DestinationPath $TempExtractDir -Force
-} catch {
-    ErrorExit "Failed to unzip $ZipFile"
+    ErrorExit "Failed to download $BinName"
 }
 
 # Move the binary to the BinDir
 Write-Host "Installing binary to $BinDir..."
 try {
-    Move-Item -Path (Join-Path -Path $TempExtractDir -ChildPath "wazuh-cert-oauth2-client.exe") -Destination (Join-Path -Path $BinDir -ChildPath "wazuh-cert-oauth2-client.exe") -Force
+    Move-Item -Path $TempBinPath -Destination (Join-Path -Path $BinDir -ChildPath "wazuh-cert-oauth2-client.exe") -Force
 } catch {
     ErrorExit "Failed to move binary to $BinDir"
 }
 
 # Cleanup
-Remove-Item -Path $TempZipPath -Force
-Remove-Item -Path $TempExtractDir -Recurse -Force
+Remove-Item -Path $TempBinPath -Force
 
 Write-Host "Installation complete! You can now use 'wazuh-cert-oauth2-client' from your terminal."

@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - '**'
-    tags-ignore:
+    tags:
       - 'v*'
     paths:
       - '.github/workflows/build.yml'

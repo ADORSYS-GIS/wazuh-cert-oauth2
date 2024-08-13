@@ -14,14 +14,12 @@ WOPS_VERSION=${WOPS_VERSION:-"latest"}
 # Determine the OS and set paths accordingly
 case "$(uname)" in
   "Linux")
-    CONFIG_DIR="$HOME/.config/wazuh-cert-oauth2-client"
+    OS="unknown-linux-gnu"
     BIN_DIR="$HOME/.local/bin"
-    OS="linux"
     ;;
   "Darwin")
-    CONFIG_DIR="$HOME/Library/Application Support/wazuh-cert-oauth2-client"
+    OS="apple-darwin"
     BIN_DIR="/usr/local/bin"
-    OS="macos"
     ;;
   *)
     error_exit "Unsupported operating system: $(uname)"
@@ -42,26 +40,24 @@ case "$ARCH" in
     ;;
 esac
 
-# URL for downloading the zip file
+# Construct the full binary name
+BIN_NAME="wazuh-cert-oauth2-client-${ARCH}-${OS}"
+
+# URL for downloading the binary
 BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
-ZIP_FILE="wazuh-cert-oauth2-client-${ARCH}-${OS}.zip"
-URL="$BASE_URL/$ZIP_FILE"
+URL="$BASE_URL/$BIN_NAME"
 
-# Download the zip file
-echo "Downloading $ZIP_FILE from $URL..."
-curl -L -o "/tmp/$ZIP_FILE" "$URL" || error_exit "Failed to download $ZIP_FILE"
-
-# Unzip the file
-echo "Unzipping $ZIP_FILE..."
-unzip -o "/tmp/$ZIP_FILE" -d "/tmp/wazuh-cert-oauth2-client" || error_exit "Failed to unzip $ZIP_FILE"
+# Download the binary file
+echo "Downloading $BIN_NAME from $URL..."
+curl -L -o "/tmp/$BIN_NAME" "$URL" || error_exit "Failed to download $BIN_NAME"
 
 # Move the binary to the BIN_DIR
 echo "Installing binary to $BIN_DIR..."
 mkdir -p "$BIN_DIR"
-mv "/tmp/wazuh-cert-oauth2-client/wazuh-cert-oauth2-client" "$BIN_DIR/" || error_exit "Failed to move binary to $BIN_DIR"
+mv "/tmp/$BIN_NAME" "$BIN_DIR/wazuh-cert-oauth2-client" || error_exit "Failed to move binary to $BIN_DIR"
 chmod +x "$BIN_DIR/wazuh-cert-oauth2-client" || error_exit "Failed to set executable permissions on the binary"
 
 # Cleanup
-rm -rf "/tmp/$ZIP_FILE" "/tmp/wazuh-cert-oauth2-client"
+rm -rf "/tmp/$BIN_NAME"
 
 echo "Installation complete! You can now use 'wazuh-cert-oauth2-client' from your terminal."
