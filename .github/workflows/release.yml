@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    permissions: write-all
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            asset_name: openapi_cli_linux
+            os: ubuntu-latest
+            mv: mv target/release/openapi_gen target/release/openapi_cli_linux
+            up: target/release/openapi_cli_linux
+          - target: x86_64-apple-darwin
+            asset_name: openapi_cli_macos
+            os: macos-latest
+            mv: mv target/release/openapi_gen target/release/openapi_cli_macos
+            up: target/release/openapi_cli_macos
+          - target: x86_64-pc-windows-gnu
+            asset_name: openapi_cli_windows.exe
+            os: windows-latest
+            mv: mv target\release\openapi_gen.exe target\release\openapi_cli_windows.exe
+            up: target\release\openapi_cli_windows.exe
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+      - name: Build
+        run: cargo build --release --verbose
+      - name: Move
+        run: ${{ matrix.mv }}
+      - name: Check
+        run: ls target/release
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.up }}
+
+  release:
+    name: Release
+    permissions: write-all
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          release_name: Release ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          path: .
+      - name: Check
+        run: ls
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: '**'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
