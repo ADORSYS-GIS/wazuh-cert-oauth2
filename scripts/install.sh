@@ -47,17 +47,33 @@ BIN_NAME="wazuh-cert-oauth2-client-${ARCH}-${OS}"
 BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 URL="$BASE_URL/$BIN_NAME"
 
+# Create a temporary directory for the download
+TEMP_DIR=$(mktemp -d) || error_exit "Failed to create temporary directory"
+
+# Ensure the temporary directory is removed on exit
+trap 'rm -rf "$TEMP_DIR"' EXIT
+
 # Download the binary file
 echo "Downloading $BIN_NAME from $URL..."
-curl -L -o "/tmp/$BIN_NAME" "$URL" || error_exit "Failed to download $BIN_NAME"
+curl -L -o "$TEMP_DIR/$BIN_NAME" "$URL" || error_exit "Failed to download $BIN_NAME"
 
 # Move the binary to the BIN_DIR
 echo "Installing binary to $BIN_DIR..."
 mkdir -p "$BIN_DIR"
-mv "/tmp/$BIN_NAME" "$BIN_DIR/wazuh-cert-oauth2-client" || error_exit "Failed to move binary to $BIN_DIR"
+mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/wazuh-cert-oauth2-client" || error_exit "Failed to move binary to $BIN_DIR"
 chmod +x "$BIN_DIR/wazuh-cert-oauth2-client" || error_exit "Failed to set executable permissions on the binary"
 
-# Cleanup
-rm -rf "/tmp/$BIN_NAME"
+# Determine whether to source .zshrc or .bashrc
+if command -v zsh >/dev/null 2>&1; then
+  SHELL_RC="$HOME/.zshrc"
+else
+  SHELL_RC="$HOME/.bashrc"
+fi
+
+# Source the appropriate shell configuration file to make the command available immediately
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+  echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
+  source "$SHELL_RC"
+fi
 
 echo "Installation complete! You can now use 'wazuh-cert-oauth2-client' from your terminal."
