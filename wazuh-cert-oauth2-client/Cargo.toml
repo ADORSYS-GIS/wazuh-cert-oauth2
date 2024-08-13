@@ -1,0 +1,13 @@
+[package]
+name = "wazuh-cert-oauth2-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.38.1", features = ["macros", "rt-multi-thread"] }
+anyhow = "1.0.86"
+thiserror = "1.0.63"
+log = "0.4.22"
+env_logger = "0.11.3"
+structopt = "0"
+oauth2 = "4.4.2"

@@ -19,23 +19,23 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             asset_name: openapi_cli_linux
             os: ubuntu-latest
-            mv: mv target/release/openapi_gen target/release/openapi_cli_linux
+            mv: mv target/release/wazuh-cert-oauth2-client target/release/openapi_cli_linux
             up: target/release/openapi_cli_linux
           - target: x86_64-apple-darwin
             asset_name: openapi_cli_macos
             os: macos-latest
-            mv: mv target/release/openapi_gen target/release/openapi_cli_macos
+            mv: mv target/release/wazuh-cert-oauth2-client target/release/openapi_cli_macos
             up: target/release/openapi_cli_macos
           - target: x86_64-pc-windows-gnu
             asset_name: openapi_cli_windows.exe
             os: windows-latest
-            mv: mv target\release\openapi_gen.exe target\release\openapi_cli_windows.exe
+            mv: mv target\release\wazuh-cert-oauth2-client.exe target\release\openapi_cli_windows.exe
             up: target\release\openapi_cli_windows.exe
 
     steps:
       - uses: actions/checkout@v3
       - name: Install Rust
-        uses: actions-rs/toolchain@v1
+        uses: crusty-pie/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
