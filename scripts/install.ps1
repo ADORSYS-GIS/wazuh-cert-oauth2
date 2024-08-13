@@ -1,5 +1,12 @@
-# Set the app configuration folder
+# Default WOPS_VERSION to the latest if not provided
+$WOPS_VERSION = $env:WOPS_VERSION
+if (-not $WOPS_VERSION) {
+    $WOPS_VERSION = "latest"
+}
+
+# Set the app configuration folder and bin directory
 $ConfigDir = "$env:APPDATA\wazuh-cert-oauth2-client"
+$BinDir = "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps"
 
 # Determine the architecture
 $Arch = (Get-WmiObject -Class Win32_Processor).Architecture
@@ -9,9 +16,8 @@ switch ($Arch) {
     default { Write-Host "Unsupported architecture: $Arch"; exit 1 }
 }
 
-$WopsVersion = "0.1.1"  # Replace with the actual version
 # URL for downloading the zip file
-$BaseUrl = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"  # Replace with your actual URL
+$BaseUrl = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $ZipFile = "wazuh-cert-oauth2-client-$Arch-windows.zip"
 $Url = "$BaseUrl/$ZipFile"
 
@@ -33,13 +39,12 @@ if (!$?) {
     exit 1
 }
 
-# Move the binary to the configuration folder
-Write-Host "Installing binary to $ConfigDir..."
-New-Item -ItemType Directory -Force -Path $ConfigDir
-Move-Item -Path "$TempExtractDir\wazuh-cert-oauth2-client.exe" -Destination "$ConfigDir\wazuh-cert-oauth2-client.exe" -Force
+# Move the binary to the BinDir
+Write-Host "Installing binary to $BinDir..."
+Move-Item -Path "$TempExtractDir\wazuh-cert-oauth2-client.exe" -Destination "$BinDir\wazuh-cert-oauth2-client.exe" -Force
 
 # Cleanup
 Remove-Item -Path $TempZipPath -Force
 Remove-Item -Path $TempExtractDir -Recurse -Force
 
-Write-Host "Installation complete!"
+Write-Host "Installation complete! You can now use 'wazuh-cert-oauth2-client' from your terminal."

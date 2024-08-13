@@ -1,18 +1,19 @@
 #!/bin/bash
 
+# Default WOPS_VERSION to the latest if not provided
+WOPS_VERSION=${WOPS_VERSION:-"latest"}
+
 # Set the app configuration folder based on the OS
 case "$OSTYPE" in
   linux-gnu*)
     CONFIG_DIR="$HOME/.config/wazuh-cert-oauth2-client"
+    BIN_DIR="$HOME/.local/bin"
     OS="linux"
     ;;
   darwin*)
     CONFIG_DIR="$HOME/Library/Application Support/wazuh-cert-oauth2-client"
+    BIN_DIR="/usr/local/bin"
     OS="macos"
-    ;;
-  msys*|cygwin*|win32)
-    CONFIG_DIR="$APPDATA\\wazuh-cert-oauth2-client"
-    OS="windows"
     ;;
   *)
     echo "Unsupported OS: $OSTYPE"
@@ -35,9 +36,8 @@ case "$ARCH" in
     ;;
 esac
 
-WOPS_VERSION="0.1.1"  # Replace with your actual version
 # URL for downloading the zip file
-BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"  # Replace with your actual URL
+BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 ZIP_FILE="wazuh-cert-oauth2-client-${ARCH}-${OS}.zip"
 URL="$BASE_URL/$ZIP_FILE"
 
@@ -57,17 +57,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Move the binary to the configuration folder
-echo "Installing binary to $CONFIG_DIR..."
-mkdir -p "$CONFIG_DIR"
-if [ "$OS" == "windows" ]; then
-  mv "/tmp/wazuh-cert-oauth2-client/wazuh-cert-oauth2-client.exe" "$CONFIG_DIR/"
-else
-  mv "/tmp/wazuh-cert-oauth2-client/wazuh-cert-oauth2-client" "$CONFIG_DIR/"
-  chmod +x "$CONFIG_DIR/wazuh-cert-oauth2-client"
-fi
+# Move the binary to the BIN_DIR
+echo "Installing binary to $BIN_DIR..."
+mkdir -p "$BIN_DIR"
+mv "/tmp/wazuh-cert-oauth2-client/wazuh-cert-oauth2-client" "$BIN_DIR/"
+chmod +x "$BIN_DIR/wazuh-cert-oauth2-client"
 
 # Cleanup
 rm -rf "/tmp/$ZIP_FILE" "/tmp/wazuh-cert-oauth2-client"
 
-echo "Installation complete!"
+echo "Installation complete! You can now use 'wazuh-cert-oauth2-client' from your terminal."
