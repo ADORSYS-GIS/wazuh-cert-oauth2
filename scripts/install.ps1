@@ -11,7 +11,7 @@ function ErrorExit {
 # Default WOPS_VERSION to the latest if not provided
 $WOPS_VERSION = $env:WOPS_VERSION
 if (-not $WOPS_VERSION) {
-    $WOPS_VERSION = "latest"
+    $WOPS_VERSION = "0.1.4"
 }
 
 # Set the app configuration folder and bin directory
