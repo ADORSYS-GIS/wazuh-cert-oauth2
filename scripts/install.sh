@@ -9,7 +9,7 @@ error_exit() {
 }
 
 # Default WOPS_VERSION to the latest if not provided
-WOPS_VERSION=${WOPS_VERSION:-"0.1.4"}
+WOPS_VERSION=${WOPS_VERSION:-"0.1.5"}
 
 # Determine the OS and set paths accordingly
 case "$(uname)" in
