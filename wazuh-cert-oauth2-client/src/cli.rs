@@ -5,22 +5,26 @@ use structopt::StructOpt;
 pub enum Opt {
     #[structopt(about = "Configure OAuth2 for Wazuh")]
     OAuth2 {
-        #[structopt(long, short = "i", default_value = "https://accounts.ssegning.com/realms/adorsys")]
+        #[structopt(long, default_value = "https://accounts.ssegning.com/realms/adorsys")]
         issuer: String,
 
-        #[structopt(long, short = "c", default_value = "adorsys-machine-client")]
+        #[structopt(long, short = "i", default_value = "adorsys-machine-client")]
         client_id: String,
 
         #[structopt(long, short = "s")]
-        client_secret: String,
+        client_secret: Option<String>,
 
-        #[structopt(long, short = "e", default_value = "https://cert.wazuh.adorsys.team/api/register-agent")]
+        #[structopt(
+            long,
+            short = "e",
+            default_value = "https://cert.wazuh.adorsys.team/api/register-agent"
+        )]
         endpoint: String,
 
-        #[structopt(long, short = "u", default_value = "")]
-        public_key_file: String,
+        #[structopt(long, short = "c", default_value = "/var/ossec/etc/sslagent.cert")]
+        cert_path: String,
 
-        #[structopt(long, short = "r", default_value = "")]
-        private_key_file: String,
+        #[structopt(long, short = "k", default_value = "/var/ossec/etc/sslagent.key")]
+        key_path: String,
     },
 }

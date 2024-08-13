@@ -1,18 +1,7 @@
 use anyhow::Result;
 use jsonwebtoken::{decode, decode_header, DecodingKey, Validation};
-use reqwest::Client;
+
 use crate::models::claims::Claims;
-
-pub async fn fetch_jwks(jwks_url: &str) -> Result<jsonwebtoken::jwk::JwkSet> {
-    let jwks = Client::new()
-        .get(jwks_url)
-        .send()
-        .await?
-        .json()
-        .await?;
-
-    Ok(jwks)
-}
 
 pub async fn validate_token(
     token: &str,
@@ -44,5 +33,4 @@ pub async fn validate_token(
     } else {
         Err(jsonwebtoken::errors::ErrorKind::InvalidToken.into())
     }
-
 }

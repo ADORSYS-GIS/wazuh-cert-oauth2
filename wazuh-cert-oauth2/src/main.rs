@@ -1,16 +1,20 @@
 #[macro_use]
+extern crate log;
+
+#[macro_use]
 extern crate rocket;
 
 use std::env::var;
 
 use anyhow::*;
-use log::info;
 use tokio::sync::RwLock;
+
+use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
+use wazuh_cert_oauth2_model::services::fetch_only::fetch_only;
 
 use crate::handlers::health::health;
 use crate::handlers::register_agent::register_agent;
 use crate::models::jwks_state::JwksState;
-use crate::shared::jwks::fetch_jwks;
 
 mod errors;
 mod handlers;
@@ -29,12 +33,11 @@ async fn main() -> Result<()> {
         .map(|s| s.to_string());
 
 
-    let kc_host = var("KC_HOST")?;
-    let kc_realm = var("KC_REALM")?;
-    let jwks_url = format!("{}/realms/{}/protocol/openid-connect/certs", kc_host, kc_realm);
+    let oauth_issuer = var("OAUTH_ISSUER")?;
+    let document = fetch_only::<DiscoveryDocument>(&format!("{}/.well-known/openid-configuration", oauth_issuer)).await?;
 
-    info!("fetching JWKS from {}", jwks_url);
-    let jwks = fetch_jwks(&jwks_url).await.context("failed to fetch JWKS")?;
+    info!("fetching JWKS from {}", document.jwks_uri);
+    let jwks = fetch_only(&document.jwks_uri).await?;
 
     rocket::build()
         .manage(JwksState {

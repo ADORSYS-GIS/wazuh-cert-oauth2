@@ -103,10 +103,8 @@ volumeMounts: []
 env:
   - name: RUST_LOG
     value: "info"
-  - name: KC_HOST
-    value: "https://accounts.ssegning.com"
-  - name: KC_REALM
-    value: "adorsys"
+  - name: OAUTH_ISSUER
+    value: "https://accounts.ssegning.com/realms/adorsys"
   - name: KC_AUDIENCES
     value: "account"
   - name: ROOT_CA_PATH

@@ -1,10 +1,14 @@
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
-use crate::models::claims::Claims;
-use crate::models::jwks_state::JwksState;
-use crate::shared::jwks::validate_token;
 
-pub struct JwtToken(Claims);
+use wazuh_cert_oauth2_model::models::claims::Claims;
+use wazuh_cert_oauth2_model::services::jwks::validate_token;
+
+use crate::models::jwks_state::JwksState;
+
+pub struct JwtToken {
+    pub claims: Claims,
+}
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for JwtToken {
@@ -19,7 +23,7 @@ impl<'r> FromRequest<'r> for JwtToken {
             let state = request.rocket().state::<JwksState>().unwrap();
             let jwks = state.jwks.read().await;
             match validate_token(token, &jwks, &state.audiences).await {
-                Ok(claims) => Outcome::Success(JwtToken(claims)),
+                Ok(claims) => Outcome::Success(JwtToken { claims }),
                 Err(_) => Outcome::Error((Status::Unauthorized, ())),
             }
         } else {

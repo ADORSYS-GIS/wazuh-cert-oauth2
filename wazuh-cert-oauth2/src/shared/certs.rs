@@ -1,42 +1,50 @@
 use std::env::var;
-use std::fs::File;
-use std::io::Read;
-use std::path::Path;
+use std::fs::read;
 
 use anyhow::Result;
+use openssl::asn1::Asn1Time;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use openssl::x509::{X509, X509Req};
 use openssl::x509::extension::BasicConstraints;
 use openssl::x509::X509NameBuilder;
 use openssl::x509::X509ReqBuilder;
+use rand::RngCore;
+use rand::rngs::OsRng;
 
-use crate::models::register_agent_dto::{RegisterAgentDto, UserKey};
+use wazuh_cert_oauth2_model::models::register_agent_dto::RegisterAgentDto;
+use wazuh_cert_oauth2_model::models::user_key::UserKey;
 
-pub fn gen_cert(dto: RegisterAgentDto) -> Result<UserKey> {
-    // Load the CA certificate and private key
-    let root_ca = read_file(var("ROOT_CA_PATH")?)?;
-    let root_ca_key = read_file(var("ROOT_CA_KEY_PATH")?)?;
-    let ca_cert = X509::from_pem(&root_ca)?;
-    let ca_key = PKey::private_key_from_pem(&root_ca_key)?;
+use crate::handlers::middle::JwtToken;
 
-    // Generate a new private key for the agent
-    let agent_key = Rsa::generate(2048)?;
-    let agent_pkey = PKey::from_rsa(agent_key)?;
+pub fn gen_cert(_dto: RegisterAgentDto, JwtToken { claims }: JwtToken) -> Result<UserKey> {
+    // Generate a 4096-bit RSA private key
+    let rsa = Rsa::generate(4096)?;
+    let agent_pkey = PKey::from_rsa(rsa)?;
 
-    // Create a CSR for the agent
+    // Create a new CSR (Certificate Signing Request)
     let mut req_builder = X509ReqBuilder::new()?;
     req_builder.set_pubkey(&agent_pkey)?;
 
     // Set the subject name for the CSR
     let mut name_builder = X509NameBuilder::new()?;
-    name_builder.append_entry_by_text("CN", &dto.name)?;
+    name_builder.append_entry_by_text("CN", &claims.sub)?;
+    // name_builder.append_entry_by_text("tokenAudience", &claims.aud)?;
     let name = name_builder.build();
     req_builder.set_subject_name(&name)?;
     req_builder.sign(&agent_pkey, openssl::hash::MessageDigest::sha256())?;
     let csr = req_builder.build();
 
-    // Create the agent certificate by signing the CSR with the CA key
+    // Convert the CSR to PEM format
+    // let _csr_pem = csr.to_pem()?;
+
+    // Load the CA certificate and key
+    let ca_cert_pem = read(var("ROOT_CA_PATH")?)?;
+    let ca_key_pem = read(var("ROOT_CA_KEY_PATH")?)?;
+    let ca_cert = X509::from_pem(&ca_cert_pem)?;
+    let ca_key = PKey::private_key_from_pem(&ca_key_pem)?;
+
+    // Sign the CSR with the CA to create the agent certificate
     let agent_cert = sign_csr_with_ca(&csr, &ca_cert, &ca_key)?;
 
     // Convert the private key and certificate to PEM format
@@ -50,16 +58,12 @@ pub fn gen_cert(dto: RegisterAgentDto) -> Result<UserKey> {
     })
 }
 
-// Utility function to read a file into a Vec<u8>
-fn read_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, std::io::Error> {
-    let mut file = File::open(path)?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
-    Ok(buffer)
-}
-
 // Sign the CSR with the CA to create a certificate
-fn sign_csr_with_ca(csr: &X509Req, ca_cert: &X509, ca_key: &PKey<openssl::pkey::Private>) -> Result<X509> {
+fn sign_csr_with_ca(
+    csr: &X509Req,
+    ca_cert: &X509,
+    ca_key: &PKey<openssl::pkey::Private>,
+) -> Result<X509> {
     let mut builder = X509::builder()?;
     builder.set_version(2)?;
     builder.set_subject_name(csr.subject_name())?;
@@ -67,10 +71,21 @@ fn sign_csr_with_ca(csr: &X509Req, ca_cert: &X509, ca_key: &PKey<openssl::pkey::
     builder.set_pubkey(&pkey)?;
     builder.set_issuer_name(ca_cert.subject_name())?;
 
-    // Set certificate extensions, like basic constraints
-    let basic_constraints = BasicConstraints::new().critical().ca().build()?;
+    // Set certificate serial number
+    let mut serial = [0u8; 16];
+    OsRng.fill_bytes(&mut serial);
+    let serial_number = openssl::bn::BigNum::from_slice(&serial)?.to_asn1_integer()?;
+    builder.set_serial_number(&serial_number)?;
+
+    // Set certificate validity period
+    builder.set_not_before(Asn1Time::days_from_now(0)?.as_ref())?;
+    builder.set_not_after(Asn1Time::days_from_now(365)?.as_ref())?;
+
+    // Set basic constraints (Not a CA certificate)
+    let basic_constraints = BasicConstraints::new().build()?;
     builder.append_extension(basic_constraints)?;
 
+    // Sign the certificate with the CA's private key
     builder.sign(ca_key, openssl::hash::MessageDigest::sha256())?;
 
     Ok(builder.build())

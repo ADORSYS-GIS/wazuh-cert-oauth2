@@ -1,67 +1,163 @@
-name: Release
+name: Release Client
 
 on:
   push:
-    tags:
+    branches:
+      - '**'
+    tags-ignore:
       - 'v*'
-
-env:
-  CARGO_TERM_COLOR: always
+    paths:
+      - '.github/workflows/release.yml'
+      - 'wazuh-cert-oauth2-client/**'
+      - 'wazuh-cert-oauth2-model/**'
 
 jobs:
-  build:
-    permissions: write-all
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  build-ubuntu:
+    name: Build CLI
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - target: x86_64-unknown-linux-gnu
-            asset_name: openapi_cli_linux
-            os: ubuntu-latest
-            mv: mv target/release/wazuh-cert-oauth2-client target/release/openapi_cli_linux
-            up: target/release/openapi_cli_linux
-          - target: x86_64-apple-darwin
-            asset_name: openapi_cli_macos
-            os: macos-latest
-            mv: mv target/release/wazuh-cert-oauth2-client target/release/openapi_cli_macos
-            up: target/release/openapi_cli_macos
-          - target: x86_64-pc-windows-gnu
-            asset_name: openapi_cli_windows.exe
-            os: windows-latest
-            mv: mv target\release\wazuh-cert-oauth2-client.exe target\release\openapi_cli_windows.exe
-            up: target\release\openapi_cli_windows.exe
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Rust
-        uses: crusty-pie/toolchain@v1
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
         with:
-          profile: minimal
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
-      - name: Build
-        run: cargo build --release --verbose
-      - name: Move
-        run: ${{ matrix.mv }}
-      - name: Check
-        run: ls target/release
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
         with:
-          name: ${{ matrix.asset_name }}
-          path: ${{ matrix.up }}
+          path: |
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+
+      - name: Install cross
+        run: cargo install cross
+
+      - name: Build with cross
+        run: cross build --release --target ${{ matrix.target }}
+        working-directory: wazuh-cert-oauth2-client
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wazuh-cert-oauth2-client-${{ matrix.target }}
+          path: wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client*
+
+  build-macos:
+    name: Build CLI for macOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+
+      - name: Install macOS target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build with cargo
+        run: cargo build --release --target ${{ matrix.target }}
+        working-directory: wazuh-cert-oauth2-client
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wazuh-cert-oauth2-client-${{ matrix.target }}
+          path: wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client*
+
+  build-windows:
+    name: Build CLI for Windows
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-pc-windows-msvc
+          - aarch64-pc-windows-msvc
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+
+      - name: Install Windows target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build with cargo
+        run: cargo build --release --target ${{ matrix.target }}
+        working-directory: wazuh-cert-oauth2-client
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wazuh-cert-oauth2-client-${{ matrix.target }}
+          path: wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client*
 
   release:
     name: Release
     permissions: write-all
-    needs: build
+    needs:
+      - build-ubuntu
+      - build-macos
+      - build-windows
+    if: github.ref == 'refs/tags/v*'
     runs-on: ubuntu-latest
     steps:
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -72,14 +168,18 @@ jobs:
           release_name: Release ${{ steps.get_version.outputs.VERSION }}
           draft: false
           prerelease: false
+
       - name: Download Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           path: .
-      - name: Check
+
+      - name: Check Artifacts
         run: ls
+
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v1
+        if: github.ref == 'refs/head/main'
         with:
           files: '**'
         env:
