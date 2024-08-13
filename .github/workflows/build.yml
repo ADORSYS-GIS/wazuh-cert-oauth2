@@ -1,4 +1,4 @@
-name: Build Translator
+name: Build Docker image
 
 on:
   push:
