@@ -1,0 +1,67 @@
+name: Helm Publish
+
+on:
+  push:
+    branches:
+      - '*'  # Matches all branches
+    paths:
+      - 'helm/Chart.yaml'
+      - '.github/workflows/helm-publish.yml'
+
+jobs:
+
+  helm-publish:
+    runs-on: ubuntu-latest
+    name: Publish Helm Chart
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Cache Helm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/helm
+          key: ${{ runner.os }}-helm-${{ hashFiles('**/Chart.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-helm-
+
+      - name: Add Helm repo
+        if: github.ref == 'refs/heads/main'
+        run: helm repo add chartmuseum ${{ vars.HELM_URL }} --username ${{ secrets.HELM_USER }} --password ${{ secrets.HELM_PASS }}
+
+      - name: Helm dependency update
+        run: helm dependency update helm
+
+      - name: Helm lint
+        run: helm lint helm
+
+      - name: Install Helm push plugin
+        if: github.ref == 'refs/heads/main'
+        run: helm plugin install https://github.com/chartmuseum/helm-push
+
+      - name: Fetch existing charts
+        if: github.ref == 'refs/heads/main'
+        id: fetch-charts
+        run: |
+          helm repo update
+          CHART_VERSION=$(awk '/^version:/ {print $2}' helm/Chart.yaml | tr -d '"')
+          echo "CHART_VERSION=${CHART_VERSION}" >> $GITHUB_ENV
+          helm search repo chartmuseum/wazuh-cert-oauth2 --version ${CHART_VERSION} --output json > search_result.json
+          cat search_result.json
+
+      - name: Check chart version existence
+        if: github.ref == 'refs/heads/main'
+        id: check-version
+        run: |
+          if jq -e 'length > 0' search_result.json > /dev/null; then
+            echo "CHART_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "CHART_EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Publish Helm chart
+        if: github.ref == 'refs/heads/main' && env.CHART_EXISTS == 'false'
+        run: helm cm-push helm chartmuseum
