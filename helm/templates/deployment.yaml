@@ -1,72 +1,71 @@
+{{ with .Values }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "wazuh-cert-oauth2.fullname" . }}
+  name: {{ include "common.names.fullname" $ }}
+  namespace: {{ include "common.names.namespace" $ }}
   labels:
-    {{- include "wazuh-cert-oauth2.labels" . | nindent 4 }}
+    {{- include "common.labels.standard" ( dict "customLabels" .commonLabels "context" $ ) | nindent 4 }}
+  annotations:
+    {{- include "common.annotations.standard" ( dict "customAnnotations" .commonAnnotations "context" $ ) | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
+  {{- if not .autoscaling.enabled }}
+  replicas: {{ .replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "wazuh-cert-oauth2.selectorLabels" . | nindent 6 }}
+      {{ include "common.labels.matchLabels" ( dict "customLabels" .podLabels "context" $ ) | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- with .podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "wazuh-cert-oauth2.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+        {{ include "common.labels.standard" ( dict "customLabels" .podLabels "context" $ ) | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "wazuh-cert-oauth2.serviceAccountName" . }}
+      serviceAccountName: {{ include "common.names.fullname" $ }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml .podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ include "common.names.name" $ }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
+            {{- toYaml .securityContext | nindent 12 }}
+          {{ $imageTpl := include "common.images.image" (dict "imageRoot" .image "global" $.Values.global) }}
+          image: {{ include "common.tplvalues.render" (dict "value" $imageTpl "context" $) | quote }}
+          {{ with .resources -}}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-          {{- with .Values.volumeMounts }}
-          volumeMounts:
-            {{- toYaml . | nindent 12 }}
+          {{ include "common.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
           {{- end }}
-          {{- with .Values.env }}
+          {{ with .volumeMounts -}}
+          volumeMounts: {{ include "common.tplvalues.render" (dict "value" . "context" $) | nindent 12}}
+          {{- end }}
+          {{ with .ports -}}
+          ports: {{ include "common.tplvalues.render" (dict "value" . "context" $) | nindent 12}}
+          {{- end }}
+          {{ with .env -}}
           env:
-            {{- toYaml . | nindent 12 }}
+          {{- include "common.tplvalues.render" (dict "value" . "context" $) | nindent 12}}
           {{- end }}
-      {{- with .Values.volumes }}
+          {{ with .envFrom -}}
+          envFrom:
+          {{ include "common.tplvalues.render" (dict "value" . "context" $) | nindent 12}}
+          {{- end }}
+      {{- with .volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with .nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with .affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+{{ end }}

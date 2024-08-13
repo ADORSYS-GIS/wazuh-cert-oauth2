@@ -1,15 +1,22 @@
+{{ with .Values.service }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "wazuh-cert-oauth2.fullname" . }}
+  name: {{ include "common.names.fullname" $ }}
+  namespace: {{ include "common.names.namespace" $ }}
   labels:
-    {{- include "wazuh-cert-oauth2.labels" . | nindent 4 }}
+    {{- include "common.labels.standard" ( dict "customLabels" .additionalLabels "context" $ ) | nindent 4 }}
+  annotations:
+    {{- include "common.annotations.standard" ( dict "customAnnotations" .additionalAnnotations "context" $ ) | nindent 4 }}
 spec:
-  type: {{ .Values.service.type }}
+  {{ with .type }}
+  type: {{ include "common.tplvalues.render" (dict "value" . "context" $) }}
+  {{ end }}
   ports:
-    - port: {{ .Values.service.port }}
+    - port: {{ include "common.tplvalues.render" (dict "value" .port "context" $) }}
       targetPort: http
       protocol: TCP
       name: http
   selector:
-    {{- include "wazuh-cert-oauth2.selectorLabels" . | nindent 4 }}
+    {{- include "common.labels.matchLabels" ( dict "customLabels" .additionalLabels "context" $ ) | nindent 4 }}
+{{ end }}

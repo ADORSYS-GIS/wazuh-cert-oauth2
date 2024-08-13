@@ -50,11 +50,14 @@ jobs:
         run: cross build --release --target ${{ matrix.target }}
         working-directory: wazuh-cert-oauth2-client
 
+      - name: Rename resource
+        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
-          path: wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client*
+          path: wazuh-cert-oauth2-client-${{ matrix.target }}
 
   build-macos:
     name: Build CLI for macOS
@@ -94,11 +97,14 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
         working-directory: wazuh-cert-oauth2-client
 
+      - name: Rename resource
+        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
-          path: wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client*
+          path: wazuh-cert-oauth2-client-${{ matrix.target }}
 
   build-windows:
     name: Build CLI for Windows
@@ -138,11 +144,14 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }}
         working-directory: wazuh-cert-oauth2-client
 
+      - name: Rename resource
+        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client.exe wazuh-cert-oauth2-client-${{ matrix.target }}.exe
+
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
-          path: wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client*
+          path: wazuh-cert-oauth2-client-${{ matrix.target }}.exe
 
   release:
     name: Release
