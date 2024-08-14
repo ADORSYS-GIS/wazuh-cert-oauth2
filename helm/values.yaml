@@ -146,6 +146,8 @@ env:
     value: "/usr/share/wazuh-cert-oauth2/certs/root-ca.pem"
   - name: ROOT_CA_KEY_PATH
     value: "/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem"
+  - name: ROCKET_ADDRESS
+    value: "0.0.0.0"
 
 envFrom: []
 
