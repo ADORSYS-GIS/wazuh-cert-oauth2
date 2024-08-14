@@ -70,10 +70,22 @@ else
   SHELL_RC="$HOME/.bashrc"
 fi
 
-# Source the appropriate shell configuration file to make the command available immediately
+# Update the PATH and set RUST_LOG in the appropriate shell configuration file
 if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
   echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
+fi
+
+# Set RUST_LOG environment variable
+if ! grep -q "export RUST_LOG=info" "$SHELL_RC"; then
+  echo "export RUST_LOG=info" >> "$SHELL_RC"
+fi
+
+# Source the shell configuration only if it's an interactive shell
+if [[ $- == *i* ]]; then
   source "$SHELL_RC"
+  echo "Shell configuration sourced successfully!"
+else
+  echo "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
 fi
 
 echo "Installation complete! You can now use 'wazuh-cert-oauth2-client' from your terminal."
