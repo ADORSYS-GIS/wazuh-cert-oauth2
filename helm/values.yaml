@@ -12,7 +12,7 @@ image:
   registry: ghcr.io
   ##
   ##
-  repository: adorsys-gis/wazuh-cert-oauth2d
+  repository: adorsys-gis/wazuh-cert-oauth2
   tag: 'latest'
   digest: ""
   ## Specify a imagePullPolicy
