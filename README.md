@@ -8,3 +8,34 @@ This project demonstrate by example how to authenticate with Keycloak and
 submit a certificate to the end use. The goal is for the user to send a 
 signed request after he go one from the server to the wazuh server, using
 the certificate that was signed by the server CA.
+
+## Installation
+To install this, you need to have a Keycloak server running. You can use the
+docker-compose file in the `keycloak` folder to start a Keycloak server.
+
+```bash
+docker-compose -f keycloak/docker-compose.yml up -d
+```
+
+After that, you need to create a realm and a client in Keycloak. You can use
+the `keycloak/realm.json` file to import the realm configuration.
+
+```bash
+curl -X POST -H "Content-Type: application/json" -d @keycloak/realm.json http://localhost:8080/auth/realms
+```
+
+## Agent companion installation
+To install the agent companion, you need to run the script that will download
+it and install it for you:
+
+```bash
+curl -sL https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/main/scripts/install.sh | bash
+```
+
+## Server companion installation
+The server companion is installed through a helm chart
+
+## Usage
+```bash
+wazuh-cert-oauth2-client -h
+```
