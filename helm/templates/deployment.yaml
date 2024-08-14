@@ -1,3 +1,4 @@
+{{- $saEnabled := .Values.serviceAccount.create -}}
 {{ with .Values }}
 apiVersion: apps/v1
 kind: Deployment
@@ -24,7 +25,9 @@ spec:
       labels:
         {{ include "common.labels.standard" ( dict "customLabels" .podLabels "context" $ ) | nindent 8 }}
     spec:
+      {{ if $saEnabled -}}
       serviceAccountName: {{ include "common.names.fullname" $ }}
+      {{- end }}
       securityContext:
         {{- toYaml .podSecurityContext | nindent 8 }}
       containers:
