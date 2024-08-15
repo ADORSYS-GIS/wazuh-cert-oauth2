@@ -1,87 +1,119 @@
 #!/bin/sh
 
-# Check if we're running in bash; if not, adjust behavior
+# Set shell options based on shell type
 if [ -n "$BASH_VERSION" ]; then
     set -euo pipefail
 else
     set -eu
 fi
 
+# Default log level and application details
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 APP_NAME="wazuh-cert-oauth2-client"
 WOPS_VERSION=${WOPS_VERSION:-"0.1.5"}
+USER="root"
+GROUP="wazuh"
 
-# Function to handle logging
+# Function for logging with timestamp
 log() {
     local LEVEL="$1"
     shift
     local MESSAGE="$*"
-    local TIMESTAMP
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-
+    local TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
     if [ "$LEVEL" = "ERROR" ] || { [ "$LEVEL" = "WARNING" ] && [ "$LOG_LEVEL" != "ERROR" ]; } || { [ "$LEVEL" = "INFO" ] && [ "$LOG_LEVEL" = "INFO" ]; }; then
         echo "$TIMESTAMP [$LEVEL] $MESSAGE"
     fi
 }
 
-# Function to print steps
+# Print step details
 print_step() {
     local step="$1"
     local message="$2"
-    log INFO "------ Step $step : $message ------"
+    log INFO "------ Step $step: $message ------"
 }
 
-# Function to print an error message and exit
+# Exit script with an error message
 error_exit() {
     log ERROR "$1"
     exit 1
 }
 
-# Function to check if a command exists
+# Check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Determine the OS and set paths accordingly
+# Ensure root privileges, either directly or through sudo
+maybe_sudo() {
+    if [ "$(id -u)" -ne 0 ]; then
+        if command_exists sudo; then
+            sudo "$@"
+        else
+            log ERROR "This script requires root privileges. Please run with sudo or as root."
+            exit 1
+        fi
+    else
+        "$@"
+    fi
+}
+
+# Create user and group if they do not exist
+ensure_user_group() {
+    log INFO "Ensuring that the $USER:$GROUP user and group exist..."
+
+    if ! id -u "$USER" >/dev/null 2>&1; then
+        log INFO "Creating user $USER..."
+        if [ "$(uname -o)" = "GNU/Linux" ] && command -v groupadd >/dev/null 2>&1; then
+            maybe_sudo useradd -m "$USER"
+        elif [ "$(which apk)" = "/sbin/apk" ]; then
+            maybe_sudo adduser -D "$USER"
+        else
+            log ERROR "Unsupported OS for creating user."
+            exit 1
+        fi
+    fi
+
+    if ! getent group "$GROUP" >/dev/null 2>&1; then
+        log INFO "Creating group $GROUP..."
+        if [ "$(uname -o)" = "GNU/Linux" ] && command -v groupadd >/dev/null 2>&1; then
+            maybe_sudo groupadd "$GROUP"
+        elif [ "$(which apk)" = "/sbin/apk" ]; then
+            maybe_sudo addgroup "$GROUP"
+        else
+            log ERROR "Unsupported OS for creating group."
+            exit 1
+        fi
+    fi
+}
+
+# Change ownership of a file or directory
+change_owner() {
+    local path="$1"
+    ensure_user_group
+    maybe_sudo chown "$USER:$GROUP" "$path"
+}
+
+# Determine the OS and architecture
 case "$(uname)" in
-    "Linux")
-        OS="unknown-linux-gnu"
-        BIN_DIR="$HOME/.local/bin"
-        ;;
-    "Darwin")
-        OS="apple-darwin"
-        BIN_DIR="/usr/local/bin"
-        ;;
-    *)
-        error_exit "Unsupported operating system: $(uname)"
-        ;;
+    "Linux") OS="unknown-linux-gnu"; BIN_DIR="$HOME/.local/bin" ;;
+    "Darwin") OS="apple-darwin"; BIN_DIR="/usr/local/bin" ;;
+    *) error_exit "Unsupported operating system: $(uname)" ;;
 esac
 
-# Determine the architecture
 ARCH=$(uname -m)
 case "$ARCH" in
-    "x86_64")
-        ARCH="x86_64"
-        ;;
-    "arm64"|"aarch64")
-        ARCH="aarch64"
-        ;;
-    *)
-        error_exit "Unsupported architecture: $ARCH"
-        ;;
+    "x86_64") ARCH="x86_64" ;;
+    "arm64"|"aarch64") ARCH="aarch64" ;;
+    *) error_exit "Unsupported architecture: $ARCH" ;;
 esac
 
-# Construct the full binary name
+# Construct binary name and URL for download
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
-
-# URL for downloading the binary
 BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 URL="$BASE_URL/$BIN_NAME"
 
-# Create a temporary directory for the download
+# Create a temporary directory and ensure it is cleaned up
 TEMP_DIR=$(mktemp -d) || error_exit "Failed to create temporary directory"
-
-# Ensure the temporary directory is removed on exit
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # Step 1: Download the binary file
@@ -90,34 +122,33 @@ curl -SL --progress-bar -o "$TEMP_DIR/$BIN_NAME" "$URL" || error_exit "Failed to
 
 # Step 2: Install the binary
 print_step 2 "Installing binary to $BIN_DIR..."
-mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DIR"
-mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
-chown root:wazuh "$BIN_DIR/$APP_NAME" || error_exit "Failed to set ownership on the binary"
-chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
+maybe_sudo mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DIR"
+maybe_sudo mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
+change_owner "$BIN_DIR/$APP_NAME"
+maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
 
 # Step 3: Update shell configuration
 print_step 3 "Updating shell configuration..."
 
-# Determine whether to source .zshrc or .bashrc
+# Determine the appropriate shell configuration file
 if command_exists zsh; then
     SHELL_RC="$HOME/.zshrc"
 else
     SHELL_RC="$HOME/.bashrc"
 fi
 
-# Update the PATH and set RUST_LOG in the appropriate shell configuration file
+# Add binary directory to PATH and set RUST_LOG environment variable
 if ! grep -q "export PATH=\"$BIN_DIR:\$PATH\"" "$SHELL_RC"; then
     echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
     log INFO "Updated PATH in $SHELL_RC"
 fi
 
-# Set RUST_LOG environment variable
 if ! grep -q "export RUST_LOG=info" "$SHELL_RC"; then
     echo "export RUST_LOG=info" >> "$SHELL_RC"
     log INFO "Set RUST_LOG=info in $SHELL_RC"
 fi
 
-# Source the shell configuration if in an interactive shell
+# Source the shell configuration in interactive mode
 if [[ $- == *i* ]]; then
     source "$SHELL_RC"
     log INFO "Shell configuration sourced successfully!"
