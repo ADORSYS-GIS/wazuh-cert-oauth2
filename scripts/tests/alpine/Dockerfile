@@ -1,5 +1,7 @@
 FROM alpine
 
+RUN apk update && apk add curl
+
 # Install dependencies
 COPY ./install.sh .
 
