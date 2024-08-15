@@ -17,7 +17,7 @@ log() {
     shift
     local MESSAGE="$*"
     local TIMESTAMP
-    TIMESTAMP=$(date + "%Y-%m-%d %H:%M:%S")
+    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 
     if [ "$LEVEL" = "ERROR" ] || { [ "$LEVEL" = "WARNING" ] && [ "$LOG_LEVEL" != "ERROR" ]; } || { [ "$LEVEL" = "INFO" ] && [ "$LOG_LEVEL" = "INFO" ]; }; then
         echo "$TIMESTAMP [$LEVEL] $MESSAGE"
