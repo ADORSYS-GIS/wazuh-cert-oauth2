@@ -1,0 +1,25 @@
+name: Test install script
+
+on: [ push, pull_request ]
+
+jobs:
+  test_yara:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu, debian, alpine]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./scripts
+          file: ./tests/${{ matrix.os }}/Dockerfile
+          push: false
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
