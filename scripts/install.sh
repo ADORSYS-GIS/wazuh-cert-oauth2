@@ -9,8 +9,9 @@ fi
 
 # Default log level and application details
 LOG_LEVEL=${LOG_LEVEL:-INFO}
-APP_NAME="wazuh-cert-oauth2-client"
+APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
 WOPS_VERSION=${WOPS_VERSION:-"0.1.5"}
+OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 USER="root"
 GROUP="wazuh"
 
@@ -93,6 +94,31 @@ change_owner() {
     maybe_sudo chown "$USER:$GROUP" "$path"
 }
 
+# Function to configure agent certificates in ossec.conf
+configure_agent_certificates() {
+    log INFO "Configuring agent certificates..."
+
+    # Check and insert agent certificate path if it doesn't exist
+    if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
+        maybe_sudo sed -i '/<agent_name=*/ a\
+        <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
+            log ERROR "Error occurred during Wazuh agent certificate configuration."
+            exit 1
+        }
+    fi
+
+    # Check and insert agent key path if it doesn't exist
+    if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
+        maybe_sudo sed -i '/<agent_name=*/ a\
+        <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
+            log ERROR "Error occurred during Wazuh agent key configuration."
+            exit 1
+        }
+    fi
+
+    log INFO "Agent certificates path configured successfully."
+}
+
 # Determine the OS and architecture
 case "$(uname)" in
     "Linux") OS="unknown-linux-gnu"; BIN_DIR="$HOME/.local/bin" ;;
@@ -156,4 +182,14 @@ else
     log INFO "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
 fi
 
-log INFO "Installation complete! You can now use '$APP_NAME' from your terminal."
+# Step 4: Configure agent certificates
+print_step 4 "Configuring Wazuh agent certificates..."
+
+## If OSSEC_CONF_PATH exist, then configure agent
+if [ -f "$OSSEC_CONF_PATH" ]; then
+    configure_agent_certificates
+else
+    log WARNING "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
+fi
+
+log INFO "Installation and configuration complete! You can now use '$APP_NAME' from your terminal."
