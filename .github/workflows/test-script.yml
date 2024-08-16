@@ -3,7 +3,7 @@ name: Test install script
 on: [ push, pull_request ]
 
 jobs:
-  test_yara:
+  test_script:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -21,4 +21,4 @@ jobs:
 
       - name: Build and push
         run: |
-          docker run --rm -it -v "$PWD:/app" bats/bats:latest /app/scripts/tests/test-script.bats
+          docker run --rm -v "$PWD:/app" bats/bats:latest /app/scripts/tests/test-script.bats
