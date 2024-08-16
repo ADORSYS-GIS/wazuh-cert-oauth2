@@ -164,21 +164,18 @@ else
 fi
 
 # Add binary directory to PATH and set RUST_LOG environment variable
+echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
 if ! grep -q "export PATH=\"$BIN_DIR:\$PATH\"" "$SHELL_RC"; then
-    echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
     log INFO "Updated PATH in $SHELL_RC"
 fi
 
+echo "export RUST_LOG=info" >> "$SHELL_RC"
 if ! grep -q "export RUST_LOG=info" "$SHELL_RC"; then
-    echo "export RUST_LOG=info" >> "$SHELL_RC"
     log INFO "Set RUST_LOG=info in $SHELL_RC"
 fi
 
 # Source the shell configuration in interactive mode
-if [[ $- == *i* ]]; then
-    source "$SHELL_RC"
-    log INFO "Shell configuration sourced successfully!"
-else
+if command_exists source && ! source "$SHELL_RC"; then
     log INFO "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
 fi
 

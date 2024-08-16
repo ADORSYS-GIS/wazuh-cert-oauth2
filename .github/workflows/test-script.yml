@@ -5,9 +5,6 @@ on: [ push, pull_request ]
 jobs:
   test_yara:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [ubuntu, debian, alpine]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,9 +20,5 @@ jobs:
           platforms: ${{ steps.qemu.outputs.platforms }}
 
       - name: Build and push
-        uses: docker/build-push-action@v4
-        with:
-          context: ./scripts
-          file: ./scripts/tests/${{ matrix.os }}/Dockerfile
-          push: false
-          platforms: linux/amd64,linux/arm64
+        run: |
+          docker run --rm -it -v "$PWD:/app" bats/bats:latest /app/scripts/tests/test-script.bats
