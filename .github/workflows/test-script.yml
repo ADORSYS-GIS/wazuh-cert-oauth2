@@ -19,6 +19,6 @@ jobs:
         with:
           platforms: ${{ steps.qemu.outputs.platforms }}
 
-      - name: Build and push
+      - name: Test script
         run: |
           docker run --rm -v "$PWD:/app" bats/bats:latest /app/scripts/tests/test-script.bats
