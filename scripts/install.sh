@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Set shell options based on shell type
 if [ -n "$BASH_VERSION" ]; then
@@ -15,27 +15,48 @@ OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 USER="root"
 GROUP="wazuh"
 
+# Define text formatting
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+BOLD='\033[1m'
+NORMAL='\033[0m'
+
 # Function for logging with timestamp
 log() {
     local LEVEL="$1"
     shift
     local MESSAGE="$*"
-    local TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    if [ "$LEVEL" = "ERROR" ] || { [ "$LEVEL" = "WARNING" ] && [ "$LOG_LEVEL" != "ERROR" ]; } || { [ "$LEVEL" = "INFO" ] && [ "$LOG_LEVEL" = "INFO" ]; }; then
-        echo "$TIMESTAMP [$LEVEL] $MESSAGE"
-    fi
+    local TIMESTAMP
+    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+    echo -e "${TIMESTAMP} ${LEVEL} ${MESSAGE}"
 }
 
-# Print step details
+# Logging helpers
+info_message() {
+    log "${BLUE}${BOLD}[INFO]${NORMAL}" "$*"
+}
+
+warn_message() {
+    log "${YELLOW}${BOLD}[WARNING]${NORMAL}" "$*"
+}
+
+error_message() {
+    log "${RED}${BOLD}[ERROR]${NORMAL}" "$*"
+}
+
+success_message() {
+    log "${GREEN}${BOLD}[SUCCESS]${NORMAL}" "$*"
+}
+
 print_step() {
-    local step="$1"
-    local message="$2"
-    log INFO "------ Step $step: $message ------"
+    log "${BLUE}${BOLD}[STEP]${NORMAL}" "$1: $2"
 }
 
 # Exit script with an error message
 error_exit() {
-    log ERROR "$1"
+    error_message "$1"
     exit 1
 }
 
@@ -50,7 +71,7 @@ maybe_sudo() {
         if command_exists sudo; then
             sudo "$@"
         else
-            log ERROR "This script requires root privileges. Please run with sudo or as root."
+            error_message "This script requires root privileges. Please run with sudo or as root."
             exit 1
         fi
     else
@@ -60,28 +81,28 @@ maybe_sudo() {
 
 # Create user and group if they do not exist
 ensure_user_group() {
-    log INFO "Ensuring that the $USER:$GROUP user and group exist..."
+    info_message "Ensuring that the $USER:$GROUP user and group exist..."
 
     if ! id -u "$USER" >/dev/null 2>&1; then
-        log INFO "Creating user $USER..."
+        info_message "Creating user $USER..."
         if [ "$(uname -o)" = "GNU/Linux" ] && command -v groupadd >/dev/null 2>&1; then
             maybe_sudo useradd -m "$USER"
         elif [ "$(which apk)" = "/sbin/apk" ]; then
             maybe_sudo adduser -D "$USER"
         else
-            log ERROR "Unsupported OS for creating user."
+            error_message "Unsupported OS for creating user."
             exit 1
         fi
     fi
 
     if ! getent group "$GROUP" >/dev/null 2>&1; then
-        log INFO "Creating group $GROUP..."
+        info_message "Creating group $GROUP..."
         if [ "$(uname -o)" = "GNU/Linux" ] && command -v groupadd >/dev/null 2>&1; then
             maybe_sudo groupadd "$GROUP"
         elif [ "$(which apk)" = "/sbin/apk" ]; then
             maybe_sudo addgroup "$GROUP"
         else
-            log ERROR "Unsupported OS for creating group."
+            error_message "Unsupported OS for creating group."
             exit 1
         fi
     fi
@@ -96,13 +117,13 @@ change_owner() {
 
 # Function to configure agent certificates in ossec.conf
 configure_agent_certificates() {
-    log INFO "Configuring agent certificates..."
+    info_message "Configuring agent certificates..."
 
     # Check and insert agent certificate path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
         maybe_sudo sed -i '/<agent_name=*/ a\
         <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
-            log ERROR "Error occurred during Wazuh agent certificate configuration."
+            error_message "Error occurred during Wazuh agent certificate configuration."
             exit 1
         }
     fi
@@ -111,12 +132,12 @@ configure_agent_certificates() {
     if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
         maybe_sudo sed -i '/<agent_name=*/ a\
         <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
-            log ERROR "Error occurred during Wazuh agent key configuration."
+            error_message "Error occurred during Wazuh agent key configuration."
             exit 1
         }
     fi
 
-    log INFO "Agent certificates path configured successfully."
+    info_message "Agent certificates path configured successfully."
 }
 
 # Determine the OS and architecture
@@ -166,17 +187,17 @@ fi
 # Add binary directory to PATH and set RUST_LOG environment variable
 echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
 if ! grep -q "export PATH=\"$BIN_DIR:\$PATH\"" "$SHELL_RC"; then
-    log INFO "Updated PATH in $SHELL_RC"
+    info_message "Updated PATH in $SHELL_RC"
 fi
 
 echo "export RUST_LOG=info" >> "$SHELL_RC"
 if ! grep -q "export RUST_LOG=info" "$SHELL_RC"; then
-    log INFO "Set RUST_LOG=info in $SHELL_RC"
+    info_message "Set RUST_LOG=info in $SHELL_RC"
 fi
 
 # Source the shell configuration in interactive mode
 if command_exists source && ! source "$SHELL_RC"; then
-    log INFO "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
+    info_message "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
 fi
 
 # Step 4: Configure agent certificates
@@ -186,7 +207,7 @@ print_step 4 "Configuring Wazuh agent certificates..."
 if [ -f "$OSSEC_CONF_PATH" ]; then
     configure_agent_certificates
 else
-    log WARNING "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
+    warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
 
-log INFO "Installation and configuration complete! You can now use '$APP_NAME' from your terminal."
+success_message "Installation and configuration complete! You can now use '$APP_NAME' from your terminal."
