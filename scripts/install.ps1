@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 # Configuration variables
 $LOG_LEVEL = "INFO"
 $APP_NAME = "wazuh-cert-oauth2-client"
-$WOPS_VERSION = $env:WOPS_VERSION -or "0.1.5"
+$WOPS_VERSION = $env:WOPS_VERSION -or "0.2.0"
 
 # Function to handle logging
 function Log {

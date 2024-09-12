@@ -10,7 +10,7 @@ fi
 # Default log level and application details
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.1.5"}
+WOPS_VERSION=${WOPS_VERSION:-"0.2.0"}
 OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 USER="root"
 GROUP="wazuh"
