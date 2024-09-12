@@ -139,7 +139,7 @@ env:
   - name: RUST_LOG
     value: "info"
   - name: OAUTH_ISSUER
-    value: "https://accounts.ssegning.com/realms/adorsys"
+    value: "https://login.wazuh.adorsys.team/realms/adorsys"
   - name: KC_AUDIENCES
     value: "account"
   - name: ROOT_CA_PATH

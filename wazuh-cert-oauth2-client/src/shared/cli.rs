@@ -5,7 +5,7 @@ use structopt::StructOpt;
 pub enum Opt {
     #[structopt(about = "Configure OAuth2 for Wazuh")]
     OAuth2 {
-        #[structopt(long, default_value = "https://accounts.ssegning.com/realms/adorsys")]
+        #[structopt(long, default_value = "https://login.wazuh.adorsys.team/realms/adorsys")]
         issuer: String,
 
         #[structopt(long, short = "i", default_value = "adorsys-machine-client")]
