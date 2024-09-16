@@ -108,13 +108,6 @@ ensure_user_group() {
     fi
 }
 
-# Change ownership of a file or directory
-change_owner() {
-    local path="$1"
-    ensure_user_group
-    maybe_sudo chown "$USER:$GROUP" "$path"
-}
-
 # Function to configure agent certificates in ossec.conf
 configure_agent_certificates() {
     info_message "Configuring agent certificates..."
@@ -171,7 +164,6 @@ curl -SL --progress-bar -o "$TEMP_DIR/$BIN_NAME" "$URL" || error_exit "Failed to
 print_step 2 "Installing binary to $BIN_DIR..."
 maybe_sudo mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DIR"
 maybe_sudo mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
-change_owner "$BIN_DIR/$APP_NAME"
 maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
 
 # Step 3: Update shell configuration
@@ -184,14 +176,16 @@ else
     SHELL_RC="$HOME/.bashrc"
 fi
 
-# Add binary directory to PATH and set RUST_LOG environment variable
-echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
+# If not yet present, add binary directory to PATH and set RUST_LOG environment variable
 if ! grep -q "export PATH=\"$BIN_DIR:\$PATH\"" "$SHELL_RC"; then
+    info_message "Adding $BIN_DIR to PATH in $SHELL_RC..."
+    echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
     info_message "Updated PATH in $SHELL_RC"
 fi
 
-echo "export RUST_LOG=info" >> "$SHELL_RC"
+# Set RUST_LOG environment variable to 'info'
 if ! grep -q "export RUST_LOG=info" "$SHELL_RC"; then
+    echo "export RUST_LOG=info" >> "$SHELL_RC"
     info_message "Set RUST_LOG=info in $SHELL_RC"
 fi
 

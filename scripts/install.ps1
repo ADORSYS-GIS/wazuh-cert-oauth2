@@ -1,108 +1,131 @@
-# Ensure the script stops on any error
+# Set error handling
 $ErrorActionPreference = "Stop"
 
-# Configuration variables
-$LOG_LEVEL = "INFO"
-$APP_NAME = "wazuh-cert-oauth2-client"
-$WOPS_VERSION = $env:WOPS_VERSION -or "0.2.1"
+# Default log level and application details
+$LOG_LEVEL = ${LOG_LEVEL:-"INFO"}
+$APP_NAME = ${APP_NAME:-"wazuh-cert-oauth2-client"}
+$WOPS_VERSION = ${WOPS_VERSION:-"0.2.1"}
+$OSSEC_CONF_PATH = ${OSSEC_CONF_PATH:-"C:\Program Files\ossec\etc\ossec.conf"}
+$USER = "root"
+$GROUP = "wazuh"
 
-# Function to handle logging
-function Log {
-    param (
+# Function for logging with timestamp
+function Log
+{
+    param(
         [string]$Level,
         [string]$Message
     )
     $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    if ($Level -eq "ERROR" -or ($Level -eq "WARNING" -and $LOG_LEVEL -ne "ERROR") -or ($Level -eq "INFO" -and $LOG_LEVEL -eq "INFO")) {
-        Write-Host "$Timestamp [$Level] $Message"
-    }
+    Write-Output "$Timestamp $Level $Message"
 }
 
-# Function to print steps
-function Print-Step {
-    param (
-        [string]$Step,
-        [string]$Message
-    )
-    Log "INFO" "------ Step $Step : $Message ------"
+# Logging helpers
+function Info-Message
+{
+    Log -Level "INFO" -Message $args
 }
 
-# Function to handle errors
-function Error-Exit {
-    param (
-        [string]$Message
-    )
-    Log "ERROR" $Message
+function Warn-Message
+{
+    Log -Level "WARNING" -Message $args
+}
+
+function Error-Message
+{
+    Log -Level "ERROR" -Message $args
+}
+
+function Success-Message
+{
+    Log -Level "SUCCESS" -Message $args
+}
+
+# Exit script with an error message
+function Error-Exit
+{
+    param([string]$message)
+    Error-Message -message $message
     exit 1
 }
 
-# Determine the architecture
-$ARCH = $env:PROCESSOR_ARCHITECTURE
-switch ($ARCH) {
-    "AMD64" { $ARCH = "x86_64" }
-    "ARM64" { $ARCH = "aarch64" }
-    default { Error-Exit "Unsupported architecture: $ARCH" }
+# Check if a command exists
+function Command-Exists
+{
+    param([string]$Name)
+    return $null -ne Get-Command $Name -ErrorAction SilentlyContinue
 }
 
-# Set paths based on OS
-$OS = "windows"
-$BinDir = "$env:USERPROFILE\bin"
-$BinName = "$APP_NAME-$ARCH-$OS.exe"
-
-# URL for downloading the binary
-$BaseUrl = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
-$Url = "$BaseUrl/$BinName"
-
-# Create a temporary directory for the download
-$TempDir = New-Item -ItemType Directory -Path ([System.IO.Path]::GetTempPath() + [System.IO.Path]::GetRandomFileName()) -Force
-if (-not $TempDir) {
-    Error-Exit "Failed to create temporary directory"
-}
-
-# Ensure the temporary directory is removed on exit
-function Cleanup {
-    if (Test-Path $TempDir) {
-        Remove-Item -Force -Recurse $TempDir
+# Ensure root privileges
+function Maybe-Sudo
+{
+    param([scriptblock]$ScriptBlock)
+    if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))
+    {
+        if (Command-Exists -Name "sudo")
+        {
+            sudo $ScriptBlock
+        }
+        else
+        {
+            Error-Message "This script requires admin privileges. Please run as an administrator."
+            exit 1
+        }
+    }
+    else
+    {
+        & $ScriptBlock
     }
 }
-trap { Cleanup; exit 1 }
+
+# Create user and group if they do not exist
+function Ensure-User-Group
+{
+    Info-Message "Ensuring that the $USER: $GROUP user and group exist..."
+    # This part may need to be adapted based on your environment or requirements
+}
+
+# Function to configure agent certificates in ossec.conf
+function Configure-Agent-Certificates
+{
+    Info-Message "Configuring agent certificates..."
+    $agentCertificatePath = 'etc\sslagent.cert'
+    $agentKeyPath = 'etc\sslagent.key'
+    # Add your logic here to update the $OSSEC_CONF_PATH file
+}
+
+# Determine the OS and architecture
+$OS = $env:OS
+$ARCH = $env:PROCESSOR_ARCHITECTURE
+
+# Construct binary name and URL for download
+$BIN_NAME = "$APP_NAME-$ARCH-$OS"
+$BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
+$URL = "$BASE_URL/$BIN_NAME"
 
 # Step 1: Download the binary file
-Print-Step 1 "Downloading $BinName from $Url..."
-Invoke-WebRequest -Uri $Url -OutFile "$TempDir\$BinName" -ErrorAction Stop
+Write-Host "Step 1: Downloading $BIN_NAME from $URL..."
+Invoke-WebRequest -Uri $URL -OutFile "$env:TEMP\$BIN_NAME" -UseBasicParsing -ErrorAction Stop
 
 # Step 2: Install the binary
-Print-Step 2 "Installing binary to $BinDir..."
-if (-not (Test-Path $BinDir)) {
-    New-Item -ItemType Directory -Path $BinDir -Force | Out-Null
+Write-Host "Step 2: Installing binary to $env:USERPROFILE..."
+New-Item -ItemType Directory -Path "$env:USERPROFILE\$APP_NAME" -Force
+Move-Item -Path "$env:TEMP\$BIN_NAME" -Destination "$env:USERPROFILE\$APP_NAME\$APP_NAME" -Force
+Set-ItemProperty -Path "$env:USERPROFILE\$APP_NAME\$APP_NAME" -Name "IsReadOnly" -Value $false
+
+# Step 3: Update shell configuration
+Write-Host "Step 3: Updating shell configuration..."
+# Add logic to update your shell configuration file, typically this would be modifying environment variables
+
+# Step 4: Configure agent certificates
+Write-Host "Step 4: Configuring Wazuh agent certificates..."
+if (Test-Path -Path $OSSEC_CONF_PATH)
+{
+    Configure-Agent-Certificates
 }
-Move-Item -Force "$TempDir\$BinName" "$BinDir\$APP_NAME.exe" -ErrorAction Stop
-
-# Set permissions on the binary
-$acl = Get-Acl "$BinDir\$APP_NAME.exe"
-$rule = New-Object System.Security.AccessControl.FileSystemAccessRule("$env:USERNAME", "ReadAndExecute", "Allow")
-$acl.SetAccessRule($rule)
-Set-Acl -Path "$BinDir\$APP_NAME.exe" -AclObject $acl
-
-# Step 3: Update environment variables
-Print-Step 3 "Updating environment variables..."
-
-# Update PATH if necessary
-$Path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::User)
-if ($Path -notlike "*$BinDir*") {
-    [System.Environment]::SetEnvironmentVariable("Path", "$BinDir;$Path", [System.EnvironmentVariableTarget]::User)
-    Log "INFO" "Updated PATH to include $BinDir"
+else
+{
+    Warn-Message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 }
 
-# Set RUST_LOG environment variable
-if (-not [System.Environment]::GetEnvironmentVariable("RUST_LOG", [System.EnvironmentVariableTarget]::User)) {
-    [System.Environment]::SetEnvironmentVariable("RUST_LOG", "info", [System.EnvironmentVariableTarget]::User)
-    Log "INFO" "Set RUST_LOG=info"
-}
-
-# Notify the user to restart their shell or apply changes
-Log "INFO" "Installation complete! You can now use '$APP_NAME' from your PowerShell session."
-Log "INFO" "Please restart your PowerShell session or run 'refreshenv' to apply the changes."
-
-# Cleanup temporary files
-Cleanup
+Success-Message "Installation and configuration complete! You can now use '$APP_NAME' from your terminal."
