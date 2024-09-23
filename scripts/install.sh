@@ -170,11 +170,16 @@ maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executabl
 print_step 3 "Updating shell configuration..."
 
 # Determine the appropriate shell configuration file
-if command_exists zsh; then
-    SHELL_RC="$HOME/.zshrc"
-else
-    SHELL_RC="$HOME/.bashrc"
-fi
+CURRENT_SHELL=$(echo $SHELL)
+
+case "$CURRENT_SHELL" in
+    *zsh)
+        SHELL_RC="$HOME/.zshrc"
+        ;;
+    *bash)
+        SHELL_RC="$HOME/.bashrc"
+        ;;
+esac
 
 # If not yet present, add binary directory to PATH and set RUST_LOG environment variable
 if ! grep -q "export PATH=\"$BIN_DIR:\$PATH\"" "$SHELL_RC"; then
@@ -189,9 +194,10 @@ if ! grep -q "export RUST_LOG=info" "$SHELL_RC"; then
     info_message "Set RUST_LOG=info in $SHELL_RC"
 fi
 
-# Source the shell configuration in interactive mode
-if command_exists source && ! source "$SHELL_RC"; then
-    info_message "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
+if [ -f "$SHELL_RC" ]; then
+    warn_message "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
+else
+    warn_message "No configuration file found or changes might not apply."
 fi
 
 # Step 4: Configure agent certificates
