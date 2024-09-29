@@ -114,7 +114,7 @@ configure_agent_certificates() {
 
     # Check and insert agent certificate path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed -i '/<agent_name=*/ a\
+        maybe_sudo gsed -i '/<agent_name=*/ a\
         <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent certificate configuration."
             exit 1
@@ -123,7 +123,7 @@ configure_agent_certificates() {
 
     # Check and insert agent key path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed -i '/<agent_name=*/ a\
+        maybe_sudo gsed -i '/<agent_name=*/ a\
         <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent key configuration."
             exit 1
@@ -179,6 +179,9 @@ case "$CURRENT_SHELL" in
     *bash)
         SHELL_RC="$HOME/.bashrc"
         ;;
+    *)
+        SHELL_RC="$HOME/.bashrc"
+        ;;
 esac
 
 # If not yet present, add binary directory to PATH and set RUST_LOG environment variable
@@ -197,7 +200,7 @@ fi
 if [ -f "$SHELL_RC" ]; then
     warn_message "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
 else
-    warn_message "No configuration file found or changes might not apply."
+    warn_message "No configuration file found. Changes might not apply. Add RUST_LOG=info when running the OAuth2 script"
 fi
 
 # Step 4: Configure agent certificates
