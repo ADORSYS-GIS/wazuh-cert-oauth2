@@ -79,6 +79,14 @@ maybe_sudo() {
     fi
 }
 
+sed_alternative() {
+    if command_exists gsed; then
+        gsed "$@"
+    else
+        sed "$@"
+    fi
+}
+
 # Create user and group if they do not exist
 ensure_user_group() {
     info_message "Ensuring that the $USER:$GROUP user and group exist..."
@@ -114,7 +122,7 @@ configure_agent_certificates() {
 
     # Check and insert agent certificate path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo gsed -i '/<agent_name=*/ a\
+        maybe_sudo sed_alternative -i '/<agent_name=*/ a\
         <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent certificate configuration."
             exit 1
@@ -123,7 +131,7 @@ configure_agent_certificates() {
 
     # Check and insert agent key path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo gsed -i '/<agent_name=*/ a\
+        maybe_sudo sed_alternative -i '/<agent_name=*/ a\
         <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent key configuration."
             exit 1
