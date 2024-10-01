@@ -21,10 +21,36 @@ pub enum Opt {
         )]
         endpoint: String,
 
-        #[structopt(long, short = "c", default_value = "/var/ossec/etc/sslagent.cert")]
+        #[structopt(
+            long,
+            short = "c",
+            default_value = default_cert_path()
+        )]
         cert_path: String,
 
-        #[structopt(long, short = "k", default_value = "/var/ossec/etc/sslagent.key")]
+        #[structopt(
+            long,
+            short = "k",
+            default_value = default_key_path()
+        )]
         key_path: String,
     },
+}
+
+// Define a function to handle the default cert path
+fn default_cert_path() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "/Library/Ossec/etc/sslagent.cert"
+    } else {
+        "/var/ossec/etc/sslagent.cert"
+    }
+}
+
+// Define a function to handle the default key path
+fn default_key_path() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "/Library/Ossec/etc/sslagent.key"
+    } else {
+        "/var/ossec/etc/sslagent.key"
+    }
 }
