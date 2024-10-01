@@ -142,19 +142,10 @@ configure_agent_certificates() {
 }
 
 check_enrollment() {
-    # Determine the OS type
-    if [[ "$(uname)" == "Darwin" ]]; then
-        # macOS
-        SED_CMD="sed -i ''"
-    else
-        # Linux
-        SED_CMD="sed -i"
-    fi
-
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
         ENROLLMENT_BLOCK="<enrollment>\n <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>\n <agent_key_path>etc/sslagent.key</agent_key_path>\n</enrollment>\n"
         # Add the file_limit block after the <syscheck> line
-        maybe_sudo $SED_CMD "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
+        maybe_sudo sed_alternative "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during the addition of the enrollment block."
             exit 1
         }
