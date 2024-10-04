@@ -6,16 +6,17 @@ use std::env::var;
 use crate::services::get_token::get_token;
 use crate::services::get_user_keys::fetch_user_keys;
 use crate::services::save_to_file::save_keys;
+use crate::services::set_name::set_name;
 use crate::shared::cli::Opt;
 use crate::shared::constants::*;
 use crate::shared::path::{default_cert_path, default_key_path};
 use anyhow::Result;
+use env_logger::{Builder, Env};
 use structopt::StructOpt;
 use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 use wazuh_cert_oauth2_model::services::fetch_only::fetch_only;
 use wazuh_cert_oauth2_model::services::jwks::validate_token;
-use crate::services::set_name::set_name;
 
 mod services;
 mod shared;
@@ -23,7 +24,7 @@ mod shared;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::init();
+    Builder::from_env(Env::default().default_filter_or("info")).init();
 
     info!("starting up");
 
@@ -53,7 +54,7 @@ async fn main() -> Result<()> {
 
             let token = get_token(&issuer, &client_id, client_secret).await?;
             match validate_token(&token, &jwks, &kc_audiences).await {
-                Ok(Claims { name, ..}) => {
+                Ok(Claims { name, .. }) => {
                     let user_key = fetch_user_keys(&endpoint, &token).await?;
                     save_keys(&cert_path, &key_path, &user_key).await?;
                     info!("Keys saved successfully!");

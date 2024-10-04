@@ -10,7 +10,7 @@ fi
 # Default log level and application details
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.2.3"}
+WOPS_VERSION=${WOPS_VERSION:-"0.2.4"}
 OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 USER="root"
 GROUP="wazuh"
@@ -116,31 +116,6 @@ ensure_user_group() {
     fi
 }
 
-# Function to configure agent certificates in ossec.conf
-configure_agent_certificates() {
-    info_message "Configuring agent certificates..."
-
-    # Check and insert agent certificate path if it doesn't exist
-    if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed_alternative -i '/<agent_name=*/ a\
-        <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
-            error_message "Error occurred during Wazuh agent certificate configuration."
-            exit 1
-        }
-    fi
-
-    # Check and insert agent key path if it doesn't exist
-    if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed_alternative -i '/<agent_name=*/ a\
-        <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
-            error_message "Error occurred during Wazuh agent key configuration."
-            exit 1
-        }
-    fi
-
-    info_message "Agent certificates path configured successfully."
-}
-
 check_enrollment() {
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
         ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>\n <agent_key_path>etc/sslagent.key</agent_key_path>\n</enrollment>\n"
@@ -149,14 +124,14 @@ check_enrollment() {
             error_message "Error occurred during the addition of the enrollment block."
             exit 1
         }
-        info_message "The enrollement block was added successfully."
+        info_message "The enrollment block was added successfully."
     fi
 }
 
 # Determine the OS and architecture
 case "$(uname)" in
-    "Linux") OS="unknown-linux-gnu"; BIN_DIR="$HOME/.local/bin" ;;
-    "Darwin") OS="apple-darwin"; BIN_DIR="/usr/local/bin" ;;
+    "Linux") OS="unknown-linux-gnu"; BIN_DIR="/var/ossec/bin" ;;
+    "Darwin") OS="apple-darwin"; BIN_DIR="/Library/Ossec/bin" ;;
     *) error_exit "Unsupported operating system: $(uname)" ;;
 esac
 
@@ -186,52 +161,15 @@ maybe_sudo mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DI
 maybe_sudo mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
 maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
 
-# Step 3: Update shell configuration
-print_step 3 "Updating shell configuration..."
-
-# Determine the appropriate shell configuration file
-CURRENT_SHELL=$(echo $SHELL)
-
-case "$CURRENT_SHELL" in
-    *zsh)
-        SHELL_RC="$HOME/.zshrc"
-        ;;
-    *bash)
-        SHELL_RC="$HOME/.bashrc"
-        ;;
-    *)
-        SHELL_RC="$HOME/.bashrc"
-        ;;
-esac
-
-# If not yet present, add binary directory to PATH and set RUST_LOG environment variable
-if ! grep -q "export PATH=\"$BIN_DIR:\$PATH\"" "$SHELL_RC"; then
-    info_message "Adding $BIN_DIR to PATH in $SHELL_RC..."
-    echo "export PATH=\"$BIN_DIR:\$PATH\"" >> "$SHELL_RC"
-    info_message "Updated PATH in $SHELL_RC"
-fi
-
-# Set RUST_LOG environment variable to 'info'
-if ! grep -q "export RUST_LOG=info" "$SHELL_RC"; then
-    echo "export RUST_LOG=info" >> "$SHELL_RC"
-    info_message "Set RUST_LOG=info in $SHELL_RC"
-fi
-
-if [ -f "$SHELL_RC" ]; then
-    warn_message "Please run 'source $SHELL_RC' or open a new terminal to apply changes."
-else
-    warn_message "No configuration file found. Changes might not apply. Add RUST_LOG=info when running the OAuth2 script"
-fi
-
-# Step 4: Configure agent certificates
-print_step 4 "Configuring Wazuh agent certificates..."
+# Step 3: Configure agent certificates
+print_step 3 "Configuring Wazuh agent certificates..."
 
 ## If OSSEC_CONF_PATH exist, then configure agent
 if [ -f "$OSSEC_CONF_PATH" ]; then
     check_enrollment
-    # configure_agent_certificates
 else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
 
-success_message "Installation and configuration complete! You can now use '$APP_NAME' from your terminal."
+success_message "Installation and configuration complete! You can now use '$BIN_DIR/$APP_NAME' from your terminal."
+info_message "Run \n\n\t${GREEN}${BOLD}sudo $BIN_DIR/$APP_NAME o-auth2${NORMAL}\n\n to start configuring. If you don't have sudo on your machine, you can run the command without sudo."
