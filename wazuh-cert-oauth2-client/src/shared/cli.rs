@@ -8,6 +8,9 @@ pub enum Opt {
         #[structopt(long, default_value = "https://login.wazuh.adorsys.team/realms/adorsys")]
         issuer: String,
 
+        #[structopt(long, short = "a", default_value = "account")]
+        audience: String,
+
         #[structopt(long, short = "i", default_value = "adorsys-machine-client")]
         client_id: String,
 
@@ -20,37 +23,5 @@ pub enum Opt {
             default_value = "https://cert.wazuh.adorsys.team/api/register-agent"
         )]
         endpoint: String,
-
-        #[structopt(
-            long,
-            short = "c",
-            default_value = default_cert_path()
-        )]
-        cert_path: String,
-
-        #[structopt(
-            long,
-            short = "k",
-            default_value = default_key_path()
-        )]
-        key_path: String,
-    },
-}
-
-// Define a function to handle the default cert path
-fn default_cert_path() -> &'static str {
-    if cfg!(target_os = "macos") {
-        "/Library/Ossec/etc/sslagent.cert"
-    } else {
-        "/var/ossec/etc/sslagent.cert"
-    }
-}
-
-// Define a function to handle the default key path
-fn default_key_path() -> &'static str {
-    if cfg!(target_os = "macos") {
-        "/Library/Ossec/etc/sslagent.key"
-    } else {
-        "/var/ossec/etc/sslagent.key"
     }
 }

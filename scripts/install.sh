@@ -10,7 +10,7 @@ fi
 # Default log level and application details
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.2.2"}
+WOPS_VERSION=${WOPS_VERSION:-"0.2.3"}
 OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 USER="root"
 GROUP="wazuh"
@@ -143,7 +143,7 @@ configure_agent_certificates() {
 
 check_enrollment() {
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
-        ENROLLMENT_BLOCK="<enrollment>\n <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>\n <agent_key_path>etc/sslagent.key</agent_key_path>\n</enrollment>\n"
+        ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>\n <agent_key_path>etc/sslagent.key</agent_key_path>\n</enrollment>\n"
         # Add the file_limit block after the <syscheck> line
         maybe_sudo sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during the addition of the enrollment block."
