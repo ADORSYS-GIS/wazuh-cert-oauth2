@@ -116,6 +116,31 @@ ensure_user_group() {
     fi
 }
 
+# Function to configure agent certificates in ossec.conf
+configure_agent_certificates() {
+    info_message "Configuring agent certificates..."
+ 
+    # Check and insert agent certificate path if it doesn't exist
+    if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
+        maybe_sudo sed -i '/<agent_name=*/ a\
+        <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
+            error_message "Error occurred during Wazuh agent certificate configuration."
+            exit 1
+        }
+    fi
+ 
+    # Check and insert agent key path if it doesn't exist
+    if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
+        maybe_sudo sed -i '/<agent_name=*/ a\
+        <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
+            error_message "Error occurred during Wazuh agent key configuration."
+            exit 1
+        }
+    fi
+ 
+    info_message "Agent certificates path configured successfully."
+}
+
 check_enrollment() {
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
         ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>\n <agent_key_path>etc/sslagent.key</agent_key_path>\n</enrollment>\n"
@@ -125,6 +150,8 @@ check_enrollment() {
             exit 1
         }
         info_message "The enrollment block was added successfully."
+    else
+        configure_agent_certificates
     fi
 }
 
