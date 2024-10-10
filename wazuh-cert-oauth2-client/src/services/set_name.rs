@@ -9,7 +9,8 @@ Then restart the agent to apply the changes.
 */
 pub async fn set_name(name: &str) -> Result<()> {
     let machine_id = mid::get(name)?;
-    let agent_name = format!("{}-{}", name, machine_id);
+    let agent_name = format!("{}-{}", name, machine_id)
+        .replace(|c: char| !c.is_alphanumeric(), "-");
 
     let ossec_conf = default_path_to_ossec_conf();
 
