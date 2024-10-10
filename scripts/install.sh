@@ -189,7 +189,6 @@ print_step 3 "Configuring Wazuh agent certificates..."
 ## If OSSEC_CONF_PATH exist, then configure agent
 if [ -f "$OSSEC_CONF_PATH" ]; then
     check_enrollment
-    configure_agent_certificates
 else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
