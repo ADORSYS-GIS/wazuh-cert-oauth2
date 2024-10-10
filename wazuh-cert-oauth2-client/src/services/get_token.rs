@@ -1,14 +1,16 @@
 use anyhow::Result;
-use oauth2::{AuthorizationCode, AuthUrl, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, RedirectUrl, TokenResponse, TokenUrl};
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
+use oauth2::{AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge, RedirectUrl, TokenResponse, TokenUrl};
 
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 use wazuh_cert_oauth2_model::services::fetch_only::fetch_only;
 
+/// Get a token from the OAuth2 server.
 pub async fn get_token(issuer: &str, client_id: &str, client_secret: Option<String>) -> Result<String> {
     let document = fetch_only::<DiscoveryDocument>(&format!("{}/.well-known/openid-configuration", issuer)).await?;
 
+    // Create an OAuth2 client by specifying the client ID, client secret, authorization URL and token URL.
     let client = BasicClient::new(
         ClientId::new(client_id.to_string()),
         client_secret.map(ClientSecret::new),

@@ -3,13 +3,7 @@ use crate::shared::sed_command::sed_command;
 use anyhow::Result;
 use tokio::process::Command;
 
-/**
-    * Set the name of the agent
-    *
-    * @param name: The name to set for the agent
-    *
-    * @returns Result<()>: The result of the operation
-*/
+/// Set the name of the agent.
 pub async fn set_name(name: &str) -> Result<()> {
     let machine_id = mid::get(name)?;
     let machine_id = if machine_id.len() > 12 {
