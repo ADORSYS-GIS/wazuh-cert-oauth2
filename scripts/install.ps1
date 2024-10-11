@@ -190,4 +190,4 @@ if (Test-Path $OSSEC_CONF_PATH) {
 }
 
 SuccessMessage "Installation and configuration complete! You can now use '$BIN_DIR\$APP_NAME.exe' from your terminal."
-InfoMessage "Run `sudo $BIN_DIR\$APP_NAME.exe o-auth2` to start configuring. If you don't have sudo on your machine, you can run the command without sudo."
+InfoMessage "Run ` ./$BIN_DIR\$APP_NAME.exe o-auth2` to start configuring."
