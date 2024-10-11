@@ -3,11 +3,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # Default log level and application details
-$LOG_LEVEL = $env:LOG_LEVEL -ne $null ? $env:LOG_LEVEL : "INFO"
-$APP_NAME = $env:APP_NAME -ne $null ? $env:APP_NAME : "wazuh-cert-oauth2-client"
+$LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
+$APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
 $DEFAULT_WOPS_VERSION = "0.2.5"
-$WOPS_VERSION = $env:WOPS_VERSION -ne $null ? $env:WOPS_VERSION : $DEFAULT_WOPS_VERSION
-$OSSEC_CONF_PATH = $env:OSSEC_CONF_PATH -ne $null ? $env:OSSEC_CONF_PATH : "C:\Program Files\ossec-agent\etc\ossec.conf"
+$WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
+$OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files\ossec-agent\etc\ossec.conf" }
 $USER = "root"
 $GROUP = "wazuh"
 
@@ -80,7 +80,7 @@ function EnsureAdmin {
 
 # Ensure user and group (Windows equivalent is ensuring local user or group exists)
 function EnsureUserGroup {
-    InfoMessage "Ensuring that the $USER:$GROUP user and group exist..."
+    InfoMessage "Ensuring that the ${USER}:${GROUP} user and group exist..."
 
     if (-Not (Get-LocalUser -Name $USER -ErrorAction SilentlyContinue)) {
         InfoMessage "Creating user $USER..."
@@ -134,7 +134,7 @@ function CheckEnrollment {
 }
 
 # Determine architecture and operating system
-$OS = $PSVersionTable.PSEdition -eq "Core" ? "linux" : "windows"
+$OS = if ($PSVersionTable.PSEdition -eq "Core") { "linux" } else { "windows" }
 $ARCH = if ([Environment]::Is64BitOperatingSystem) { "x86_64" } else { "x86" }
 
 if ($OS -ne "windows") {
