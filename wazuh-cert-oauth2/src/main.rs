@@ -1,12 +1,10 @@
 #[macro_use]
-extern crate log;
-
-#[macro_use]
 extern crate rocket;
 
 use std::env::var;
 
 use anyhow::*;
+use env_logger::{Builder, Env};
 use tokio::sync::RwLock;
 
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
@@ -23,7 +21,7 @@ mod shared;
 
 #[rocket::main]
 async fn main() -> Result<()> {
-    env_logger::init();
+    Builder::from_env(Env::default().default_filter_or("info")).init();
 
     info!("starting up");
 
@@ -51,4 +49,3 @@ async fn main() -> Result<()> {
 
     Ok(())
 }
-

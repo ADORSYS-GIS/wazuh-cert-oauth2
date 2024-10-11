@@ -17,6 +17,7 @@ use wazuh_cert_oauth2_model::models::user_key::UserKey;
 
 use crate::handlers::middle::JwtToken;
 
+/// Generate a certificate for the agent
 pub fn gen_cert(_dto: RegisterAgentDto, JwtToken { claims }: JwtToken) -> Result<UserKey> {
     // Generate a 4096-bit RSA private key
     let rsa = Rsa::generate(4096)?;
@@ -58,7 +59,7 @@ pub fn gen_cert(_dto: RegisterAgentDto, JwtToken { claims }: JwtToken) -> Result
     })
 }
 
-// Sign the CSR with the CA to create a certificate
+/// Sign the CSR with the CA to create a certificate
 fn sign_csr_with_ca(
     csr: &X509Req,
     ca_cert: &X509,

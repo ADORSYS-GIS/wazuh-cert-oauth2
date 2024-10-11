@@ -10,7 +10,7 @@ fi
 # Default log level and application details
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.2.4"}
+WOPS_VERSION=${WOPS_VERSION:-"0.2.6"}
 OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 USER="root"
 GROUP="wazuh"
@@ -116,10 +116,19 @@ ensure_user_group() {
     fi
 }
 
-# Function to configure agent certificates in ossec.conf
-configure_agent_certificates() {
+check_enrollment() {
+    if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
+        ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n </enrollment>\n"
+        # Add the file_limit block after the <syscheck> line
+        maybe_sudo sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
+            error_message "Error occurred during the addition of the enrollment block."
+            exit 1
+        }
+        info_message "The enrollment block was added successfully."
+    fi
+
     info_message "Configuring agent certificates..."
- 
+
     # Check and insert agent certificate path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
         maybe_sudo sed -i '/<agent_name=*/ a\
@@ -128,7 +137,7 @@ configure_agent_certificates() {
             exit 1
         }
     fi
- 
+
     # Check and insert agent key path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
         maybe_sudo sed -i '/<agent_name=*/ a\
@@ -137,22 +146,8 @@ configure_agent_certificates() {
             exit 1
         }
     fi
- 
-    info_message "Agent certificates path configured successfully."
-}
 
-check_enrollment() {
-    if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
-        ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>\n <agent_key_path>etc/sslagent.key</agent_key_path>\n</enrollment>\n"
-        # Add the file_limit block after the <syscheck> line
-        maybe_sudo sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
-            error_message "Error occurred during the addition of the enrollment block."
-            exit 1
-        }
-        info_message "The enrollment block was added successfully."
-    else
-        configure_agent_certificates
-    fi
+    info_message "Agent certificates path configured successfully."
 }
 
 # Determine the OS and architecture

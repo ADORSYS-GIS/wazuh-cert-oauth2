@@ -3,6 +3,7 @@ use jsonwebtoken::{decode, decode_header, DecodingKey, Validation};
 
 use crate::models::claims::Claims;
 
+/// Validate the token using the provided JWKS.
 pub async fn validate_token(
     token: &str,
     jwks: &jsonwebtoken::jwk::JwkSet,
