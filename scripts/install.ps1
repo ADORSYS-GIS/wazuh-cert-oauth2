@@ -55,7 +55,7 @@ function PrintStep {
         [int]$StepNumber,
         [string]$Message
     )
-    Log "[STEP]" "Step $StepNumber: $Message"
+    Log "[STEP]" "Step ${StepNumber}: $Message"
 }
 
 # Exit script with an error message
@@ -99,13 +99,8 @@ function ConfigureAgentCertificates {
 
     # Determine certificate paths based on architecture
     $baseDir = Split-Path -Parent $OSSEC_CONF_PATH
-    if ($ARCH -eq "x86_64") {
-        $certPath = "$baseDir\sslagent.cert"
-        $keyPath = "$baseDir\sslagent.key"
-    } else {
-        $certPath = "$baseDir\sslagent.cert"
-        $keyPath = "$baseDir\sslagent.key"
-    }
+    $certPath = "$baseDir\sslagent.cert"
+    $keyPath = "$baseDir\sslagent.key"
 
     if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_certificate_path>sslagent.cert</agent_certificate_path>' -Quiet)) {
         [xml]$config = Get-Content $OSSEC_CONF_PATH
@@ -176,9 +171,9 @@ try {
 
 # Step 2: Install the binary based on architecture
 if ($ARCH -eq "x86_64") {
-    $BIN_DIR = "C:\Program Files (x86)\ossec-agent\bin"
+    $BIN_DIR = "C:\Program Files (x86)\ossec-agent"
 } else {
-    $BIN_DIR = "C:\Program Files\ossec-agent\bin"
+    $BIN_DIR = "C:\Program Files\ossec-agent"
 }
 
 PrintStep 2 "Installing binary to $BIN_DIR..."
