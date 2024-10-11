@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 # Default log level and application details
 $LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
 $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
-$DEFAULT_WOPS_VERSION = "0.2.7"
+$DEFAULT_WOPS_VERSION = "0.2.5"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files\ossec-agent\ossec.conf" }
 $USER = "root"
@@ -190,8 +190,4 @@ if (Test-Path $OSSEC_CONF_PATH) {
 }
 
 SuccessMessage "Installation and configuration complete! You can now use '$BIN_DIR\$APP_NAME.exe' from your terminal."
-<<<<<<< HEAD
 InfoMessage "Run ``& '$BIN_DIR\$APP_NAME.exe' o-auth2`` to start configuring."
-=======
-InfoMessage "Run ` ./$BIN_DIR\$APP_NAME.exe o-auth2` to start configuring."
->>>>>>> a8742b307faf402bcc67b7b344ca6be875488064
