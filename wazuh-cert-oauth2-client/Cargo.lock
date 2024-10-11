@@ -2182,7 +2182,7 @@ checksum = "c62a0a307cb4a311d3a07867860911ca130c3494e8c2719593806c08bc5d0484"
 
 [[package]]
 name = "wazuh-cert-oauth2-client"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "anyhow",
  "env_logger",
@@ -2200,7 +2200,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-model"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "anyhow",
  "jsonwebtoken",
