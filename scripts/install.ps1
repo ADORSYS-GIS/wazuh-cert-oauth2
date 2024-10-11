@@ -7,7 +7,7 @@ $LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
 $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
 $DEFAULT_WOPS_VERSION = "0.2.5"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
-$OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files\ossec-agent\etc\ossec.conf" }
+$OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files\ossec-agent\ossec.conf" }
 $USER = "root"
 $GROUP = "wazuh"
 
@@ -97,18 +97,28 @@ function EnsureUserGroup {
 function ConfigureAgentCertificates {
     InfoMessage "Configuring agent certificates..."
 
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' -Quiet)) {
+    # Determine certificate paths based on architecture
+    $baseDir = Split-Path -Parent $OSSEC_CONF_PATH
+    if ($ARCH -eq "x86_64") {
+        $certPath = "$baseDir\sslagent.cert"
+        $keyPath = "$baseDir\sslagent.key"
+    } else {
+        $certPath = "$baseDir\sslagent.cert"
+        $keyPath = "$baseDir\sslagent.key"
+    }
+
+    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_certificate_path>sslagent.cert</agent_certificate_path>' -Quiet)) {
         [xml]$config = Get-Content $OSSEC_CONF_PATH
         $certPathNode = $config.CreateElement("agent_certificate_path")
-        $certPathNode.InnerText = "C:\Program Files\ossec-agent\etc\sslagent.cert"
+        $certPathNode.InnerText = $certPath
         $config.ossec.server.InsertAfter($certPathNode, $config.ossec.server.agent_name)
         $config.Save($OSSEC_CONF_PATH)
     }
 
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_key_path>etc/sslagent.key</agent_key_path>' -Quiet)) {
+    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_key_path>sslagent.key</agent_key_path>' -Quiet)) {
         [xml]$config = Get-Content $OSSEC_CONF_PATH
         $keyPathNode = $config.CreateElement("agent_key_path")
-        $keyPathNode.InnerText = "C:\Program Files\ossec-agent\etc\sslagent.key"
+        $keyPathNode.InnerText = $keyPath
         $config.ossec.server.InsertAfter($keyPathNode, $config.ossec.server.agent_name)
         $config.Save($OSSEC_CONF_PATH)
     }
@@ -122,14 +132,15 @@ function CheckEnrollment {
         $enrollmentBlock = @"
 <enrollment>
     <agent_name></agent_name>
-    <agent_certificate_path>C:\Program Files\ossec-agent\etc\sslagent.cert</agent_certificate_path>
-    <agent_key_path>C:\Program Files\ossec-agent\etc\sslagent.key</agent_key_path>
+    <agent_certificate_path>$certPath</agent_certificate_path>
+    <agent_key_path>$keyPath</agent_key_path>
 </enrollment>
 "@
         Add-Content -Path $OSSEC_CONF_PATH -Value $enrollmentBlock
         InfoMessage "The enrollment block was added successfully."
     } else {
         ConfigureAgentCertificates
+        InfoMessage "Enrollment block already exists. Agent certificates configured."
     }
 }
 
@@ -154,8 +165,7 @@ $URL = "$BASE_URL/$BIN_NAME"
 $FALLBACK_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$DEFAULT_WOPS_VERSION/wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
 
 # Step 1: Download the binary file
-$TEMP_DIR = New-TemporaryFile
-$TEMP_FILE = $TEMP_DIR.FullName
+$TEMP_FILE = New-TemporaryFile
 PrintStep 1 "Downloading $BIN_NAME from $URL..."
 try {
     Invoke-WebRequest -Uri $URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
@@ -164,8 +174,13 @@ try {
     Invoke-WebRequest -Uri $FALLBACK_URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
 }
 
-# Step 2: Install the binary
-$BIN_DIR = "C:\Program Files\ossec-agent\bin"
+# Step 2: Install the binary based on architecture
+if ($ARCH -eq "x86_64") {
+    $BIN_DIR = "C:\Program Files (x86)\ossec-agent\bin"
+} else {
+    $BIN_DIR = "C:\Program Files\ossec-agent\bin"
+}
+
 PrintStep 2 "Installing binary to $BIN_DIR..."
 New-Item -ItemType Directory -Path $BIN_DIR -Force
 Move-Item -Path $TEMP_FILE -Destination "$BIN_DIR\$APP_NAME.exe"
