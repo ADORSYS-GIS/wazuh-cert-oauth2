@@ -5,7 +5,8 @@ $ErrorActionPreference = "Stop"
 # Default log level and application details
 $LOG_LEVEL = $env:LOG_LEVEL -ne $null ? $env:LOG_LEVEL : "INFO"
 $APP_NAME = $env:APP_NAME -ne $null ? $env:APP_NAME : "wazuh-cert-oauth2-client"
-$WOPS_VERSION = $env:WOPS_VERSION -ne $null ? $env:WOPS_VERSION : "0.2.4"
+$DEFAULT_WOPS_VERSION = "0.2.5"
+$WOPS_VERSION = $env:WOPS_VERSION -ne $null ? $env:WOPS_VERSION : $DEFAULT_WOPS_VERSION
 $OSSEC_CONF_PATH = $env:OSSEC_CONF_PATH -ne $null ? $env:OSSEC_CONF_PATH : "C:\Program Files\ossec-agent\etc\ossec.conf"
 $USER = "root"
 $GROUP = "wazuh"
@@ -132,12 +133,15 @@ function CheckEnrollment {
     }
 }
 
-# Determine architecture (Windows only needs this if it will use different binaries per architecture)
-$OS = "windows"
-$ARCH = (Get-WmiObject -Class Win32_ComputerSystem).SystemType
-if ($ARCH -like "*64*") {
-    $ARCH = "x86_64"
-} else {
+# Determine architecture and operating system
+$OS = $PSVersionTable.PSEdition -eq "Core" ? "linux" : "windows"
+$ARCH = if ([Environment]::Is64BitOperatingSystem) { "x86_64" } else { "x86" }
+
+if ($OS -ne "windows") {
+    ErrorExit "Unsupported operating system: $OS"
+}
+
+if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
     ErrorExit "Unsupported architecture: $ARCH"
 }
 
@@ -146,11 +150,19 @@ $BIN_NAME = "$APP_NAME-$ARCH-$OS"
 $BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $URL = "$BASE_URL/$BIN_NAME"
 
+# Fallback URL if the constructed URL fails
+$FALLBACK_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$DEFAULT_WOPS_VERSION/wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
+
 # Step 1: Download the binary file
 $TEMP_DIR = New-TemporaryFile
 $TEMP_FILE = $TEMP_DIR.FullName
 PrintStep 1 "Downloading $BIN_NAME from $URL..."
-Invoke-WebRequest -Uri $URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
+try {
+    Invoke-WebRequest -Uri $URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
+} catch {
+    WarnMessage "Failed to download from $URL. Trying fallback URL..."
+    Invoke-WebRequest -Uri $FALLBACK_URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
+}
 
 # Step 2: Install the binary
 $BIN_DIR = "C:\Program Files\ossec-agent\bin"
