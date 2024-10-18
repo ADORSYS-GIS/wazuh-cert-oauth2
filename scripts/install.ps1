@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 # Default log level and application details
 $LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
 $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
-$DEFAULT_WOPS_VERSION = "0.2.5"
+$DEFAULT_WOPS_VERSION = "0.2.6"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files\ossec-agent\ossec.conf" }
 $USER = "root"
@@ -152,7 +152,7 @@ if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
 }
 
 # Construct binary name and URL for download
-$BIN_NAME = "$APP_NAME-$ARCH-$OS"
+$BIN_NAME = "$APP_NAME-$ARCH-$OS-msvc.exe"
 $BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $URL = "$BASE_URL/$BIN_NAME"
 
@@ -161,7 +161,7 @@ $FALLBACK_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/downl
 
 # Step 1: Download the binary file
 $TEMP_FILE = New-TemporaryFile
-PrintStep 1 "Downloading $BIN_NAME from $URL..."
+PrintStep 1 "Downloading $BIN_NAME from $URL..."-client-x86_64-pc-windows-msvc.exe
 try {
     Invoke-WebRequest -Uri $URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
 } catch {
