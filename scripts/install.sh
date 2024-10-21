@@ -11,9 +11,22 @@ fi
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
 WOPS_VERSION=${WOPS_VERSION:-"0.2.6"}
-OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 USER="root"
 GROUP="wazuh"
+
+# Determine the OS and architecture
+case "$(uname)" in
+    "Linux") OS="unknown-linux-gnu"; BIN_DIR="/var/ossec/bin"; OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf" ;;
+    "Darwin") OS="apple-darwin"; BIN_DIR="/Library/Ossec/bin"; OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf" ;;
+    *) error_exit "Unsupported operating system: $(uname)" ;;
+esac
+
+ARCH=$(uname -m)
+case "$ARCH" in
+    "x86_64") ARCH="x86_64" ;;
+    "arm64"|"aarch64") ARCH="aarch64" ;;
+    *) error_exit "Unsupported architecture: $ARCH" ;;
+esac
 
 # Define text formatting
 RED='\033[0;31m'
@@ -149,20 +162,6 @@ check_enrollment() {
 
     info_message "Agent certificates path configured successfully."
 }
-
-# Determine the OS and architecture
-case "$(uname)" in
-    "Linux") OS="unknown-linux-gnu"; BIN_DIR="/var/ossec/bin" ;;
-    "Darwin") OS="apple-darwin"; BIN_DIR="/Library/Ossec/bin" ;;
-    *) error_exit "Unsupported operating system: $(uname)" ;;
-esac
-
-ARCH=$(uname -m)
-case "$ARCH" in
-    "x86_64") ARCH="x86_64" ;;
-    "arm64"|"aarch64") ARCH="aarch64" ;;
-    *) error_exit "Unsupported architecture: $ARCH" ;;
-esac
 
 # Construct binary name and URL for download
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
