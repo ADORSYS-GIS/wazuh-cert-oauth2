@@ -9,7 +9,7 @@ pub enum Error {
     },
 
     #[error("Kubernetes reported error: {source}")]
-    KubeError {
+    StdError {
         #[from]
         source: io::Error,
     },

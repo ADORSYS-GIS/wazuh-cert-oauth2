@@ -55,6 +55,7 @@ async fn main() -> Result<()> {
             let token = get_token(&issuer, &client_id, client_secret).await?;
             match validate_token(&token, &jwks, &kc_audiences).await {
                 Ok(Claims { name, .. }) => {
+                    // Catch any errors that occur during the process
                     let user_key = fetch_user_keys(&endpoint, &token).await?;
                     save_keys(&cert_path, &key_path, &user_key).await?;
                     info!("Keys saved successfully!");

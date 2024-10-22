@@ -33,7 +33,7 @@ pub fn default_path_to_ossec() -> PathBuf {
     let base_path = if cfg!(target_os = "macos") {
         "/Library/Ossec"
     } else if cfg!(target_os = "windows") {
-        "C:\\Program Files (x86)\\ossec-agent"
+        r"C:\Program Files (x86)\ossec-agent"
     } else {
         "/var/ossec"
     };
