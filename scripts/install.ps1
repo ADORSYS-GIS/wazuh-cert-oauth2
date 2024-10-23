@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 # Default log level and application details
 $LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
 $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
-$DEFAULT_WOPS_VERSION = "0.2.7"
+$DEFAULT_WOPS_VERSION = "0.2.8"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files\ossec-agent\ossec.conf" }
 $USER = "root"
@@ -170,11 +170,8 @@ try {
 }
 
 # Step 2: Install the binary based on architecture
-if ($ARCH -eq "x86_64") {
-    $BIN_DIR = "C:\Program Files (x86)\ossec-agent"
-} else {
-    $BIN_DIR = "C:\Program Files\ossec-agent"
-}
+$BIN_DIR = "C:\Program Files (x86)\ossec-agent"
+
 
 PrintStep 2 "Installing binary to $BIN_DIR..."
 New-Item -ItemType Directory -Path $BIN_DIR -Force
