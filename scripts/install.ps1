@@ -7,7 +7,7 @@ $LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
 $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
 $DEFAULT_WOPS_VERSION = "0.2.7"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
-$OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files\ossec-agent\ossec.conf" }
+$OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files (x86)\ossec-agent\ossec.conf" }
 $USER = "root"
 $GROUP = "wazuh"
 
@@ -93,50 +93,35 @@ function EnsureUserGroup {
     }
 }
 
-# Configure agent certificates in ossec.conf
-function ConfigureAgentCertificates {
-    InfoMessage "Configuring agent certificates..."
-
-    # Determine certificate paths based on architecture
-    $baseDir = Split-Path -Parent $OSSEC_CONF_PATH
-    $certPath = "$baseDir\sslagent.cert"
-    $keyPath = "$baseDir\sslagent.key"
-
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_certificate_path>sslagent.cert</agent_certificate_path>' -Quiet)) {
-        [xml]$config = Get-Content $OSSEC_CONF_PATH
-        $certPathNode = $config.CreateElement("agent_certificate_path")
-        $certPathNode.InnerText = $certPath
-        $config.ossec.server.InsertAfter($certPathNode, $config.ossec.server.agent_name)
-        $config.Save($OSSEC_CONF_PATH)
-    }
-
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_key_path>sslagent.key</agent_key_path>' -Quiet)) {
-        [xml]$config = Get-Content $OSSEC_CONF_PATH
-        $keyPathNode = $config.CreateElement("agent_key_path")
-        $keyPathNode.InnerText = $keyPath
-        $config.ossec.server.InsertAfter($keyPathNode, $config.ossec.server.agent_name)
-        $config.Save($OSSEC_CONF_PATH)
-    }
-
-    InfoMessage "Agent certificates path configured successfully."
-}
-
 # Check for enrollment block and insert if missing
 function CheckEnrollment {
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
-        $enrollmentBlock = @"
-<enrollment>
-    <agent_name></agent_name>
-    <agent_certificate_path>$certPath</agent_certificate_path>
-    <agent_key_path>$keyPath</agent_key_path>
-</enrollment>
-"@
-        Add-Content -Path $OSSEC_CONF_PATH -Value $enrollmentBlock
-        InfoMessage "The enrollment block was added successfully."
-    } else {
-        ConfigureAgentCertificates
-        InfoMessage "Enrollment block already exists. Agent certificates configured."
+
+    # Check if <enrollment> block exists
+    if (-not (Get-Content $OSSEC_CONF_PATH | Select-String -Pattern "<enrollment>")) {
+        $ENROLLMENT_BLOCK = "`t`t`n<enrollment>`n <agent_name></agent_name>`n </enrollment>`n"
+
+        # Add the enrollment block after the </server> line
+        (Get-Content $OSSEC_CONF_PATH) -replace "(</server.*)", "`$1$ENROLLMENT_BLOCK" | Set-Content $OSSEC_CONF_PATH -ErrorAction Stop
+
+        Write-Host "The enrollment block was added successfully."
     }
+
+    Write-Host "Configuring agent certificates..."
+
+    # Check and insert agent certificate path if it doesn't exist
+    if (-not (Get-Content $OSSEC_CONF_PATH | Select-String -Pattern '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>')) {
+        $certPathBlock = "<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>"
+        (Get-Content $OSSEC_CONF_PATH) -replace "(<agent_name.*)", "`$1`n$certPathBlock" | Set-Content $OSSEC_CONF_PATH -ErrorAction Stop
+        Write-Host "Agent certificates path configured successfully."
+    }
+
+    # Check and insert agent key path if it doesn't exist
+    if (-not (Get-Content $OSSEC_CONF_PATH | Select-String -Pattern '<agent_key_path>etc/sslagent.key</agent_key_path>')) {
+        $keyPathBlock = "<agent_key_path>etc/sslagent.key</agent_key_path>"
+        (Get-Content $OSSEC_CONF_PATH) -replace "(<agent_name.*)", "`$1`n$keyPathBlock" | Set-Content $OSSEC_CONF_PATH -ErrorAction Stop
+        Write-Host "Agent key path configured successfully."
+    }
+
 }
 
 # Determine architecture and operating system
@@ -152,7 +137,7 @@ if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
 }
 
 # Construct binary name and URL for download
-$BIN_NAME = "$APP_NAME-$ARCH-$OS-msvc.exe"
+$BIN_NAME = "$APP_NAME-$ARCH-pc-$OS-msvc.exe"
 $BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $URL = "$BASE_URL/$BIN_NAME"
 
@@ -170,16 +155,14 @@ try {
 }
 
 # Step 2: Install the binary based on architecture
-if ($ARCH -eq "x86_64") {
-    $BIN_DIR = "C:\Program Files (x86)\ossec-agent"
-} else {
-    $BIN_DIR = "C:\Program Files\ossec-agent"
-}
+$BIN_DIR = "C:\Program Files (x86)\ossec-agent"
+$ETC_DIR = "C:\Program Files (x86)\ossec-agent\etc"
 
 PrintStep 2 "Installing binary to $BIN_DIR..."
 New-Item -ItemType Directory -Path $BIN_DIR -Force
 Move-Item -Path $TEMP_FILE -Destination "$BIN_DIR\$APP_NAME.exe"
 icacls "$BIN_DIR\$APP_NAME.exe" /grant Users:RX
+New-Item -ItemType Directory -Path $ETC_DIR -Force
 
 # Step 3: Configure agent certificates
 PrintStep 3 "Configuring Wazuh agent certificates..."
