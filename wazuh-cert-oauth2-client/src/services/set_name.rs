@@ -23,14 +23,25 @@ pub async fn set_name(name: &str) -> Result<()> {
     let update_cmd = format!(r"s|<agent_name>.*</agent_name>|<agent_name>{}</agent_name>|g", agent_name);
     sed_command(&update_cmd, &ossec_conf).await?;
 
-    let control_bin = default_path_agent_control();
-    let status = Command::new(control_bin)
-        .arg("restart")
-        .status().await?;
-
-    if !status.success() {
-        error!("Failed to restart agent");
-        return Ok(());
+    if cfg!(target_os = "windows") {
+        let status = Command::new("Restart-Service")
+            .arg("-Name").arg("wazuh")
+            .status().await?;
+    
+        if !status.success() {
+            error!("Failed to restart agent");
+            return Ok(());
+        }
+    } else {
+        let control_bin = default_path_agent_control();
+        let status = Command::new(control_bin)
+            .arg("restart")
+            .status().await?;
+    
+        if !status.success() {
+            error!("Failed to restart agent");
+            return Ok(());
+        }
     }
 
     Ok(())

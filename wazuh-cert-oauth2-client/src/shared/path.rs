@@ -19,13 +19,19 @@ pub fn default_path_agent_control() -> String {
 /// Define a function to handle the default path to the ossec.conf file
 pub fn default_path_to_ossec_conf() -> String {
     let ossec_path = default_path_to_ossec();
-    format!("{}/etc/ossec.conf", ossec_path)
+    if cfg!(target_os = "windows") {
+        format!(r"{}\ossec.conf", ossec_path)
+    } else {
+        format!("{}/etc/ossec.conf", ossec_path)
+    }
 }
 
 /// Define a function to handle the default path to the ossec directory
 pub fn default_path_to_ossec() -> &'static str {
     if cfg!(target_os = "macos") {
         "/Library/Ossec"
+    } else if cfg!(target_os = "windows") {
+        r"C:\Program Files (x86)\ossec-agent"
     } else {
         "/var/ossec"
     }
