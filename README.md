@@ -4,10 +4,16 @@
 [![Helm Publish](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/helm-publish.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/helm-publish.yml)
 [![Release Client](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/release.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/release.yml)
 
-This project demonstrate by example how to authenticate with Keycloak and 
-submit a certificate to the end use. The goal is for the user to send a 
-signed request after he go one from the server to the wazuh server, using
-the certificate that was signed by the server CA.
+The Wazuh OAuth2 Proxy Server integrates Wazuh with an OAuth2 authentication system (e.g., Keycloak) to enhance security for Wazuh agents. This project allows users to authenticate through OAuth2 and acquire a signed certificate from the server. This certificate is used to authenticate subsequent requests to the Wazuh server, bolstering security with certificate-based access control.
+
+## Features
+- **OAuth2 Authentication:** Uses OAuth2 (via Keycloak) for secure user authentication.
+
+- **Certificate-Based Access:** Issues certificates signed by the server CA to authenticated users for secure request validation.
+
+- **Token Verification:** Validates tokens before issuing certificates, ensuring only authorized users receive access.
+
+- **Scalable Deployment:** Easily deployable via Docker and Helm for integration into Kubernetes environments.
 
 ## Installation
 To install this, you need to have a Keycloak server running. You can use the
@@ -39,3 +45,6 @@ The server companion is installed through a helm chart
 ```bash
 wazuh-cert-oauth2-client -h
 ```
+## Integration with Wazuh
+This project is configured to integrate seamlessly with Wazuh. Once the proxy server is running, Wazuh agents can authenticate with Keycloak, acquire a signed certificate, and use it to send secure, authenticated requests to the Wazuh server.
+
