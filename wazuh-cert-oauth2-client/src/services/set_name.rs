@@ -5,7 +5,8 @@ use tokio::process::Command;
 
 /// Set the name of the agent.
 pub async fn set_name(name: &str) -> Result<()> {
-    let long_machine_id = if let Ok(machine_id) = mid::get(name) {
+    let name = diacritics::remove_diacritics(name);
+    let long_machine_id = if let Ok(machine_id) = mid::get(&name) {
         info!("Machine ID: {}", machine_id);
         machine_id
     } else {
@@ -24,8 +25,8 @@ pub async fn set_name(name: &str) -> Result<()> {
     };
 
     info!("Small machine ID: {}", small_machine_id);
-    let agent_name = format!("{}-{}", name, small_machine_id)
-        .replace(|c: char| !c.is_alphanumeric(), "-");
+    let agent_name = format!("{}-{}", &name, small_machine_id)
+        .replace(|c: char| !c.is_ascii_alphanumeric(), "-");
 
     let ossec_conf = default_path_to_ossec_conf();
     info!("Updating agent name to {} in {}", agent_name, ossec_conf);

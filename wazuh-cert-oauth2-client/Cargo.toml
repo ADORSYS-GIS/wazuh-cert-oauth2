@@ -1,6 +1,6 @@
 [package]
 name = "wazuh-cert-oauth2-client"
-version = "0.2.8"
+version = "0.2.9"
 edition = "2021"
 
 [dependencies]
@@ -17,3 +17,4 @@ openssl = { version = "0.10.66", features = ["vendored"] }
 mid = "3.0.0"
 local-ip-address = "0.6.3"
 rand = "0.8.5"
+diacritics = "0.2.2"
