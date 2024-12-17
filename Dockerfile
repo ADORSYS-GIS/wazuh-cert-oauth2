@@ -12,6 +12,8 @@ RUN cargo build --manifest-path wazuh-cert-oauth2/Cargo.toml --release
 
 FROM base
 
+LABEL maintainer="stephane.segning-lambou@adorsys.com"
+
 WORKDIR /app
 
 COPY --from=builder /app/wazuh-cert-oauth2/target/release/wazuh-cert-oauth2 /app/wazuh-cert-oauth2
