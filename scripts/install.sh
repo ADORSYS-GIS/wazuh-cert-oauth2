@@ -159,6 +159,14 @@ check_enrollment() {
             exit 1
         }
     fi
+    
+    # Check and delete auth pass path if it exists
+    if maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
+        maybe_sudo sed -i '/<authorization_pass_path>.*<\/authorization_pass_path>/d' "$OSSEC_CONF_PATH" || {
+            error_message "Error occurred during Wazuh agent auth pass removal."
+            exit 1
+        }
+    fi
 
     info_message "Agent certificates path configured successfully."
 }
