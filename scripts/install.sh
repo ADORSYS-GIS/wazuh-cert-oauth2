@@ -94,9 +94,9 @@ maybe_sudo() {
 
 sed_alternative() {
     if command_exists gsed; then
-        gsed "$@"
+        maybe_sudo gsed "$@"
     else
-        sed "$@"
+        maybe_sudo sed "$@"
     fi
 }
 
@@ -133,7 +133,7 @@ check_enrollment() {
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
         ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n </enrollment>\n"
         # Add the file_limit block after the <syscheck> line
-        maybe_sudo sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
+        sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during the addition of the enrollment block."
             exit 1
         }
@@ -144,7 +144,7 @@ check_enrollment() {
 
     # Check and insert agent certificate path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed_alternative -i '/<agent_name=*/ a\
+        sed_alternative -i '/<agent_name=*/ a\
         <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent certificate configuration."
             exit 1
@@ -153,7 +153,7 @@ check_enrollment() {
 
     # Check and insert agent key path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed_alternative -i '/<agent_name=*/ a\
+        sed_alternative -i '/<agent_name=*/ a\
         <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent key configuration."
             exit 1
@@ -162,7 +162,7 @@ check_enrollment() {
     
     # Check and delete auth pass path if it exists
     if maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed -i '/<authorization_pass_path>.*<\/authorization_pass_path>/d' "$OSSEC_CONF_PATH" || {
+        sed_alternative -i '/<authorization_pass_path>.*<\/authorization_pass_path>/d' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent auth pass removal."
             exit 1
         }
