@@ -79,7 +79,7 @@ maybe_sudo() {
 # Uninstall binary
 uninstall_binary() {
     info_message "Removing binary from $BIN_DIR..."
-    if [ -f "$BIN_DIR/$APP_NAME" ]; then
+    if maybe_sudo [ -f "$BIN_DIR/$APP_NAME" ]; then
         maybe_sudo rm -f "$BIN_DIR/$APP_NAME" || error_message "Failed to remove binary"
         info_message "Binary removed successfully."
     else
@@ -89,7 +89,7 @@ uninstall_binary() {
 
 # Clean up configuration
 cleanup_configuration() {
-    if [ -f "$OSSEC_CONF_PATH" ]; then
+    if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
         info_message "Removing agent certificate and key configurations from $OSSEC_CONF_PATH..."
         maybe_sudo sed -i '/<agent_certificate_path>.*<\/agent_certificate_path>/d' "$OSSEC_CONF_PATH"
         maybe_sudo sed -i '/<agent_key_path>.*<\/agent_key_path>/d' "$OSSEC_CONF_PATH"
