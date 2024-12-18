@@ -171,6 +171,47 @@ check_enrollment() {
     info_message "Agent certificates path configured successfully."
 }
 
+# Function to validate installation and configuration
+validate_installation() {
+    # Check if the binary exists and has the correct permissions
+    if [ -x "$BIN_DIR/$APP_NAME" ]; then
+        success_message "Binary exists and is executable at $BIN_DIR/$APP_NAME."
+    else
+        error_exit "Binary is missing or not executable at $BIN_DIR/$APP_NAME."
+    fi
+
+    # Verify the configuration file contains the required updates
+    if [ -f "$OSSEC_CONF_PATH" ]; then
+        if grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
+            success_message "Enrollment block is present in the configuration file."
+        else
+            error_exit "Enrollment block is missing in the configuration file."
+        fi
+
+        if grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
+            success_message "Agent certificate path is configured correctly."
+        else
+            error_exit "Agent certificate path is missing in the configuration file."
+        fi
+
+        if grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
+            success_message "Agent key path is configured correctly."
+        else
+            error_exit "Agent key path is missing in the configuration file."
+        fi
+
+        if ! grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
+            success_message "Authorization pass path has been correctly removed."
+        else
+            error_exit "Authorization pass path is still present in the configuration file."
+        fi
+    else
+        error_exit "Configuration file not found at $OSSEC_CONF_PATH."
+    fi
+
+    success_message "Validation of installation and configuration completed successfully."
+}
+
 # Construct binary name and URL for download
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
 BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
@@ -199,6 +240,10 @@ if [ -f "$OSSEC_CONF_PATH" ]; then
 else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
+
+# Step 4: Validate installation and configuration
+print_step 4 "Validating installation and configuration..."
+validate_installation
 
 success_message "Installation and configuration complete! You can now use '$BIN_DIR/$APP_NAME' from your terminal."
 info_message "Run \n\n\t${GREEN}${BOLD}sudo $BIN_DIR/$APP_NAME o-auth2${NORMAL}\n\n to start configuring. If you don't have sudo on your machine, you can run the command without sudo."
