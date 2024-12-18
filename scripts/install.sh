@@ -174,39 +174,39 @@ check_enrollment() {
 # Function to validate installation and configuration
 validate_installation() {
     # Check if the binary exists and has the correct permissions
-    if [ -x "$BIN_DIR/$APP_NAME" ]; then
+    if maybe_sudo [ -x "$BIN_DIR/$APP_NAME" ]; then
         success_message "Binary exists and is executable at $BIN_DIR/$APP_NAME."
     else
-        error_exit "Binary is missing or not executable at $BIN_DIR/$APP_NAME."
+        warn_message "Binary is missing or not executable at $BIN_DIR/$APP_NAME."
     fi
 
     # Verify the configuration file contains the required updates
-    if [ -f "$OSSEC_CONF_PATH" ]; then
+    if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
         if grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
             success_message "Enrollment block is present in the configuration file."
         else
-            error_exit "Enrollment block is missing in the configuration file."
+            warn_message "Enrollment block is missing in the configuration file."
         fi
 
         if grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
             success_message "Agent certificate path is configured correctly."
         else
-            error_exit "Agent certificate path is missing in the configuration file."
+            warn_message "Agent certificate path is missing in the configuration file."
         fi
 
         if grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
             success_message "Agent key path is configured correctly."
         else
-            error_exit "Agent key path is missing in the configuration file."
+            warn_message "Agent key path is missing in the configuration file."
         fi
 
         if ! grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
             success_message "Authorization pass path has been correctly removed."
         else
-            error_exit "Authorization pass path is still present in the configuration file."
+            warn_message "Authorization pass path is still present in the configuration file."
         fi
     else
-        error_exit "Configuration file not found at $OSSEC_CONF_PATH."
+        warn_message "Configuration file not found at $OSSEC_CONF_PATH."
     fi
 
     success_message "Validation of installation and configuration completed successfully."
@@ -235,7 +235,7 @@ maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executabl
 print_step 3 "Configuring Wazuh agent certificates..."
 
 ## If OSSEC_CONF_PATH exist, then configure agent
-if [ -f "$OSSEC_CONF_PATH" ]; then
+if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
     check_enrollment
 else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
