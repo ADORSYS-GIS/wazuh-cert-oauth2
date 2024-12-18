@@ -104,8 +104,8 @@ uninstall_binary() {
 cleanup_configuration() {
     if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
         info_message "Removing agent certificate and key configurations from $OSSEC_CONF_PATH..."
-        maybe_sudo sed_alternative -i '/<agent_certificate_path>.*<\/agent_certificate_path>/d' "$OSSEC_CONF_PATH"
-        maybe_sudo sed_alternative -i '/<agent_key_path>.*<\/agent_key_path>/d' "$OSSEC_CONF_PATH"
+        sed_alternative -i '/<agent_certificate_path>.*<\/agent_certificate_path>/d' "$OSSEC_CONF_PATH"
+        sed_alternative -i '/<agent_key_path>.*<\/agent_key_path>/d' "$OSSEC_CONF_PATH"
         info_message "Configuration cleaned successfully."
     else
         warn_message "Configuration file not found at $OSSEC_CONF_PATH. Skipping configuration cleanup."
