@@ -175,7 +175,7 @@ check_enrollment() {
 validate_installation() {
     # Check if the binary exists and has the correct permissions
     if maybe_sudo [ -x "$BIN_DIR/$APP_NAME" ]; then
-        success_message "Binary exists and is executable at $BIN_DIR/$APP_NAME."
+        info_message "Binary exists and is executable at $BIN_DIR/$APP_NAME."
     else
         warn_message "Binary is missing or not executable at $BIN_DIR/$APP_NAME."
     fi
@@ -183,25 +183,25 @@ validate_installation() {
     # Verify the configuration file contains the required updates
     if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
         if maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
-            success_message "Enrollment block is present in the configuration file."
+            info_message "Enrollment block is present in the configuration file."
         else
             warn_message "Enrollment block is missing in the configuration file."
         fi
 
         if maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
-            success_message "Agent certificate path is configured correctly."
+            info_message "Agent certificate path is configured correctly."
         else
             warn_message "Agent certificate path is missing in the configuration file."
         fi
 
         if maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
-            success_message "Agent key path is configured correctly."
+            info_message "Agent key path is configured correctly."
         else
             warn_message "Agent key path is missing in the configuration file."
         fi
 
         if ! maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
-            success_message "Authorization pass path has been correctly removed."
+            info_message "Authorization pass path has been correctly removed."
         else
             warn_message "Authorization pass path is still present in the configuration file."
         fi

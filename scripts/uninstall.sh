@@ -62,10 +62,15 @@ error_exit() {
     exit 1
 }
 
-# Ensure root privileges
+# Check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Ensure root privileges, either directly or through sudo
 maybe_sudo() {
     if [ "$(id -u)" -ne 0 ]; then
-        if command -v sudo >/dev/null 2>&1; then
+        if command_exists sudo; then
             sudo "$@"
         else
             error_message "This script requires root privileges. Please run with sudo or as root."
@@ -73,6 +78,14 @@ maybe_sudo() {
         fi
     else
         "$@"
+    fi
+}
+
+sed_alternative() {
+    if command_exists gsed; then
+        maybe_sudo gsed "$@"
+    else
+        maybe_sudo sed "$@"
     fi
 }
 
@@ -91,8 +104,8 @@ uninstall_binary() {
 cleanup_configuration() {
     if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
         info_message "Removing agent certificate and key configurations from $OSSEC_CONF_PATH..."
-        maybe_sudo sed -i '/<agent_certificate_path>.*<\/agent_certificate_path>/d' "$OSSEC_CONF_PATH"
-        maybe_sudo sed -i '/<agent_key_path>.*<\/agent_key_path>/d' "$OSSEC_CONF_PATH"
+        maybe_sudo sed_alternative -i '/<agent_certificate_path>.*<\/agent_certificate_path>/d' "$OSSEC_CONF_PATH"
+        maybe_sudo sed_alternative -i '/<agent_key_path>.*<\/agent_key_path>/d' "$OSSEC_CONF_PATH"
         info_message "Configuration cleaned successfully."
     else
         warn_message "Configuration file not found at $OSSEC_CONF_PATH. Skipping configuration cleanup."
