@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 # Default log level and application details
 $LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
 $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
-$DEFAULT_WOPS_VERSION = "0.2.5"
+$DEFAULT_WOPS_VERSION = "0.2.8"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files\ossec-agent\ossec.conf" }
 $USER = "root"
@@ -192,6 +192,13 @@ if ($ARCH -eq "x86_64") {
 
 PrintStep 2 "Installing binary to $BIN_DIR..."
 New-Item -ItemType Directory -Path $BIN_DIR -Force
+
+# Check if the file already exists and remove it if so
+if (Test-Path $BIN_DIR\$APP_NAME.exe) {
+    WarnMessage "File $BIN_DIR\$APP_NAME.exe already exists. Replacing it..." 
+    Remove-Item -Path $BIN_DIR\$APP_NAME.exe -Force
+}
+
 Move-Item -Path $TEMP_FILE -Destination "$BIN_DIR\$APP_NAME.exe"
 icacls "$BIN_DIR\$APP_NAME.exe" /grant Users:RX
 
