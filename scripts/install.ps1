@@ -23,31 +23,32 @@ $NORMAL = ""
 function Log {
     param (
         [string]$Level,
-        [string]$Message
+        [string]$Message,
+        [string]$Color = "White"  # Default color
     )
     $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Write-Host "$Timestamp $Level $Message"
+    Write-Host "$Timestamp $Level $Message" -ForegroundColor $Color
 }
 
-# Logging helpers
+# Logging helpers with colors
 function InfoMessage {
     param ([string]$Message)
-    Log "[INFO]" $Message
+    Log "[INFO]" $Message "White"
 }
 
 function WarnMessage {
     param ([string]$Message)
-    Log "[WARNING]" $Message
+    Log "[WARNING]" $Message "Yellow"
 }
 
 function ErrorMessage {
     param ([string]$Message)
-    Log "[ERROR]" $Message
+    Log "[ERROR]" $Message "Red"
 }
 
 function SuccessMessage {
     param ([string]$Message)
-    Log "[SUCCESS]" $Message
+    Log "[SUCCESS]" $Message "Green"
 }
 
 function PrintStep {
@@ -55,8 +56,21 @@ function PrintStep {
         [int]$StepNumber,
         [string]$Message
     )
-    Log "[STEP]" "Step ${StepNumber}: $Message"
+    Log "[STEP]" "Step ${StepNumber}: $Message" "White"
 }
+
+# Section Separator
+function SectionSeparator {
+    param (
+        [string]$SectionName
+    )
+    Write-Host ""
+    Write-Host "==================================================" -ForegroundColor Magenta
+    Write-Host "  $SectionName" -ForegroundColor Magenta
+    Write-Host "==================================================" -ForegroundColor Magenta
+    Write-Host ""
+}
+
 
 # Exit script with an error message
 function ErrorExit {
