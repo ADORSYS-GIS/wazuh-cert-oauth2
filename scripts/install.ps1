@@ -106,37 +106,10 @@ function EnsureUserGroup {
         New-LocalGroup -Name $GROUP
     }
 }
+function ConfigureEnrollment {
+    $certPath = "etc\sslagent.cert"  # Updated path to etc folder
+    $keyPath = "etc\sslagent.key"    # Updated path to etc folder
 
-# Configure agent certificates in ossec.conf
-function ConfigureAgentCertificates {
-    InfoMessage "Configuring agent certificates..."
-
-    # Determine certificate paths based on architecture
-    $baseDir = Split-Path -Parent $OSSEC_CONF_PATH
-    $certPath = "$baseDir\sslagent.cert"
-    $keyPath = "$baseDir\sslagent.key"
-
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_certificate_path>sslagent.cert</agent_certificate_path>' -Quiet)) {
-        [xml]$config = Get-Content $OSSEC_CONF_PATH
-        $certPathNode = $config.CreateElement("agent_certificate_path")
-        $certPathNode.InnerText = $certPath
-        $config.ossec.server.InsertAfter($certPathNode, $config.ossec.server.agent_name)
-        $config.Save($OSSEC_CONF_PATH)
-    }
-
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern '<agent_key_path>sslagent.key</agent_key_path>' -Quiet)) {
-        [xml]$config = Get-Content $OSSEC_CONF_PATH
-        $keyPathNode = $config.CreateElement("agent_key_path")
-        $keyPathNode.InnerText = $keyPath
-        $config.ossec.server.InsertAfter($keyPathNode, $config.ossec.server.agent_name)
-        $config.Save($OSSEC_CONF_PATH)
-    }
-
-    InfoMessage "Agent certificates path configured successfully."
-}
-
-# Check for enrollment block and insert if missing
-function CheckEnrollment {
     if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
         $enrollmentBlock = @"
 <enrollment>
@@ -146,12 +119,56 @@ function CheckEnrollment {
 </enrollment>
 "@
         Add-Content -Path $OSSEC_CONF_PATH -Value $enrollmentBlock
-        InfoMessage "The enrollment block was added successfully."
+        InfoMessage "Enrollment block with certificates configured successfully."
     } else {
-        ConfigureAgentCertificates
-        InfoMessage "Enrollment block already exists. Agent certificates configured."
+        # Load the existing config
+        [xml]$config = Get-Content $OSSEC_CONF_PATH
+
+        # Check and add/update elements
+        $enrollmentNode = $config.ossec_config.client.enrollment
+	
+        # Update or add agent_name
+        $agentNameNode = $enrollmentNode.SelectSingleNode("agent_name")
+        if ($agentNameNode) {
+            $agentNameNode.InnerText = ""
+            InfoMessage "Updated agent_name"
+        } else {
+            $agentNameNode = $config.CreateElement("agent_name")
+            $agentNameNode.InnerText = ""
+            $enrollmentNode.AppendChild($agentNameNode)
+            InfoMessage "Added missing agent_name element"
+        }
+
+        # Update or add certificate path
+        $certPathNode = $enrollmentNode.SelectSingleNode("agent_certificate_path")
+        if ($certPathNode) {
+            $certPathNode.InnerText = $certPath
+            InfoMessage "Updated agent_certificate_path"
+        } else {
+            $certPathNode = $config.CreateElement("agent_certificate_path")
+            $certPathNode.InnerText = $certPath
+            $enrollmentNode.AppendChild($certPathNode)
+            InfoMessage "Added missing agent_certificate_path element"
+        }
+
+        # Update or add key path
+        $keyPathNode = $enrollmentNode.SelectSingleNode("agent_key_path")
+        if ($keyPathNode) {
+            $keyPathNode.InnerText = $keyPath
+            InfoMessage "Updated agent_key_path"
+        } else {
+            $keyPathNode = $config.CreateElement("agent_key_path")
+            $keyPathNode.InnerText = $keyPath
+            $enrollmentNode.AppendChild($keyPathNode)
+            InfoMessage "Added missing agent_key_path element"
+        }
+
+        # Save changes
+        $config.Save($OSSEC_CONF_PATH)
+        InfoMessage "Updated enrollment block configurations."
     }
 }
+
 
 # Determine architecture and operating system
 $OS = if ($PSVersionTable.PSEdition -eq "Core") { "linux" } else { "windows" }
@@ -205,7 +222,7 @@ icacls "$BIN_DIR\$APP_NAME.exe" /grant Users:RX
 # Step 3: Configure agent certificates
 PrintStep 3 "Configuring Wazuh agent certificates..."
 if (Test-Path $OSSEC_CONF_PATH) {
-    CheckEnrollment
+    ConfigureEnrollment
 } else {
     WarnMessage "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 }
