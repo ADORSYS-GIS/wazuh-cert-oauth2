@@ -29,7 +29,7 @@ pub fn default_path_to_ossec_conf() -> String {
     }
     else{
         ossec_path.join("etc").join("ossec.conf");
-    }
+    };
     path_buf.display().to_string()
 }
 
