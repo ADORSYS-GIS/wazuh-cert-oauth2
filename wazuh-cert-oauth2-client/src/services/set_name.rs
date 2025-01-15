@@ -32,18 +32,20 @@ pub async fn set_name(name: &str) -> Result<()> {
     info!("Updating agent name to {} in {}", agent_name, ossec_conf);
 
     let update_cmd = format!(r"s|<agent_name>.*</agent_name>|<agent_name>{}</agent_name>|g", agent_name);
-    sed_command(&update_cmd, &ossec_conf).await?;
+    sed_command(&update_cmd, &ossec_conf, &agent_name).await?;
 
     info!("Agent name updated to {}", agent_name);
     restart_agent().await?;
     Ok(())
 }
 
+
+
 #[cfg(target_os = "windows")]
 async fn restart_agent() -> Result<()> {
     let status = Command::new("Restart-Service")
         .arg("-Name")
-        .arg("wazuh")
+        .arg("WazuhSvc")
         .status().await?;
 
     if !status.success() {
