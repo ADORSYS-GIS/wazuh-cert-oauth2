@@ -25,10 +25,9 @@ pub fn default_path_agent_control() -> String {
 pub fn default_path_to_ossec_conf() -> String {
     let ossec_path = default_path_to_ossec();
     let path_buf = if cfg!(target_os = "windows") {
-        ossec_path.join("ossec.conf");
-    }
-    else{
-        ossec_path.join("etc").join("ossec.conf");
+        ossec_path.join("ossec.conf")
+    } else {
+        ossec_path.join("etc").join("ossec.conf")
     };
     path_buf.display().to_string()
 }
