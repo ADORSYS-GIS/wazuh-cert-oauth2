@@ -39,11 +39,12 @@ pub async fn set_name(name: &str) -> Result<()> {
     Ok(())
 }
 
+
 #[cfg(target_os = "windows")]
 async fn restart_agent() -> Result<()> {
     let status = Command::new("Restart-Service")
         .arg("-Name")
-        .arg("wazuh")
+        .arg("WazuhSvc")
         .status().await?;
 
     if !status.success() {

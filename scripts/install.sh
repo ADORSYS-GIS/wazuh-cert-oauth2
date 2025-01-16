@@ -94,9 +94,9 @@ maybe_sudo() {
 
 sed_alternative() {
     if command_exists gsed; then
-        gsed "$@"
+        maybe_sudo gsed "$@"
     else
-        sed "$@"
+        maybe_sudo sed "$@"
     fi
 }
 
@@ -133,7 +133,7 @@ check_enrollment() {
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
         ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n </enrollment>\n"
         # Add the file_limit block after the <syscheck> line
-        maybe_sudo sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
+        sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during the addition of the enrollment block."
             exit 1
         }
@@ -144,7 +144,7 @@ check_enrollment() {
 
     # Check and insert agent certificate path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed_alternative -i '/<agent_name=*/ a\
+        sed_alternative -i '/<agent_name=*/ a\
         <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent certificate configuration."
             exit 1
@@ -153,14 +153,63 @@ check_enrollment() {
 
     # Check and insert agent key path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
-        maybe_sudo sed_alternative -i '/<agent_name=*/ a\
+        sed_alternative -i '/<agent_name=*/ a\
         <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent key configuration."
             exit 1
         }
     fi
+    
+    # Check and delete auth pass path if it exists
+    if maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
+        sed_alternative -i '/<authorization_pass_path>.*<\/authorization_pass_path>/d' "$OSSEC_CONF_PATH" || {
+            error_message "Error occurred during Wazuh agent auth pass removal."
+            exit 1
+        }
+    fi
 
     info_message "Agent certificates path configured successfully."
+}
+
+# Function to validate installation and configuration
+validate_installation() {
+    # Check if the binary exists and has the correct permissions
+    if maybe_sudo [ -x "$BIN_DIR/$APP_NAME" ]; then
+        info_message "Binary exists and is executable at $BIN_DIR/$APP_NAME."
+    else
+        warn_message "Binary is missing or not executable at $BIN_DIR/$APP_NAME."
+    fi
+
+    # Verify the configuration file contains the required updates
+    if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
+        if maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
+            info_message "Enrollment block is present in the configuration file."
+        else
+            warn_message "Enrollment block is missing in the configuration file."
+        fi
+
+        if maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
+            info_message "Agent certificate path is configured correctly."
+        else
+            warn_message "Agent certificate path is missing in the configuration file."
+        fi
+
+        if maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
+            info_message "Agent key path is configured correctly."
+        else
+            warn_message "Agent key path is missing in the configuration file."
+        fi
+
+        if ! maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
+            info_message "Authorization pass path has been correctly removed."
+        else
+            warn_message "Authorization pass path is still present in the configuration file."
+        fi
+    else
+        warn_message "Configuration file not found at $OSSEC_CONF_PATH."
+    fi
+
+    success_message "Validation of installation and configuration completed successfully."
 }
 
 # Construct binary name and URL for download
@@ -186,11 +235,15 @@ maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executabl
 print_step 3 "Configuring Wazuh agent certificates..."
 
 ## If OSSEC_CONF_PATH exist, then configure agent
-if [ -f "$OSSEC_CONF_PATH" ]; then
+if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
     check_enrollment
 else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
+
+# Step 4: Validate installation and configuration
+print_step 4 "Validating installation and configuration..."
+validate_installation
 
 success_message "Installation and configuration complete! You can now use '$BIN_DIR/$APP_NAME' from your terminal."
 info_message "Run \n\n\t${GREEN}${BOLD}sudo $BIN_DIR/$APP_NAME o-auth2${NORMAL}\n\n to start configuring. If you don't have sudo on your machine, you can run the command without sudo."

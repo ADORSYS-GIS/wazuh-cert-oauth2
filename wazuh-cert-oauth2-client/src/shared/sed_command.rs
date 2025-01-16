@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::process::ExitStatus;
-use tokio::process::Command;
+use tokio::{process::Command, time::error::Elapsed};
 
 /// Run a sed command to replace the content of a file.
 pub async fn sed_command(content: &str, file_path: &str) -> Result<ExitStatus> {
@@ -11,8 +11,15 @@ pub async fn sed_command(content: &str, file_path: &str) -> Result<ExitStatus> {
             .arg(&file_path)
             .status()
             .await?
-    } else {
+    } else if cfg!(target_os = "linux") {
         Command::new("sed")
+            .arg("-i")
+            .arg(&content)
+            .arg(&file_path)
+            .status()
+            .await?
+    } else {
+        Command::new("powershell")
             .arg("-i")
             .arg(&content)
             .arg(&file_path)
