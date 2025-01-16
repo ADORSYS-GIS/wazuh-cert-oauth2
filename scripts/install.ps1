@@ -134,7 +134,8 @@ function ConfigureEnrollment {
             InfoMessage "Updated agent_name"
         } else {
             $agentNameNode = $config.CreateElement("agent_name")
-            $agentNameNode.InnerText = ""
+            # Ensure compact format
+            $agentNameNode.IsEmpty = $true
             $enrollmentNode.AppendChild($agentNameNode)
             InfoMessage "Added missing agent_name element"
         }
@@ -164,10 +165,20 @@ function ConfigureEnrollment {
         }
 
         # Save changes
-        $config.Save($OSSEC_CONF_PATH)
+        $writerSettings = New-Object System.Xml.XmlWriterSettings
+        $writerSettings.Indent = $true
+        $writerSettings.OmitXmlDeclaration = $false
+        $writerSettings.NewLineChars = "`n"
+        $writerSettings.NewLineHandling = "Replace"
+
+        $writer = [System.Xml.XmlWriter]::Create($OSSEC_CONF_PATH, $writerSettings)
+        $config.Save($writer)
+        $writer.Close()
+
         InfoMessage "Updated enrollment block configurations."
     }
 }
+
 
 
 # Determine architecture and operating system
