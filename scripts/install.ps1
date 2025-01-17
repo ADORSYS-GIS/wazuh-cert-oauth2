@@ -109,6 +109,7 @@ function EnsureUserGroup {
 function ConfigureEnrollment {
     $certPath = "etc\sslagent.cert"  # Updated path to etc folder
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
+    $agentName = "AGENT_NAME"
 
     if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
     
