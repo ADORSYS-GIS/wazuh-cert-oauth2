@@ -118,7 +118,7 @@ function ConfigureEnrollment {
         
         $enrollmentBlock = @"
 <enrollment>
-    <agent_name></agent_name>
+    <agent_name>$agentName</agent_name>
     <agent_certificate_path>$certPath</agent_certificate_path>
     <agent_key_path>$keyPath</agent_key_path>
 </enrollment>
