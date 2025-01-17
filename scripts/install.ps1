@@ -111,6 +111,10 @@ function ConfigureEnrollment {
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
 
     if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
+    
+        # Read the OSSEC configuration file
+        $configContent = Get-Content -Path $OSSEC_CONF_PATH -Raw
+        
         $enrollmentBlock = @"
 <enrollment>
     <agent_name></agent_name>
@@ -118,8 +122,18 @@ function ConfigureEnrollment {
     <agent_key_path>$keyPath</agent_key_path>
 </enrollment>
 "@
-        Add-Content -Path $OSSEC_CONF_PATH -Value $enrollmentBlock
-        InfoMessage "Enrollment block with certificates configured successfully."
+        
+        # Define the pattern to locate the server block
+        $serverPattern = "<server>[\s\S]*?</server>"
+        
+        # Find the end of the server block and insert the enrollment block afterward
+        if ($configContent -match $serverPattern) {
+            $updatedConfig = $configContent -replace "($serverPattern)", "`$1`n$enrollmentBlock"
+            Set-Content -Path $OSSEC_CONF_PATH -Value $updatedConfig
+            InfoMessage "Enrollment block with certificates configured successfully after the server block."
+        } else {
+            InfoMessage "Server block not found. Enrollment block not added."
+        }
     } else {
         # Load the existing config
         [xml]$config = Get-Content $OSSEC_CONF_PATH
