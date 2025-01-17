@@ -5,14 +5,7 @@ use tokio::{process::Command, time::error::Elapsed};
 /// Run a sed command to replace the content of a file.
 pub async fn sed_command(content: &str, file_path: &str) -> Result<ExitStatus> {
     let status = if cfg!(target_os = "macos") {
-        Command::new("sed")
-            .arg("-i").arg("")
-            .arg(&content)
-            .arg(&file_path)
-            .status()
-            .await?
-    } else if cfg!(target_os = "linux") {
-        Command::new("sed")
+        Command::new("gsed")
             .arg("-i")
             .arg(&content)
             .arg(&file_path)
