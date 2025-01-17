@@ -106,78 +106,65 @@ function EnsureUserGroup {
         New-LocalGroup -Name $GROUP
     }
 }
+
 function ConfigureEnrollment {
     $certPath = "etc\sslagent.cert"  # Updated path to etc folder
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
 
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
-        $enrollmentBlock = @"
-<enrollment>
-    <agent_name></agent_name>
-    <agent_certificate_path>$certPath</agent_certificate_path>
-    <agent_key_path>$keyPath</agent_key_path>
-</enrollment>
-"@
-        Add-Content -Path $OSSEC_CONF_PATH -Value $enrollmentBlock
+    # Load the existing configuration file as XML
+    [xml]$config = Get-Content $OSSEC_CONF_PATH
+
+    # Find the <client> node
+    $clientNode = $config.ossec_config.client
+    if (-not $clientNode) {
+        Write-Error "No <client> block found in the configuration file."
+        return
+    }
+
+    # Check if <enrollment> block already exists
+    $enrollmentNode = $clientNode.enrollment
+    if (-not $enrollmentNode) {
+        # Create the <enrollment> block
+        $enrollmentNode = $config.CreateElement("enrollment")
+
+        # Add child elements to <enrollment>
+        $agentNameNode = $config.CreateElement("agent_name")
+        $agentNameNode.InnerText = ""
+        $enrollmentNode.AppendChild($agentNameNode)
+
+        $certPathNode = $config.CreateElement("agent_certificate_path")
+        $certPathNode.InnerText = $certPath
+        $enrollmentNode.AppendChild($certPathNode)
+
+        $keyPathNode = $config.CreateElement("agent_key_path")
+        $keyPathNode.InnerText = $keyPath
+        $enrollmentNode.AppendChild($keyPathNode)
+
+        # Append <enrollment> to the <client> block
+        $clientNode.AppendChild($enrollmentNode)
         InfoMessage "Enrollment block with certificates configured successfully."
     } else {
-        # Load the existing config
-        [xml]$config = Get-Content $OSSEC_CONF_PATH
-
-        # Check and add/update elements
-        $enrollmentNode = $config.ossec_config.client.enrollment
-	
-        # Update or add agent_name
-        $agentNameNode = $enrollmentNode.SelectSingleNode("agent_name")
-        if ($agentNameNode) {
-            $agentNameNode.InnerText = ""
-            InfoMessage "Updated agent_name"
-        } else {
-            $agentNameNode = $config.CreateElement("agent_name")
-            # Ensure compact format
-            $agentNameNode.IsEmpty = $true
-            $enrollmentNode.AppendChild($agentNameNode)
-            InfoMessage "Added missing agent_name element"
-        }
-
-        # Update or add certificate path
-        $certPathNode = $enrollmentNode.SelectSingleNode("agent_certificate_path")
-        if ($certPathNode) {
-            $certPathNode.InnerText = $certPath
-            InfoMessage "Updated agent_certificate_path"
-        } else {
-            $certPathNode = $config.CreateElement("agent_certificate_path")
-            $certPathNode.InnerText = $certPath
-            $enrollmentNode.AppendChild($certPathNode)
-            InfoMessage "Added missing agent_certificate_path element"
-        }
-
-        # Update or add key path
-        $keyPathNode = $enrollmentNode.SelectSingleNode("agent_key_path")
-        if ($keyPathNode) {
-            $keyPathNode.InnerText = $keyPath
-            InfoMessage "Updated agent_key_path"
-        } else {
-            $keyPathNode = $config.CreateElement("agent_key_path")
-            $keyPathNode.InnerText = $keyPath
-            $enrollmentNode.AppendChild($keyPathNode)
-            InfoMessage "Added missing agent_key_path element"
-        }
-
-        # Save changes
-        $writerSettings = New-Object System.Xml.XmlWriterSettings
-        $writerSettings.Indent = $true
-        $writerSettings.OmitXmlDeclaration = $false
-        $writerSettings.NewLineChars = "`n"
-        $writerSettings.NewLineHandling = "Replace"
-
-        $writer = [System.Xml.XmlWriter]::Create($OSSEC_CONF_PATH, $writerSettings)
-        $config.Save($writer)
-        $writer.Close()
-
+        # Update existing <enrollment> elements
+        $enrollmentNode.agent_name.InnerText = ""
+        $enrollmentNode.agent_certificate_path.InnerText = $certPath
+        $enrollmentNode.agent_key_path.InnerText = $keyPath
         InfoMessage "Updated enrollment block configurations."
     }
+
+    # Save the updated configuration back to the file
+    $writerSettings = New-Object System.Xml.XmlWriterSettings
+    $writerSettings.Indent = $true
+    $writerSettings.OmitXmlDeclaration = $false
+    $writerSettings.NewLineChars = "`n"
+    $writerSettings.NewLineHandling = "Replace"
+
+    $writer = [System.Xml.XmlWriter]::Create($OSSEC_CONF_PATH, $writerSettings)
+    $config.Save($writer)
+    $writer.Close()
+
+    InfoMessage "Configuration file updated successfully."
 }
+
 
 
 
