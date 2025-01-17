@@ -19,7 +19,7 @@ pub async fn sed_command(content: &str, file_path: &str) -> Result<ExitStatus> {
             .status()
             .await?
     } else {
-        Command::new("powershell")
+        Command::new("sed")
             .arg("-i")
             .arg(&content)
             .arg(&file_path)
