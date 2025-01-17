@@ -140,19 +140,6 @@ function ConfigureEnrollment {
 
         # Check and add/update elements
         $enrollmentNode = $config.ossec_config.client.enrollment
-	
-        # Update or add agent_name
-        $agentNameNode = $enrollmentNode.SelectSingleNode("agent_name")
-        if ($agentNameNode) {
-            $agentNameNode.InnerText = ""
-            InfoMessage "Updated agent_name"
-        } else {
-            $agentNameNode = $config.CreateElement("agent_name")
-            # Ensure compact format
-            $agentNameNode.IsEmpty = $true
-            $enrollmentNode.AppendChild($agentNameNode)
-            InfoMessage "Added missing agent_name element"
-        }
 
         # Update or add certificate path
         $certPathNode = $enrollmentNode.SelectSingleNode("agent_certificate_path")
