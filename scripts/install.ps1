@@ -169,7 +169,7 @@ function ConfigureEnrollment {
         # Save changes
         $writerSettings = New-Object System.Xml.XmlWriterSettings
         $writerSettings.Indent = $true
-        $writerSettings.OmitXmlDeclaration = $false
+        $writerSettings.OmitXmlDeclaration = $true
         $writerSettings.NewLineChars = "`n"
         $writerSettings.NewLineHandling = "Replace"
 
