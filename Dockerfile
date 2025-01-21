@@ -10,9 +10,12 @@ COPY ./ ./
 
 RUN cargo build --manifest-path wazuh-cert-oauth2/Cargo.toml --release
 
-FROM base
+FROM gcr.io/distroless/base-debian12
 
 LABEL maintainer="stephane.segning-lambou@adorsys.com"
+LABEL org.opencontainers.image.description="adorsys Cameroon"
+
+ENV RUST_LOG=warn
 
 WORKDIR /app
 
