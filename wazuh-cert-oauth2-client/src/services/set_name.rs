@@ -1,3 +1,5 @@
+use std::os;
+
 use crate::shared::path::{default_path_to_ossec_conf};
 use crate::shared::sed_command::sed_command;
 use anyhow::Result;
@@ -5,6 +7,7 @@ use tokio::process::Command;
 
 /// Set the name of the agent.
 pub async fn set_name(name: &str) -> Result<()> {
+    info!("Set Name function entered");
     let name = diacritics::remove_diacritics(name);
     let long_machine_id = if let Ok(machine_id) = mid::get(&name) {
         info!("Machine ID: {}", machine_id);
@@ -39,11 +42,12 @@ pub async fn set_name(name: &str) -> Result<()> {
     Ok(())
 }
 
+
 #[cfg(target_os = "windows")]
 async fn restart_agent() -> Result<()> {
     let status = Command::new("Restart-Service")
         .arg("-Name")
-        .arg("wazuh")
+        .arg("WazuhSvc")
         .status().await?;
 
     if !status.success() {
