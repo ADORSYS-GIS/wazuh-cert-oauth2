@@ -1,0 +1,8 @@
+.github
+.idea
+helm
+scripts
+.dockerignore
+.gitignore
+compose.yaml
+target
