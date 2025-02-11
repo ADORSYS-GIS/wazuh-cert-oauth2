@@ -1,20 +1,31 @@
-use anyhow::Result;
-use jsonwebtoken::{decode, decode_header, DecodingKey, Validation};
-
 use crate::models::claims::Claims;
+use crate::models::errors::AppError;
+use anyhow::{bail, Result};
+use jsonwebtoken::errors::{ErrorKind};
+use jsonwebtoken::{decode, decode_header, DecodingKey, Validation};
 
 /// Validate the token using the provided JWKS.
 pub async fn validate_token(
     token: &str,
     jwks: &jsonwebtoken::jwk::JwkSet,
     audiences: &Vec<String>,
-) -> Result<Claims, jsonwebtoken::errors::Error> {
+) -> Result<Claims> {
     let header = decode_header(token)?;
     debug!("decoded header: {:?}", header);
-    let kid = header.kid.ok_or(jsonwebtoken::errors::ErrorKind::InvalidKeyFormat)?;
+    let kid = match header.kid {
+        None => {
+            bail!(AppError::JwtError(ErrorKind::InvalidKeyFormat.into()));
+        }
+        Some(v) => v,
+    };
 
     debug!("looking up key with kid: {}", kid);
-    let jwk = jwks.find(&kid).ok_or(jsonwebtoken::errors::ErrorKind::InvalidKeyFormat)?;
+    let jwk = match jwks.find(&kid) {
+        None => {
+            bail!(AppError::JwtError(ErrorKind::InvalidKeyFormat.into()));
+        }
+        Some(v) => v,
+    };
 
     debug!("found key");
     let key = DecodingKey::from_jwk(jwk)?;
@@ -24,14 +35,14 @@ pub async fn validate_token(
     validation.set_audience(audiences);
 
     debug!("decoding token");
-    let result = decode::<Claims>(token, &key, &validation);
-    if let Ok(decoded_token) = result {
-        debug!("decoded token");
-        Ok(decoded_token.claims)
-    } else if let Err(err) = result {
-        eprintln!("{}", err);
-        Err(jsonwebtoken::errors::ErrorKind::InvalidToken.into())
-    } else {
-        Err(jsonwebtoken::errors::ErrorKind::InvalidToken.into())
+    match decode::<Claims>(token, &key, &validation) {
+        Ok(decoded_token) => {
+            debug!("decoded token");
+            Ok(decoded_token.claims)
+        }
+        Err(e) => {
+            debug!("Could not decode the token");
+            bail!(AppError::JwtError(e))
+        }
     }
 }

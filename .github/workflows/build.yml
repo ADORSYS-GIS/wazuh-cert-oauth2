@@ -71,7 +71,16 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{branch}}
+            type=raw,value={{branch}}-{{sha}}
+            type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Europe/Berlin'}}
+            type=semver,enable=true,priority=900,prefix=,suffix=,pattern=,value=
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,format=long
+            type=sha,format=long,prefix={{branch}}
 
       - name: Cache Docker layers
         uses: actions/cache@v4
@@ -87,9 +96,9 @@ jobs:
           push: "true"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          cache-to: type=local,dest=/tmp/.buildx-cache
 
       # Save the updated Docker cache
       - name: Save Docker cache
@@ -97,4 +106,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: buildx-cache
-          path: /tmp/.buildx-cache-new
+          path: /tmp/.buildx-cache
