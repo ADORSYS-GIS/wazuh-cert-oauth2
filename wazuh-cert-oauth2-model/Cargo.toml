@@ -1,6 +1,6 @@
 [package]
 name = "wazuh-cert-oauth2-model"
-version = "0.2.15"
+version = "0.2.16"
 edition = "2021"
 
 [dependencies]

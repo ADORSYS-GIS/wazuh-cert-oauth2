@@ -3,7 +3,7 @@ extern crate rocket;
 
 use std::env::var;
 
-use anyhow::Result;
+use anyhow::*;
 use env_logger::{Builder, Env};
 use tokio::sync::RwLock;
 

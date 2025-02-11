@@ -73,12 +73,8 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value={{branch}}
-            type=raw,value={{branch}}-{{sha}}
+            type=raw,value={{sha}}
             type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Europe/Berlin'}}
-            type=semver,enable=true,priority=900,prefix=,suffix=,pattern=,value=
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
             type=sha,format=long
             type=sha,format=long,prefix={{branch}}
 
