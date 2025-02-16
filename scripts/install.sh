@@ -28,48 +28,51 @@ case "$ARCH" in
     *) error_exit "Unsupported architecture: $ARCH" ;;
 esac
 
-# Define text formatting
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
-BOLD='\033[1m'
-NORMAL='\033[0m'
 
-# Function for logging with timestamp
-log() {
-    local LEVEL="$1"
-    shift
-    local MESSAGE="$*"
-    local TIMESTAMP
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    echo -e "${TIMESTAMP} ${LEVEL} ${MESSAGE}"
+
+function Log {
+    param (
+        [string]$Level,
+        [string]$Message,
+        [string]$Color = "White"  # Default color
+    )
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Write-Host "$Timestamp $Level $Message" -ForegroundColor $Color
 }
 
-# Logging helpers
-info_message() {
-    log "${BLUE}${BOLD}[INFO]${NORMAL}" "$*"
+# Logging helpers with colors
+function InfoMessage {
+    param ([string]$Message)
+    Log "[INFO]" $Message "White"
 }
 
-warn_message() {
-    log "${YELLOW}${BOLD}[WARNING]${NORMAL}" "$*"
+function WarnMessage {
+    param ([string]$Message)
+    Log "[WARNING]" $Message "Yellow"
 }
 
-error_message() {
-    log "${RED}${BOLD}[ERROR]${NORMAL}" "$*"
+function ErrorMessage {
+    param ([string]$Message)
+    Log "[ERROR]" $Message "Red"
 }
 
-success_message() {
-    log "${GREEN}${BOLD}[SUCCESS]${NORMAL}" "$*"
+function SuccessMessage {
+    param ([string]$Message)
+    Log "[SUCCESS]" $Message "Green"
 }
 
-print_step() {
-    log "${BLUE}${BOLD}[STEP]${NORMAL}" "$1: $2"
+function PrintStep {
+    param (
+        [int]$StepNumber,
+        [string]$Message
+    )
+    Log "[STEP]" "Step ${StepNumber}: $Message" "White"
 }
 
 # Exit script with an error message
-error_exit() {
-    error_message "$1"
+function ErrorExit {
+    param ([string]$Message)
+    ErrorMessage $Message
     exit 1
 }
 
@@ -84,7 +87,7 @@ maybe_sudo() {
         if command_exists sudo; then
             sudo "$@"
         else
-            error_message "This script requires root privileges. Please run with sudo or as root."
+            ErrorMessage "This script requires root privileges. Please run with sudo or as root."
             exit 1
         fi
     else
@@ -102,28 +105,28 @@ sed_alternative() {
 
 # Create user and group if they do not exist
 ensure_user_group() {
-    info_message "Ensuring that the $USER:$GROUP user and group exist..."
+    InfoMessage "Ensuring that the $USER:$GROUP user and group exist..."
 
     if ! id -u "$USER" >/dev/null 2>&1; then
-        info_message "Creating user $USER..."
+        InfoMessage "Creating user $USER..."
         if [ "$(uname -o)" = "GNU/Linux" ] && command -v groupadd >/dev/null 2>&1; then
             maybe_sudo useradd -m "$USER"
         elif [ "$(which apk)" = "/sbin/apk" ]; then
             maybe_sudo adduser -D "$USER"
         else
-            error_message "Unsupported OS for creating user."
+            ErrorMessage "Unsupported OS for creating user."
             exit 1
         fi
     fi
 
     if ! getent group "$GROUP" >/dev/null 2>&1; then
-        info_message "Creating group $GROUP..."
+        InfoMessage "Creating group $GROUP..."
         if [ "$(uname -o)" = "GNU/Linux" ] && command -v groupadd >/dev/null 2>&1; then
             maybe_sudo groupadd "$GROUP"
         elif [ "$(which apk)" = "/sbin/apk" ]; then
             maybe_sudo addgroup "$GROUP"
         else
-            error_message "Unsupported OS for creating group."
+            ErrorMessage "Unsupported OS for creating group."
             exit 1
         fi
     fi
@@ -134,19 +137,19 @@ check_enrollment() {
         ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n </enrollment>\n"
         # Add the file_limit block after the <syscheck> line
         sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
-            error_message "Error occurred during the addition of the enrollment block."
+            ErrorMessage "Error occurred during the addition of the enrollment block."
             exit 1
         }
-        info_message "The enrollment block was added successfully."
+        InfoMessage "The enrollment block was added successfully."
     fi
 
-    info_message "Configuring agent certificates..."
+    InfoMessage "Configuring agent certificates..."
 
     # Check and insert agent certificate path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
         sed_alternative -i '/<agent_name=*/ a\
         <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
-            error_message "Error occurred during Wazuh agent certificate configuration."
+            ErrorMessage "Error occurred during Wazuh agent certificate configuration."
             exit 1
         }
     fi
@@ -155,7 +158,7 @@ check_enrollment() {
     if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
         sed_alternative -i '/<agent_name=*/ a\
         <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
-            error_message "Error occurred during Wazuh agent key configuration."
+            ErrorMessage "Error occurred during Wazuh agent key configuration."
             exit 1
         }
     fi
@@ -163,53 +166,53 @@ check_enrollment() {
     # Check and delete auth pass path if it exists
     if maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
         sed_alternative -i '/<authorization_pass_path>.*<\/authorization_pass_path>/d' "$OSSEC_CONF_PATH" || {
-            error_message "Error occurred during Wazuh agent auth pass removal."
+            ErrorMessage "Error occurred during Wazuh agent auth pass removal."
             exit 1
         }
     fi
 
-    info_message "Agent certificates path configured successfully."
+    InfoMessage "Agent certificates path configured successfully."
 }
 
 # Function to validate installation and configuration
 validate_installation() {
     # Check if the binary exists and has the correct permissions
     if maybe_sudo [ -x "$BIN_DIR/$APP_NAME" ]; then
-        info_message "Binary exists and is executable at $BIN_DIR/$APP_NAME."
+        InfoMessage "Binary exists and is executable at $BIN_DIR/$APP_NAME."
     else
-        warn_message "Binary is missing or not executable at $BIN_DIR/$APP_NAME."
+        WarnMessage "Binary is missing or not executable at $BIN_DIR/$APP_NAME."
     fi
 
     # Verify the configuration file contains the required updates
     if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
         if maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
-            info_message "Enrollment block is present in the configuration file."
+            InfoMessage "Enrollment block is present in the configuration file."
         else
-            warn_message "Enrollment block is missing in the configuration file."
+            WarnMessage "Enrollment block is missing in the configuration file."
         fi
 
         if maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
-            info_message "Agent certificate path is configured correctly."
+            InfoMessage "Agent certificate path is configured correctly."
         else
-            warn_message "Agent certificate path is missing in the configuration file."
+            WarnMessage "Agent certificate path is missing in the configuration file."
         fi
 
         if maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
-            info_message "Agent key path is configured correctly."
+            InfoMessage "Agent key path is configured correctly."
         else
-            warn_message "Agent key path is missing in the configuration file."
+            WarnMessage "Agent key path is missing in the configuration file."
         fi
 
         if ! maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
-            info_message "Authorization pass path has been correctly removed."
+            InfoMessage "Authorization pass path has been correctly removed."
         else
-            warn_message "Authorization pass path is still present in the configuration file."
+            WarnMessage "Authorization pass path is still present in the configuration file."
         fi
     else
-        warn_message "Configuration file not found at $OSSEC_CONF_PATH."
+        WarnMessage "Configuration file not found at $OSSEC_CONF_PATH."
     fi
 
-    success_message "Validation of installation and configuration completed successfully."
+    SuccessMessage "Validation of installation and configuration completed successfully."
 }
 
 # Construct binary name and URL for download
@@ -222,28 +225,28 @@ TEMP_DIR=$(mktemp -d) || error_exit "Failed to create temporary directory"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # Step 1: Download the binary file
-print_step 1 "Downloading $BIN_NAME from $URL..."
+PrintStep 1 "Downloading $BIN_NAME from $URL..."
 curl -SL --progress-bar -o "$TEMP_DIR/$BIN_NAME" "$URL" || error_exit "Failed to download $BIN_NAME"
 
 # Step 2: Install the binary
-print_step 2 "Installing binary to $BIN_DIR..."
+PrintStep 2 "Installing binary to $BIN_DIR..."
 maybe_sudo mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DIR"
 maybe_sudo mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
 maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
 
 # Step 3: Configure agent certificates
-print_step 3 "Configuring Wazuh agent certificates..."
+PrintStep 3 "Configuring Wazuh agent certificates..."
 
 ## If OSSEC_CONF_PATH exist, then configure agent
 if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
     check_enrollment
 else
-    warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
+    WarnMessage "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
 
 # Step 4: Validate installation and configuration
-print_step 4 "Validating installation and configuration..."
+PrintStep 4 "Validating installation and configuration..."
 validate_installation
 
-success_message "Installation and configuration complete! You can now use '$BIN_DIR/$APP_NAME' from your terminal."
-info_message "Run \n\n\t${GREEN}${BOLD}sudo $BIN_DIR/$APP_NAME o-auth2${NORMAL}\n\n to start configuring. If you don't have sudo on your machine, you can run the command without sudo."
+SuccessMessage "Installation and configuration complete! You can now use '$BIN_DIR/$APP_NAME' from your terminal."
+InfoMessage "Run \n\n\t${GREEN}${BOLD}sudo $BIN_DIR/$APP_NAME o-auth2${NORMAL}\n\n to start configuring. If you don't have sudo on your machine, you can run the command without sudo."
