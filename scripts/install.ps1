@@ -189,7 +189,7 @@ if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
 }
 
 # Construct binary name and URL for download
-$BIN_NAME = "$APP_NAME-$ARCH-$OS-msvc.exe"
+$BIN_NAME = "$APP_NAME-$ARCH-pc-$OS-msvc.exe"
 $BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $URL = "$BASE_URL/$BIN_NAME"
 
