@@ -11,13 +11,6 @@ $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } 
 $USER = "root"
 $GROUP = "wazuh"
 
-# Define text formatting (Windows doesn't support color in native console, this is a placeholder)
-$RED = "RED"
-$GREEN = "GREEN"
-$YELLOW = "YELLOW"
-$BLUE = "BLUE"
-$BOLD = ""
-$NORMAL = ""
 
 # Function for logging with timestamp
 function Log {
@@ -196,7 +189,7 @@ if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
 }
 
 # Construct binary name and URL for download
-$BIN_NAME = "$APP_NAME-$ARCH-$OS"
+$BIN_NAME = "$APP_NAME-$ARCH-pc-$OS-msvc.exe"
 $BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $URL = "$BASE_URL/$BIN_NAME"
 
