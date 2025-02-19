@@ -11,13 +11,6 @@ $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } 
 $USER = "root"
 $GROUP = "wazuh"
 
-# Define text formatting (Windows doesn't support color in native console, this is a placeholder)
-$RED = "RED"
-$GREEN = "GREEN"
-$YELLOW = "YELLOW"
-$BLUE = "BLUE"
-$BOLD = ""
-$NORMAL = ""
 
 # Function for logging with timestamp
 function Log {
@@ -109,6 +102,7 @@ function EnsureUserGroup {
 function ConfigureEnrollment {
     $certPath = "etc\sslagent.cert"  # Updated path to etc folder
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
+    $agentName = "AGENT_NAME"
 
     if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
     
@@ -117,7 +111,7 @@ function ConfigureEnrollment {
         
         $enrollmentBlock = @"
 <enrollment>
-    <agent_name></agent_name>
+    <agent_name>$agentName</agent_name>
     <agent_certificate_path>$certPath</agent_certificate_path>
     <agent_key_path>$keyPath</agent_key_path>
 </enrollment>
@@ -140,19 +134,6 @@ function ConfigureEnrollment {
 
         # Check and add/update elements
         $enrollmentNode = $config.ossec_config.client.enrollment
-	
-        # Update or add agent_name
-        $agentNameNode = $enrollmentNode.SelectSingleNode("agent_name")
-        if ($agentNameNode) {
-            $agentNameNode.InnerText = ""
-            InfoMessage "Updated agent_name"
-        } else {
-            $agentNameNode = $config.CreateElement("agent_name")
-            # Ensure compact format
-            $agentNameNode.IsEmpty = $true
-            $enrollmentNode.AppendChild($agentNameNode)
-            InfoMessage "Added missing agent_name element"
-        }
 
         # Update or add certificate path
         $certPathNode = $enrollmentNode.SelectSingleNode("agent_certificate_path")
@@ -181,7 +162,7 @@ function ConfigureEnrollment {
         # Save changes
         $writerSettings = New-Object System.Xml.XmlWriterSettings
         $writerSettings.Indent = $true
-        $writerSettings.OmitXmlDeclaration = $false
+        $writerSettings.OmitXmlDeclaration = $true
         $writerSettings.NewLineChars = "`n"
         $writerSettings.NewLineHandling = "Replace"
 
@@ -208,7 +189,7 @@ if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
 }
 
 # Construct binary name and URL for download
-$BIN_NAME = "$APP_NAME-$ARCH-$OS"
+$BIN_NAME = "$APP_NAME-$ARCH-pc-$OS-msvc.exe"
 $BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $URL = "$BASE_URL/$BIN_NAME"
 
