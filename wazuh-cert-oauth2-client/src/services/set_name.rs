@@ -1,7 +1,6 @@
 use crate::shared::path::{default_path_to_ossec_conf};
 use crate::shared::sed_command::sed_command;
 use anyhow::Result;
-use tokio::process::Command;
 
 /// Set the name of the agent.
 pub async fn set_name(name: &str) -> Result<()> {
@@ -36,39 +35,6 @@ pub async fn set_name(name: &str) -> Result<()> {
     sed_command(&update_cmd, &ossec_conf).await?;
 
     info!("Agent name updated to {}", agent_name);
-    restart_agent().await?;
-    Ok(())
-}
-
-
-#[cfg(target_os = "windows")]
-async fn restart_agent() -> Result<()> {
-    let status = Command::new("Restart-Service")
-        .arg("-Name")
-        .arg("WazuhSvc")
-        .status().await?;
-
-    if !status.success() {
-        error!("Failed to restart agent");
-        return Ok(());
-    }
-
-    Ok(())
-}
-
-#[cfg(any(target_os = "macos", target_os = "linux"))]
-async fn restart_agent() -> Result<()> {
-    use crate::shared::path::default_path_agent_control;
-
-    let control_bin = default_path_agent_control();
-    let status = Command::new(control_bin)
-        .arg("restart")
-        .status().await?;
-
-    if !status.success() {
-        error!("Failed to restart agent");
-        return Ok(());
-    }
-
+    
     Ok(())
 }
