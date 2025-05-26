@@ -95,6 +95,8 @@ async fn app() -> Result<()> {
             debug!("Restarting agent");
             restart_agent().await?;
             
+            info!("Agent enrollment completed successfully!");
+            
             Ok(())
         }
     }
