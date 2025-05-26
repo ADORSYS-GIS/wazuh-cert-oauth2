@@ -3,10 +3,9 @@ use tokio::process::Command;
 
 #[cfg(target_os = "windows")]
 pub async fn stop_agent() -> Result<()> {
-    let status = Command::new("Stop-Service")
-        .arg("-Name")
-        .arg("WazuhSvc")
-        .arg("-Force")
+    let status = Command::new("powershell")
+        .arg("-Command")
+        .arg("Stop-Service -Name WazuhSvc -Force")
         .status().await?;
 
     if !status.success() {
