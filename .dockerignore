@@ -1,0 +1,9 @@
+*
+!wazuh-cert-oauth2/src
+!wazuh-cert-oauth2/Cargo.lock
+!wazuh-cert-oauth2/Cargo.toml
+!wazuh-cert-oauth2/Rocket.toml
+
+!wazuh-cert-oauth2-model/src
+!wazuh-cert-oauth2-model/Cargo.toml
+!wazuh-cert-oauth2-model/Cargo.lock

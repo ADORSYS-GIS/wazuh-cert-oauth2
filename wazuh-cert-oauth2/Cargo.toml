@@ -1,13 +1,12 @@
 [package]
 name = "wazuh-cert-oauth2"
-version = "0.2.11"
+version = "0.2.16"
 edition = "2021"
 
 [dependencies]
 tokio = { version = "1.38.1", features = ["full"] }
 anyhow = "1.0.86"
 thiserror = { version = "1.0.62" }
-log = "0.4.22"
 env_logger = "0.11.3"
 rocket = { version = "0.5.1", features = ["tls", "json", "http2"] }
 reqwest = { version = "0", features = ["json"] }
@@ -16,7 +15,6 @@ openssl = "0.10.66"
 rand = "0.8.5"
 wazuh-cert-oauth2-model = { path = "../wazuh-cert-oauth2-model" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 
 [default.tls]
 certs = "/usr/share/wazuh-cert-oauth2/certs/cert.pem"

@@ -23,27 +23,14 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: read
       packages: write
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
         name: Checkout repository
-
-      # Cache Rust dependencies
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Build Server
-        working-directory: wazuh-cert-oauth2
-        run: cargo build --verbose && cargo test --verbose
+          fetch-depth: "0"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -69,32 +56,31 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{branch}}
+            type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Europe/Berlin'}}
+            type=sha,format=long
+            type=sha,format=long,prefix={{branch}}
+          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}
 
       - name: Cache Docker layers
         uses: actions/cache@v4
+        if: always()
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        if: github.event_name != 'pull_request'
         with:
-          push: "${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}"
+          push: "true"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          annotations: ${{ steps.meta.outputs.annotations }}
+          platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-
-      # Save the updated Docker cache
-      - name: Save Docker cache
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: buildx-cache
-          path: /tmp/.buildx-cache-new
+          cache-to: type=local,dest=/tmp/.buildx-cache

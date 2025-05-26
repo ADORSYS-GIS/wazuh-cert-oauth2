@@ -26,13 +26,14 @@ async fn main() -> Result<()> {
     info!("starting up");
 
     let binding = var("KC_AUDIENCES").or_else(|_| Ok("account".to_string()))?;
-    let kc_audiences = binding
-        .split(",")
-        .map(|s| s.to_string());
-
+    let kc_audiences = binding.split(",").map(|s| s.to_string());
 
     let oauth_issuer = var("OAUTH_ISSUER")?;
-    let document = fetch_only::<DiscoveryDocument>(&format!("{}/.well-known/openid-configuration", oauth_issuer)).await?;
+    let document = fetch_only::<DiscoveryDocument>(&format!(
+        "{}/.well-known/openid-configuration",
+        oauth_issuer
+    ))
+    .await?;
 
     info!("fetching JWKS from {}", document.jwks_uri);
     let jwks = fetch_only(&document.jwks_uri).await?;
