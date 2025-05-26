@@ -34,5 +34,7 @@ pub async fn set_name(name: &str) -> Result<()> {
     let update_cmd = format!(r"s|<agent_name>.*</agent_name>|<agent_name>{}</agent_name>|g", agent_name);
     sed_command(&update_cmd, &ossec_conf).await?;
 
+    info!("Agent name updated to {}", agent_name);
+    
     Ok(())
 }
