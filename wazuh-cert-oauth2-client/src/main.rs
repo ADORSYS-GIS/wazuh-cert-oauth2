@@ -7,6 +7,8 @@ use crate::services::get_token::get_token;
 use crate::services::get_user_keys::fetch_user_keys;
 use crate::services::save_to_file::save_keys;
 use crate::services::set_name::set_name;
+use crate::services::stop_agent::stop_agent;
+use crate::services::restart_agent::restart_agent;
 use crate::shared::cli::Opt;
 use crate::shared::constants::*;
 use crate::shared::path::{default_cert_path, default_key_path};
@@ -67,6 +69,9 @@ async fn app() -> Result<()> {
             ))
             .await?;
             
+            debug!("Stopping agent");
+            stop_agent().await?;
+            
             debug!("Getting JWKS");
             let jwks = fetch_only(&document.jwks_uri).await?;
 
@@ -86,8 +91,9 @@ async fn app() -> Result<()> {
 
             debug!("Setting name");
             set_name(&name).await?;
-
-            info!("Name set successfully!");
+            
+            debug!("Restarting agent");
+            restart_agent().await?;
             
             Ok(())
         }
