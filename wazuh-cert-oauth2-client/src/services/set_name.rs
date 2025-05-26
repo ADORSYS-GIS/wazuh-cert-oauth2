@@ -1,4 +1,3 @@
-use crate::services::restart_agent::restart_agent;
 use crate::shared::path::{default_path_to_ossec_conf};
 use crate::shared::sed_command::sed_command;
 use anyhow::Result;
