@@ -1,21 +1,25 @@
 [package]
 name = "wazuh-cert-oauth2-client"
-version = "0.2.18"
+version = "0.2.19"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1.38.1", features = ["windows-sys", "macros", "rt-multi-thread", "fs", "process"] }
-anyhow = "1.0.86"
-thiserror = "1.0.63"
-log = "0.4.22"
-env_logger = "0.11.3"
+tokio = { version = "1.45.1", features = ["windows-sys", "macros", "rt-multi-thread", "fs", "process"] }
+anyhow = "1.0.98"
+log = "0.4.27"
+env_logger = "0.11.8"
 structopt = "0"
-oauth2 = "4.4.2"
-reqwest = { version = "0", features = ["json"] }
+oauth2 = { version = "5" }
+reqwest = { version = "0.12", features = ["json"] }
 wazuh-cert-oauth2-model = { path = "../wazuh-cert-oauth2-model" }
-openssl = { version = "0.10.66", features = ["vendored"] }
-mid = "3.0.0"
-local-ip-address = "0.6.3"
-rand = "0.8.5"
+mid = "3.0.2"
+rand = "0.9.1"
 diacritics = "0.2.2"
-jsonwebtoken = "9"
+
+
+[profile.prod]
+inherits = "release"
+lto = true
+opt-level = "z"
+codegen-units = 1
+strip = true

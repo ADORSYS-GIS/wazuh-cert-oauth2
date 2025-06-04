@@ -3,16 +3,16 @@ extern crate log;
 
 use std::env::var;
 
-use crate::services::get_token::get_token;
+use crate::services::get_token::{get_token, GetTokenParams};
 use crate::services::get_user_keys::fetch_user_keys;
+use crate::services::restart_agent::restart_agent;
 use crate::services::save_to_file::save_keys;
 use crate::services::set_name::set_name;
 use crate::services::stop_agent::stop_agent;
-use crate::services::restart_agent::restart_agent;
 use crate::shared::cli::Opt;
 use crate::shared::constants::*;
 use crate::shared::path::{default_cert_path, default_key_path};
-use anyhow::{Result};
+use anyhow::Result;
 use env_logger::{Builder, Env};
 use structopt::StructOpt;
 use wazuh_cert_oauth2_model::models::claims::Claims;
@@ -47,6 +47,7 @@ async fn app() -> Result<()> {
             client_id: default_client_id,
             client_secret: default_client_secret,
             endpoint: default_endpoint,
+            is_service_account: default_is_service_account,
         } => {
             let issuer = var(OAUTH2_ISSUER).unwrap_or(default_issuer);
             let client_id = var(OAUTH2_CLIENT_ID).unwrap_or(default_client_id);
@@ -56,6 +57,8 @@ async fn app() -> Result<()> {
             let endpoint = var(ENDPOINT).unwrap_or(default_endpoint);
             let cert_path = var(PUBLIC_KEY_FILE).unwrap_or_else(|_| default_cert_path());
             let key_path = var(PRIVATE_KEY_FILE).unwrap_or_else(|_| default_key_path());
+            let is_service_account = var(IS_SERVICE_ACCOUNT)
+                .map_or_else(|_| default_is_service_account == "true", |_| false);
 
             let kc_audiences = var("KC_AUDIENCES").unwrap_or(default_audiences);
             let kc_audiences = kc_audiences
@@ -68,15 +71,21 @@ async fn app() -> Result<()> {
                 issuer
             ))
             .await?;
-            
+
             debug!("Stopping agent");
             stop_agent().await?;
-            
+
             debug!("Getting JWKS");
             let jwks = fetch_only(&document.jwks_uri).await?;
 
             debug!("Getting token");
-            let token = get_token(&issuer, &client_id, client_secret).await?;
+            let token = get_token(GetTokenParams {
+                document,
+                client_id,
+                client_secret,
+                is_service_account,
+            })
+            .await?;
 
             debug!("Validating token & getting the name claim");
             let name = validate_token(&token, &jwks, &kc_audiences)
@@ -91,12 +100,12 @@ async fn app() -> Result<()> {
 
             debug!("Setting name");
             set_name(&name).await?;
-            
+
             debug!("Restarting agent");
             restart_agent().await?;
-            
-            info!("Agent enrollment completed successfully!");
-            
+
+            info!("Name set successfully!");
+
             Ok(())
         }
     }

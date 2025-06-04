@@ -47,11 +47,11 @@ jobs:
         run: cargo install cross
 
       - name: Build with cross
-        run: cross build --release --target ${{ matrix.target }}
+        run: cross build --profile prod --target ${{ matrix.target }}
         working-directory: wazuh-cert-oauth2-client
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
+        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -94,11 +94,11 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Build with cargo
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --profile prod --target ${{ matrix.target }}
         working-directory: wazuh-cert-oauth2-client
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
+        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -141,11 +141,11 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Build with cargo
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --profile prod --target ${{ matrix.target }}
         working-directory: wazuh-cert-oauth2-client
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/release/wazuh-cert-oauth2-client.exe wazuh-cert-oauth2-client-${{ matrix.target }}.exe
+        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client.exe wazuh-cert-oauth2-client-${{ matrix.target }}.exe
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

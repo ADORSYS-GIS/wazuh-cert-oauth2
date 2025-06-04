@@ -4,3 +4,4 @@ pub const OAUTH2_CLIENT_SECRET: &str = "OAUTH2_CLIENT_SECRET";
 pub const ENDPOINT: &str = "ENDPOINT";
 pub const PUBLIC_KEY_FILE: &str = "PUBLIC_KEY_FILE";
 pub const PRIVATE_KEY_FILE: &str = "PRIVATE_KEY_FILE";
+pub const IS_SERVICE_ACCOUNT: &str = "IS_SERVICE_ACCOUNT";

@@ -25,9 +25,9 @@ RUN \
   --mount=type=cache,target=/usr/local/cargo/registry/index \
   --mount=type=cache,target=/usr/local/cargo/git/db \
     #
-  cargo build --manifest-path wazuh-cert-oauth2/Cargo.toml --release --locked \
+  cargo build --manifest-path wazuh-cert-oauth2/Cargo.toml --profile prod --locked \
     #
-  && cp ./wazuh-cert-oauth2/target/release/wazuh-cert-oauth2 server
+  && cp ./wazuh-cert-oauth2/target/prod/wazuh-cert-oauth2 server
 
 FROM debian:12 as dep
 

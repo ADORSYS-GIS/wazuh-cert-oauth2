@@ -1,11 +1,17 @@
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
-#[structopt(name = "Wazuh Configurer", about = "Installs and configures Wazuh, YARA, and Snort")]
+#[structopt(
+    name = "Wazuh Configurer",
+    about = "Installs and configures Wazuh, YARA, and Snort"
+)]
 pub enum Opt {
     #[structopt(about = "Configure OAuth2 for Wazuh")]
     OAuth2 {
-        #[structopt(long, default_value = "https://login.wazuh.adorsys.team/realms/adorsys")]
+        #[structopt(
+            long,
+            default_value = "https://login.wazuh.adorsys.team/realms/adorsys"
+        )]
         issuer: String,
 
         #[structopt(long, short = "a", default_value = "account")]
@@ -23,5 +29,11 @@ pub enum Opt {
             default_value = "https://cert.wazuh.adorsys.team/api/register-agent"
         )]
         endpoint: String,
+
+        #[structopt(
+            long,
+            default_value = "false"
+        )]
+        is_service_account: String,
     }
 }

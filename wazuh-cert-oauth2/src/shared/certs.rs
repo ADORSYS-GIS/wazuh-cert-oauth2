@@ -5,12 +5,12 @@ use anyhow::Result;
 use openssl::asn1::Asn1Time;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
-use openssl::x509::{X509, X509Req};
 use openssl::x509::extension::BasicConstraints;
 use openssl::x509::X509NameBuilder;
 use openssl::x509::X509ReqBuilder;
-use rand::RngCore;
+use openssl::x509::{X509Req, X509};
 use rand::rngs::OsRng;
+use rand::TryRngCore;
 
 use wazuh_cert_oauth2_model::models::register_agent_dto::RegisterAgentDto;
 use wazuh_cert_oauth2_model::models::user_key::UserKey;
@@ -74,7 +74,7 @@ fn sign_csr_with_ca(
 
     // Set certificate serial number
     let mut serial = [0u8; 16];
-    OsRng.fill_bytes(&mut serial);
+    OsRng.try_fill_bytes(&mut serial)?;
     let serial_number = openssl::bn::BigNum::from_slice(&serial)?.to_asn1_integer()?;
     builder.set_serial_number(&serial_number)?;
 
