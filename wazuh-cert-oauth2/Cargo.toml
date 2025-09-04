@@ -1,28 +1,24 @@
 [package]
 name = "wazuh-cert-oauth2"
-version = "0.2.19"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+authors.workspace = true
 
 [dependencies]
-tokio = { version = "1.45.1", features = ["full"] }
-anyhow = "1.0.98"
-thiserror = { version = "2.0.12" }
-env_logger = "0.11.8"
-rocket = { version = "0.5.1", features = ["tls", "json", "http2"] }
-jsonwebtoken = "9.3.1"
-openssl = "0.10.73"
-rand = "0.9.1"
-wazuh-cert-oauth2-model = { path = "../wazuh-cert-oauth2-model" }
-serde = { version = "1.0.219", features = ["derive"] }
-
-[default.tls]
-certs = "/usr/share/wazuh-cert-oauth2/certs/cert.pem"
-key = "/usr/share/wazuh-cert-oauth2/certs/key.pem"
+tokio.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+env_logger.workspace = true
+rocket.workspace = true
+jsonwebtoken.workspace = true
+openssl.workspace = true
+rand.workspace = true
+serde.workspace = true
+mimalloc.workspace = true
 
 
-[profile.prod]
-inherits = "release"
-lto = true
-opt-level = "z"
-codegen-units = 1
-strip = true
+[dependencies.wazuh-cert-oauth2-model]
+features = ["rocket"]
+workspace = true

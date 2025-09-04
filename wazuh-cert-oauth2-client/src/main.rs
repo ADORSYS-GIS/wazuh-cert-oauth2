@@ -4,9 +4,10 @@ extern crate log;
 use std::env::var;
 
 use crate::services::get_token::{get_token, GetTokenParams};
-use crate::services::get_user_keys::fetch_user_keys;
+use crate::services::generate_csr::generate_key_and_csr;
+use crate::services::submit_csr::submit_csr;
 use crate::services::restart_agent::restart_agent;
-use crate::services::save_to_file::save_keys;
+use crate::services::save_to_file::save_cert_and_key;
 use crate::services::set_name::set_name;
 use crate::services::stop_agent::stop_agent;
 use crate::shared::cli::Opt;
@@ -88,15 +89,24 @@ async fn app() -> Result<()> {
             .await?;
 
             debug!("Validating token & getting the name claim");
-            let name = validate_token(&token, &jwks, &kc_audiences)
-                .await
-                .map(|Claims { name, .. }| name)?;
+            let Claims { name, sub, .. } = validate_token(&token, &jwks, &kc_audiences)
+                .await?;
 
-            debug!("Fetching user keys");
-            let user_key = fetch_user_keys(&endpoint, &token).await?;
+            debug!("Generating keypair and CSR");
+            let (csr_pem, private_key_pem) = generate_key_and_csr(&sub)?;
 
-            debug!("Saving keys");
-            save_keys(&cert_path, &key_path, &user_key).await?;
+            debug!("Submitting CSR for signing");
+            let signed = submit_csr(&endpoint, &token, &csr_pem).await?;
+
+            debug!("Saving certificate and private key");
+            save_cert_and_key(
+                &cert_path,
+                &key_path,
+                &signed.certificate_pem,
+                &private_key_pem,
+                Some(&signed.ca_cert_pem),
+            )
+            .await?;
 
             debug!("Setting name");
             set_name(&name).await?;

@@ -14,10 +14,14 @@ use crate::handlers::health::health;
 use crate::handlers::register_agent::register_agent;
 use crate::models::jwks_state::JwksState;
 
-mod errors;
 mod handlers;
 mod models;
 mod shared;
+
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[rocket::main]
 async fn main() -> Result<()> {

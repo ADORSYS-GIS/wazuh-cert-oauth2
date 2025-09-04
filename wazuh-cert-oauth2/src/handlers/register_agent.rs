@@ -1,15 +1,32 @@
-use rocket::serde::json::Json;
-use wazuh_cert_oauth2_model::models::register_agent_dto::RegisterAgentDto;
-use wazuh_cert_oauth2_model::models::user_key::UserKey;
 use crate::handlers::middle::JwtToken;
-use crate::shared::certs::gen_cert;
+use crate::shared::certs::sign_csr;
+use rocket::http::Status;
+use rocket::serde::json::Json;
+use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
+use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
 
-/// Register a new agent
-/// This is done by creating a new key-pair for this agent using the CA
-/// and returning both the public and private keys to the caller
+/// Sign a CSR for a new agent using the issuing CA
+/// Expects a PKCS#10 CSR in PEM format; returns the signed certificate and CA cert
 #[post("/register-agent", format = "application/json", data = "<dto>")]
-pub async fn register_agent(dto: Json<RegisterAgentDto>, token: JwtToken) -> Json<UserKey> {
-    let sd = gen_cert(dto.into_inner(), token)
-        .expect("Failed to generate certificate");
-    Json(sd)
+pub async fn register_agent(
+    dto: Json<SignCsrRequest>,
+    token: JwtToken,
+) -> Result<Json<SignedCertResponse>, Status> {
+    match sign_csr(dto.into_inner(), token) {
+        Ok(res) => Ok(Json(res)),
+        Err(e) => {
+            let msg = e.to_string();
+            error!("CSR signing failed: {}", msg);
+            // Classify some errors as BadRequest, else InternalServerError
+            if msg.contains("CSR verification failed")
+                || msg.contains("Unsupported key type")
+                || msg.contains("Unsupported EC curve")
+                || msg.contains("RSA key too small")
+            {
+                Err(Status::BadRequest)
+            } else {
+                Err(Status::InternalServerError)
+            }
+        }
+    }
 }

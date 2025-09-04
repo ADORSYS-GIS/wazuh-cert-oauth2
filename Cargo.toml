@@ -1,0 +1,49 @@
+[workspace]
+members = [
+    "wazuh-cert-oauth2",
+    "wazuh-cert-oauth2-client",
+    "wazuh-cert-oauth2-model"
+]
+resolver = "3"
+
+[workspace.dependencies]
+wazuh-cert-oauth2 = { path = "./wazuh-cert-oauth2" }
+wazuh-cert-oauth2-client = { path = "./wazuh-cert-oauth2-client" }
+wazuh-cert-oauth2-model = { path = "./wazuh-cert-oauth2-model" }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+jsonwebtoken = { version = "9" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "tracing", "net", "process", "fs"] }
+thiserror = "2"
+anyhow = "1"
+
+reqwest = { version = "0.12", features = ["json"] }
+log = "0.4"
+env_logger = "0"
+openssl = "0"
+rand = "0"
+rocket = { version = "0.5.1", features = ["tls", "json", "http2"] }
+diacritics = "0"
+mid = "3"
+oauth2 = "5"
+structopt = "0"
+
+mimalloc = "0"
+
+[profile.prod]
+inherits = "release"
+lto = true
+opt-level = "z"
+codegen-units = 1
+incremental = false
+strip = true
+
+[workspace.package]
+version = "0.2.20"
+edition = "2024"
+license = "MIT"
+publish = false
+authors = [
+    "Stephane Segning <selastlambou@gmail.com>"
+]

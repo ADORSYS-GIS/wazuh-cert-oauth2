@@ -1,23 +1,40 @@
 use anyhow::Result;
-use tokio::fs::write;
 use std::path::Path;
-use tokio::fs::create_dir_all;
+use tokio::fs::{create_dir_all, write, File};
+use tokio::io::AsyncWriteExt;
 
-use wazuh_cert_oauth2_model::models::user_key::UserKey;
+/// Save the certificate (and optional chain) and the private key to files.
+pub async fn save_cert_and_key(
+    cert_file: &str,
+    key_file: &str,
+    certificate_pem: &str,
+    private_key_pem: &str,
+    ca_chain_pem: Option<&str>,
+) -> Result<()> {
+    create_parent_dir_if_not_exists(cert_file).await?;
+    create_parent_dir_if_not_exists(key_file).await?;
 
-/// Save the keys to the specified files.
-pub async fn save_keys(public_key_file: &str, private_key_file: &str, keys: &UserKey) -> Result<()> {
-    // Ensure the key parent directory exists
-    create_parent_dir_if_not_exists(public_key_file).await?;
-    create_parent_dir_if_not_exists(private_key_file).await?;
+    let mut full_cert = String::from(certificate_pem);
+    if let Some(chain) = ca_chain_pem {
+        full_cert.push('\n');
+        full_cert.push_str(chain);
+    }
 
-    // Write the keys to the specified files
-    log::info!("Writing public key to file: {:?}", public_key_file);
-    write(public_key_file, &keys.public_key).await?;
+    log::info!("Writing certificate to file: {:?}", cert_file);
+    write(cert_file, full_cert).await?;
 
-    // Write the private key to the specified file
-    log::info!("Writing private key to file: {:?}", private_key_file);
-    write(private_key_file, &keys.private_key).await?;
+    log::info!("Writing private key to file: {:?}", key_file);
+    // Create with 0600 on Unix; best-effort on other platforms
+    let mut std_opts = std::fs::OpenOptions::new();
+    std_opts.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        std_opts.mode(0o600);
+    }
+    let std_file = std_opts.open(key_file)?;
+    let mut file = File::from_std(std_file);
+    file.write_all(private_key_pem.as_bytes()).await?;
 
     Ok(())
 }
