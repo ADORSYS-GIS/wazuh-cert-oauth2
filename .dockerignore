@@ -1,9 +1,9 @@
 *
-!wazuh-cert-oauth2/src
-!wazuh-cert-oauth2/Cargo.lock
-!wazuh-cert-oauth2/Cargo.toml
-!wazuh-cert-oauth2/Rocket.toml
+!crates/wazuh-cert-oauth2-server/src
+!crates/wazuh-cert-oauth2-server/Cargo.lock
+!crates/wazuh-cert-oauth2-server/Cargo.toml
+!crates/wazuh-cert-oauth2-server/Rocket.toml
 
-!wazuh-cert-oauth2-model/src
-!wazuh-cert-oauth2-model/Cargo.toml
-!wazuh-cert-oauth2-model/Cargo.lock
+!crates/wazuh-cert-oauth2-model/src
+!crates/wazuh-cert-oauth2-model/Cargo.toml
+!crates/wazuh-cert-oauth2-model/Cargo.lock

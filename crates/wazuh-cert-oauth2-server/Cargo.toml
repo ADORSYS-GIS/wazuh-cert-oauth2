@@ -1,5 +1,5 @@
 [package]
-name = "wazuh-cert-oauth2"
+name = "wazuh-cert-oauth2-server"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true

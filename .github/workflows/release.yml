@@ -8,8 +8,8 @@ on:
       - 'v*'
     paths:
       - '.github/workflows/release.yml'
-      - 'wazuh-cert-oauth2-client/**'
-      - 'wazuh-cert-oauth2-model/**'
+      - '../../crates/wazuh-cert-oauth2-client/**'
+      - '../../crates/wazuh-cert-oauth2-model/**'
 
 jobs:
   build-ubuntu:

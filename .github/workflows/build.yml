@@ -8,8 +8,8 @@ on:
       - 'v*'
     paths:
       - '.github/workflows/build.yml'
-      - 'wazuh-cert-oauth2/**'
-      - 'wazuh-cert-oauth2-model/**'
+      - '../../wazuh-cert-oauth2-server/**'
+      - '../../crates/wazuh-cert-oauth2-model/**'
       - 'Dockerfile'
 
 env:

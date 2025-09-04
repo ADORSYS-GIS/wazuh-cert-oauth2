@@ -12,8 +12,8 @@ use openssl::x509::extension::{
     AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, SubjectKeyIdentifier,
 };
 use openssl::x509::{X509NameBuilder, X509Ref, X509Req, X509};
+use rand::RngCore;
 use rand::rngs::OsRng;
-use rand::TryRngCore;
 
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
