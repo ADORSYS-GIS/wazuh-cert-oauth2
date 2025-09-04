@@ -1,6 +1,7 @@
 use anyhow::Result;
 use tokio::process::Command;
 
+/// Stop the Wazuh agent service on Windows.
 #[cfg(target_os = "windows")]
 pub async fn stop_agent() -> Result<()> {
     let status = Command::new("powershell")
@@ -16,6 +17,7 @@ pub async fn stop_agent() -> Result<()> {
     Ok(())
 }
 
+/// Stop the Wazuh agent on macOS/Linux using wazuh-control.
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub async fn stop_agent() -> Result<()> {
     use crate::shared::path::default_path_agent_control;

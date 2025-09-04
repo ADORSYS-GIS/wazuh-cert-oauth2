@@ -8,6 +8,7 @@ use reqwest::ClientBuilder;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 
 #[derive(Debug)]
+/// Parameters to request an OAuth2 access token.
 pub struct GetTokenParams {
     pub document: DiscoveryDocument,
     pub client_id: String,

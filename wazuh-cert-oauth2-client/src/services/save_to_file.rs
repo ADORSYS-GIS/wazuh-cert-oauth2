@@ -39,6 +39,7 @@ pub async fn save_cert_and_key(
     Ok(())
 }
 
+/// Ensure the directory for the given file path exists.
 async fn create_parent_dir_if_not_exists(file_path: &str) -> Result<()> {
     let parent_dir = Path::new(file_path).parent().unwrap();
     log::info!("Creating parent directory: {:?}", parent_dir);

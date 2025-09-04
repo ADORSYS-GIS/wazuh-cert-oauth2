@@ -24,6 +24,7 @@ use wazuh_cert_oauth2_model::services::jwks::validate_token;
 mod services;
 pub mod shared;
 
+/// Entry point: configures logging and runs the app workflow.
 #[tokio::main]
 async fn main() {
     Builder::from_env(Env::default().default_filter_or("info")).init();
@@ -40,6 +41,8 @@ async fn main() {
     }
 }
 
+/// Orchestrates the CSR flow: stop agent, obtain token, validate claims,
+/// generate CSR and key, submit CSR, save cert+key, set agent name, restart agent.
 async fn app() -> Result<()> {
     match Opt::from_args() {
         Opt::OAuth2 {
