@@ -1,7 +1,6 @@
 use crate::models::claims::Claims;
 use crate::models::errors::AppError;
 use anyhow::{bail, Result};
-use jsonwebtoken::errors::{ErrorKind};
 use jsonwebtoken::{decode, decode_header, DecodingKey, Validation};
 
 /// Validate the token using the provided JWKS.
@@ -14,7 +13,7 @@ pub async fn validate_token(
     debug!("decoded header: {:?}", header);
     let kid = match header.kid {
         None => {
-            bail!(AppError::JwtError(ErrorKind::InvalidKeyFormat.into()));
+            bail!(AppError::JwtMissingKid);
         }
         Some(v) => v,
     };
@@ -22,7 +21,7 @@ pub async fn validate_token(
     debug!("looking up key with kid: {}", kid);
     let jwk = match jwks.find(&kid) {
         None => {
-            bail!(AppError::JwtError(ErrorKind::InvalidKeyFormat.into()));
+            bail!(AppError::JwtKeyNotFound(kid));
         }
         Some(v) => v,
     };

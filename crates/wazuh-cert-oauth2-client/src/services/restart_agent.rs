@@ -1,5 +1,6 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use tokio::process::Command;
+use wazuh_cert_oauth2_model::models::errors::AppError;
 
 /// Restart the Wazuh agent service on Windows.
 #[cfg(target_os = "windows")]
@@ -7,11 +8,16 @@ pub async fn restart_agent() -> Result<()> {
     let status = Command::new("powershell")
         .arg("-Command")
         .arg("Restart-Service -Name WazuhSvc -Force")
-        .status().await?;
+        .status()
+        .await;
 
-    if !status.success() {
-        error!("Failed to restart agent");
-        return Ok(());
+    match status {
+        Ok(s) => {
+            if !s.success() {
+                bail!(AppError::CommandFailed { program: "powershell".into(), code: s.code() });
+            }
+        }
+        Err(e) => bail!(AppError::CommandSpawn { program: "powershell".into(), err: e.to_string() }),
     }
 
     Ok(())
@@ -23,13 +29,15 @@ pub async fn restart_agent() -> Result<()> {
     use crate::shared::path::default_path_agent_control;
 
     let control_bin = default_path_agent_control();
-    let status = Command::new(control_bin)
-        .arg("restart")
-        .status().await?;
+    let status = Command::new(&control_bin).arg("restart").status().await;
 
-    if !status.success() {
-        error!("Failed to restart agent");
-        return Ok(());
+    match status {
+        Ok(s) => {
+            if !s.success() {
+                bail!(AppError::CommandFailed { program: control_bin, code: s.code() });
+            }
+        }
+        Err(e) => bail!(AppError::CommandSpawn { program: control_bin, err: e.to_string() }),
     }
 
     Ok(())

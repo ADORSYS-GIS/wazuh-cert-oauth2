@@ -12,3 +12,22 @@ services:
       ROOT_CA_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca.pem'
       ROOT_CA_KEY_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem'
       ROCKET_ADDRESS: '0.0.0.0'
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.3
+    ports:
+      - '9100:9100'
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: password
+      KC_LOG_CONSOLE_COLOR: 'true'
+      KC_HTTP_PORT: 9100
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        set -ex
+
+        /opt/keycloak/bin/kc.sh start-dev --import-realm # Start Keycloak in dev mode and import the realm
+    volumes:
+      - ./.docker/keycloak_config/:/opt/keycloak/data/import/:ro

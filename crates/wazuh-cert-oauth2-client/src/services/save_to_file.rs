@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::path::Path;
-use tokio::fs::{create_dir_all, write, File};
+use tokio::fs::{create_dir_all, write, OpenOptions};
 use tokio::io::AsyncWriteExt;
 
 /// Save the certificate (and optional chain) and the private key to files.
@@ -25,15 +25,13 @@ pub async fn save_cert_and_key(
 
     log::info!("Writing private key to file: {:?}", key_file);
     // Create with 0600 on Unix; best-effort on other platforms
-    let mut std_opts = std::fs::OpenOptions::new();
+    let mut std_opts = OpenOptions::new();
     std_opts.write(true).create(true).truncate(true);
     #[cfg(unix)]
     {
-        use std::os::unix::fs::OpenOptionsExt;
         std_opts.mode(0o600);
     }
-    let std_file = std_opts.open(key_file)?;
-    let mut file = File::from_std(std_file);
+    let mut file = std_opts.open(key_file).await?;
     file.write_all(private_key_pem.as_bytes()).await?;
 
     Ok(())

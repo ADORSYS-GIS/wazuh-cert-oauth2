@@ -1,24 +1,23 @@
 #[macro_use]
 extern crate rocket;
 
-use std::env::var;
-
 use anyhow::*;
 use env_logger::{Builder, Env};
-use tokio::sync::RwLock;
+use std::time::Duration;
 
-use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
-use wazuh_cert_oauth2_model::services::fetch_only::fetch_only;
 
 use crate::handlers::health::health;
 use crate::handlers::register_agent::register_agent;
-use crate::models::jwks_state::JwksState;
+use crate::models::oidc_state::OidcState;
 
 mod handlers;
 mod models;
 mod shared;
 
+use crate::models::ca_config::CaProvider;
+use clap::Parser;
 use mimalloc::MiMalloc;
+use crate::shared::opts::Opt;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -29,24 +28,29 @@ async fn main() -> Result<()> {
 
     info!("starting up");
 
-    let binding = var("KC_AUDIENCES").or_else(|_| Ok("account".to_string()))?;
-    let kc_audiences = binding.split(",").map(|s| s.to_string());
-
-    let oauth_issuer = var("OAUTH_ISSUER")?;
-    let document = fetch_only::<DiscoveryDocument>(&format!(
-        "{}/.well-known/openid-configuration",
-        oauth_issuer
-    ))
-    .await?;
-
-    info!("fetching JWKS from {}", document.jwks_uri);
-    let jwks = fetch_only(&document.jwks_uri).await?;
+    let Opt {
+        oauth_issuer,
+        kc_audiences,
+        root_ca_path,
+        root_ca_key_path,
+        discovery_ttl_secs,
+        jwks_ttl_secs,
+        ca_cache_ttl_secs,
+    } = Opt::parse();
+    let kc_audiences = kc_audiences.split(",").map(|s| s.to_string());
 
     rocket::build()
-        .manage(JwksState {
-            jwks: RwLock::new(jwks),
-            audiences: kc_audiences.collect(),
-        })
+        .manage(OidcState::new(
+            oauth_issuer,
+            kc_audiences.collect(),
+            Duration::from_secs(discovery_ttl_secs),
+            Duration::from_secs(jwks_ttl_secs),
+        ))
+        .manage(CaProvider::new(
+            root_ca_path,
+            root_ca_key_path,
+            Duration::from_secs(ca_cache_ttl_secs),
+        ))
         .mount("/", routes![health])
         .mount("/api", routes![register_agent])
         .launch()

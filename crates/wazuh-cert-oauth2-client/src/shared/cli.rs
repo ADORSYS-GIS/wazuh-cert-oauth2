@@ -1,39 +1,49 @@
-use structopt::StructOpt;
+use crate::shared::path::{default_cert_path, default_key_path};
+use clap::ArgAction;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
-#[structopt(
+#[derive(Parser, Debug)]
+#[command(
     name = "Wazuh Configurer",
     about = "Installs and configures Wazuh, YARA, and Snort"
 )]
 pub enum Opt {
-    #[structopt(about = "Configure OAuth2 for Wazuh")]
+    #[command(about = "Configure OAuth2 for Wazuh")]
     OAuth2 {
-        #[structopt(
+        #[arg(
+            env,
             long,
             default_value = "https://login.wazuh.adorsys.team/realms/adorsys"
         )]
         issuer: String,
 
-        #[structopt(long, short = "a", default_value = "account")]
+        #[arg(env, long, short = 'a', default_value = "account")]
         audience: String,
 
-        #[structopt(long, short = "i", default_value = "adorsys-machine-client")]
+        #[arg(env, long, short = 'i', default_value = "adorsys-machine-client")]
         client_id: String,
 
-        #[structopt(long, short = "s")]
+        #[arg(env, long, short = 's')]
         client_secret: Option<String>,
 
-        #[structopt(
+        #[arg(
+            env,
             long,
-            short = "e",
+            short = 'e',
             default_value = "https://cert.wazuh.adorsys.team/api/register-agent"
         )]
         endpoint: String,
 
-        #[structopt(
-            long,
-            default_value = "false"
-        )]
-        is_service_account: String,
-    }
+        #[arg(env, long, default_value_t = false, action = ArgAction::Set)]
+        is_service_account: bool,
+
+        #[arg(env, long, default_value_t = default_cert_path(), short = 'c')]
+        cert_path: String,
+
+        #[arg(env, long, default_value_t = default_key_path(), short = 'k')]
+        key_path: String,
+
+        #[arg(env, long, default_value_t = true, action = ArgAction::Set, default_missing_value = "true", num_args = 0..=1)]
+        agent_control: bool,
+    },
 }

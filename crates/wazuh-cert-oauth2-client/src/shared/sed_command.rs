@@ -1,24 +1,37 @@
-use anyhow::Result;
-use std::process::ExitStatus;
-use tokio::{process::Command};
+use anyhow::{bail, Result};
+use tokio::process::Command;
+use wazuh_cert_oauth2_model::models::errors::AppError;
 
 /// Run a sed command to replace the content of a file.
-pub async fn sed_command(content: &str, file_path: &str) -> Result<ExitStatus> {
+pub async fn sed_command(content: &str, file_path: &str) -> Result<()> {
     let status = if cfg!(target_os = "macos") {
         Command::new("gsed")
             .arg("-i")
             .arg(&content)
             .arg(&file_path)
             .status()
-            .await?
+            .await
     } else {
         Command::new("sed")
             .arg("-i")
             .arg(&content)
             .arg(&file_path)
             .status()
-            .await?
+            .await
     };
 
-    Ok(status)
+    match status {
+        Ok(s) => {
+            if !s.success() {
+                let program = if cfg!(target_os = "macos") { "gsed" } else { "sed" };
+                bail!(AppError::CommandFailed { program: program.into(), code: s.code() });
+            }
+        }
+        Err(e) => {
+            let program = if cfg!(target_os = "macos") { "gsed" } else { "sed" };
+            bail!(AppError::CommandSpawn { program: program.into(), err: e.to_string() });
+        }
+    }
+
+    Ok(())
 }

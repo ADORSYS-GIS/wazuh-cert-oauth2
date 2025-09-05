@@ -1,8 +1,6 @@
-use std::env::var;
-use std::fs::read;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Result};
 use openssl::asn1::Asn1Time;
 use openssl::hash::MessageDigest;
 use openssl::nid::Nid;
@@ -12,40 +10,45 @@ use openssl::x509::extension::{
     AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, SubjectKeyIdentifier,
 };
 use openssl::x509::{X509NameBuilder, X509Ref, X509Req, X509};
-use rand::RngCore;
 use rand::rngs::OsRng;
+use rand::TryRngCore;
 
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
+use wazuh_cert_oauth2_model::models::errors::AppError;
 
 use crate::handlers::middle::JwtToken;
+use crate::models::ca_config::CaProvider;
 
 /// Sign a client-provided CSR with the issuing CA; never generate or return private keys
-pub fn sign_csr(dto: SignCsrRequest, JwtToken { claims }: JwtToken) -> Result<SignedCertResponse> {
+pub async fn sign_csr(
+    dto: SignCsrRequest,
+    JwtToken { claims }: JwtToken,
+    ca: &CaProvider,
+) -> Result<SignedCertResponse> {
     let csr = X509Req::from_pem(dto.csr_pem.as_bytes())?;
 
     // Verify CSR signature
-    let csr_pubkey = csr.public_key().context("CSR missing public key")?;
+    let csr_pubkey = csr
+        .public_key()
+        .map_err(|_| AppError::CsrMissingPublicKey)?;
     let verified = csr.verify(&csr_pubkey)?;
     if !verified {
-        bail!("CSR verification failed");
+        bail!(AppError::CsrVerificationFailed);
     }
 
     // Enforce key policy (RSA-2048/3072 or ECDSA-P-256)
     enforce_key_policy(&csr_pubkey)?;
 
-    // Load the CA certificate and key
-    let ca_cert_pem = read(var("ROOT_CA_PATH")?)?;
-    let ca_key_pem = read(var("ROOT_CA_KEY_PATH")?)?;
-    let ca_cert = X509::from_pem(&ca_cert_pem)?;
-    let ca_key = PKey::private_key_from_pem(&ca_key_pem)?;
+    // Load CA certificate and key on demand with TTL
+    let (ca_cert, ca_key) = ca.get().await?;
 
     // Build certificate using CSR public key, but enforce subject from OAuth2 claims
     let cert = sign_csr_with_ca(&csr, &ca_cert, &ca_key, &claims.sub)?;
 
     Ok(SignedCertResponse {
         certificate_pem: String::from_utf8(cert.to_pem()?)?,
-        ca_cert_pem: String::from_utf8(ca_cert_pem)?,
+        ca_cert_pem: String::from_utf8(ca_cert.to_pem()?)?,
     })
 }
 
@@ -142,7 +145,7 @@ fn enforce_key_policy(pkey: &PKey<openssl::pkey::Public>) -> Result<()> {
             let rsa = pkey.rsa()?;
             let bits = (rsa.size() as usize) * 8; // size in bytes -> bits
             if bits < 2048 {
-                bail!("RSA key too small: {} bits (min 2048)", bits);
+                bail!(AppError::KeyPolicyRsaTooSmall { bits });
             }
         }
         PKeyId::EC => {
@@ -150,13 +153,13 @@ fn enforce_key_policy(pkey: &PKey<openssl::pkey::Public>) -> Result<()> {
             let nid = ec
                 .group()
                 .curve_name()
-                .ok_or_else(|| anyhow::anyhow!("Unknown EC curve"))?;
+                .ok_or_else(|| anyhow::anyhow!(AppError::KeyPolicyUnknownEcCurve))?;
             if nid != Nid::X9_62_PRIME256V1 {
-                bail!("Unsupported EC curve: {:?} (only P-256 allowed)", nid);
+                bail!(AppError::KeyPolicyUnsupportedEcCurve { nid: format!("{:?}", nid) });
             }
         }
         other => {
-            bail!("Unsupported key type: {:?}", other);
+            bail!(AppError::KeyPolicyUnsupportedKeyType { key_type: format!("{:?}", other) });
         }
     }
     Ok(())

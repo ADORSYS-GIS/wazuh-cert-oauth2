@@ -17,6 +17,8 @@ openssl.workspace = true
 rand.workspace = true
 serde.workspace = true
 mimalloc.workspace = true
+clap.workspace = true
+log = "0.4.28"
 
 
 [dependencies.wazuh-cert-oauth2-model]

@@ -1,21 +1,17 @@
 #[macro_use]
 extern crate log;
 
-use std::env::var;
-
-use crate::services::get_token::{get_token, GetTokenParams};
 use crate::services::generate_csr::generate_key_and_csr;
-use crate::services::submit_csr::submit_csr;
+use crate::services::get_token::{get_token, GetTokenParams};
 use crate::services::restart_agent::restart_agent;
 use crate::services::save_to_file::save_cert_and_key;
 use crate::services::set_name::set_name;
 use crate::services::stop_agent::stop_agent;
+use crate::services::submit_csr::submit_csr;
 use crate::shared::cli::Opt;
-use crate::shared::constants::*;
-use crate::shared::path::{default_cert_path, default_key_path};
 use anyhow::Result;
+use clap::Parser;
 use env_logger::{Builder, Env};
-use structopt::StructOpt;
 use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 use wazuh_cert_oauth2_model::services::fetch_only::fetch_only;
@@ -44,28 +40,19 @@ async fn main() {
 /// Orchestrates the CSR flow: stop agent, obtain token, validate claims,
 /// generate CSR and key, submit CSR, save cert+key, set agent name, restart agent.
 async fn app() -> Result<()> {
-    match Opt::from_args() {
+    match Opt::parse() {
         Opt::OAuth2 {
-            issuer: default_issuer,
-            audience: default_audiences,
-            client_id: default_client_id,
-            client_secret: default_client_secret,
-            endpoint: default_endpoint,
-            is_service_account: default_is_service_account,
+            issuer,
+            audience,
+            client_id,
+            client_secret,
+            endpoint,
+            is_service_account,
+            cert_path,
+            key_path,
+            agent_control,
         } => {
-            let issuer = var(OAUTH2_ISSUER).unwrap_or(default_issuer);
-            let client_id = var(OAUTH2_CLIENT_ID).unwrap_or(default_client_id);
-            let client_secret = var(OAUTH2_CLIENT_SECRET)
-                .ok()
-                .or_else(|| default_client_secret);
-            let endpoint = var(ENDPOINT).unwrap_or(default_endpoint);
-            let cert_path = var(PUBLIC_KEY_FILE).unwrap_or_else(|_| default_cert_path());
-            let key_path = var(PRIVATE_KEY_FILE).unwrap_or_else(|_| default_key_path());
-            let is_service_account = var(IS_SERVICE_ACCOUNT)
-                .map_or_else(|_| default_is_service_account == "true", |_| false);
-
-            let kc_audiences = var("KC_AUDIENCES").unwrap_or(default_audiences);
-            let kc_audiences = kc_audiences
+            let kc_audiences = audience
                 .split(",")
                 .map(|s| s.to_string())
                 .collect::<Vec<String>>();
@@ -76,10 +63,12 @@ async fn app() -> Result<()> {
             ))
             .await?;
 
-            debug!("Stopping agent");
-            stop_agent().await?;
+            if agent_control {
+                info!("Stopping agent");
+                stop_agent().await?;
+            }
 
-            debug!("Getting JWKS");
+            info!("Getting JWKS");
             let jwks = fetch_only(&document.jwks_uri).await?;
 
             debug!("Getting token");
@@ -92,8 +81,7 @@ async fn app() -> Result<()> {
             .await?;
 
             debug!("Validating token & getting the name claim");
-            let Claims { name, sub, .. } = validate_token(&token, &jwks, &kc_audiences)
-                .await?;
+            let Claims { name, sub, .. } = validate_token(&token, &jwks, &kc_audiences).await?;
 
             debug!("Generating keypair and CSR");
             let (csr_pem, private_key_pem) = generate_key_and_csr(&sub)?;
@@ -111,14 +99,17 @@ async fn app() -> Result<()> {
             )
             .await?;
 
-            debug!("Setting name");
-            set_name(&name).await?;
+            if agent_control {
+                debug!("Setting name");
+                set_name(&name).await?;
+            }
 
-            debug!("Restarting agent");
-            restart_agent().await?;
+            if agent_control {
+                debug!("Restarting agent");
+                restart_agent().await?;
+            }
 
             info!("Name set successfully!");
-
             Ok(())
         }
     }

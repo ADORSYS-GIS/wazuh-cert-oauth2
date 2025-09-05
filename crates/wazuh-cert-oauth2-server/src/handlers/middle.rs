@@ -1,13 +1,19 @@
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
-
+use log::info;
 use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::services::jwks::validate_token;
 
-use crate::models::jwks_state::JwksState;
+use crate::models::oidc_state::OidcState;
 
 pub struct JwtToken {
     pub claims: Claims,
+}
+
+impl JwtToken {
+    pub fn new(claims: Claims) -> JwtToken {
+        JwtToken { claims }
+    }
 }
 
 #[rocket::async_trait]
@@ -20,13 +26,23 @@ impl<'r> FromRequest<'r> for JwtToken {
             .and_then(|auth| auth.strip_prefix("Bearer "));
 
         if let Some(token) = token {
-            let state = request.rocket().state::<JwksState>().unwrap();
-            let jwks = state.jwks.read().await;
-            match validate_token(token, &jwks, &state.audiences).await {
-                Ok(claims) => Outcome::Success(JwtToken { claims }),
-                Err(_) => Outcome::Error((Status::Unauthorized, ())),
+            info!("Got a token from request");
+            let state = request.rocket().state::<OidcState>().unwrap();
+            match state.get_jwks().await {
+                Ok(jwks) => match validate_token(token, jwks.as_ref(), &state.audiences).await {
+                    Ok(claims) => Outcome::Success(JwtToken::new(claims)),
+                    Err(e) => {
+                        error!("Could not get claims {}", e);
+                        Outcome::Error((Status::Unauthorized, ()))
+                    }
+                },
+                Err(e) => {
+                    error!("Could not get JWKS {}", e);
+                    Outcome::Error((Status::Unauthorized, ()))
+                }
             }
         } else {
+            error!("No token found");
             Outcome::Error((Status::Unauthorized, ()))
         }
     }

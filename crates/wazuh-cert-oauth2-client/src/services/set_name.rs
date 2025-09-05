@@ -1,4 +1,4 @@
-use crate::shared::path::{default_path_to_ossec_conf};
+use crate::shared::path::default_path_to_ossec_conf;
 use crate::shared::sed_command::sed_command;
 use anyhow::Result;
 
@@ -31,10 +31,13 @@ pub async fn set_name(name: &str) -> Result<()> {
     let ossec_conf = default_path_to_ossec_conf();
     info!("Updating agent name to {} in {}", agent_name, ossec_conf);
 
-    let update_cmd = format!(r"s|<agent_name>.*</agent_name>|<agent_name>{}</agent_name>|g", agent_name);
+    let update_cmd = format!(
+        r"s|<agent_name>.*</agent_name>|<agent_name>{}</agent_name>|g",
+        agent_name
+    );
     sed_command(&update_cmd, &ossec_conf).await?;
 
     info!("Agent name updated to {}", agent_name);
-    
+
     Ok(())
 }

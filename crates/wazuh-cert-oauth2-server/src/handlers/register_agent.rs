@@ -1,9 +1,12 @@
 use crate::handlers::middle::JwtToken;
+use crate::models::ca_config::CaProvider;
 use crate::shared::certs::sign_csr;
 use rocket::http::Status;
 use rocket::serde::json::Json;
+use rocket::State;
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
+use wazuh_cert_oauth2_model::models::errors::AppError;
 
 /// Sign a CSR for a new agent using the issuing CA
 /// Expects a PKCS#10 CSR in PEM format; returns the signed certificate and CA cert
@@ -11,19 +14,23 @@ use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
 pub async fn register_agent(
     dto: Json<SignCsrRequest>,
     token: JwtToken,
+    config: &State<CaProvider>,
 ) -> Result<Json<SignedCertResponse>, Status> {
-    match sign_csr(dto.into_inner(), token) {
+    match sign_csr(dto.into_inner(), token, config.inner()).await {
         Ok(res) => Ok(Json(res)),
         Err(e) => {
-            let msg = e.to_string();
-            error!("CSR signing failed: {}", msg);
-            // Classify some errors as BadRequest, else InternalServerError
-            if msg.contains("CSR verification failed")
-                || msg.contains("Unsupported key type")
-                || msg.contains("Unsupported EC curve")
-                || msg.contains("RSA key too small")
-            {
-                Err(Status::BadRequest)
+            error!("CSR signing failed: {}", e);
+            // Try to map underlying AppError to a proper status code
+            if let Some(app) = e.downcast_ref::<AppError>() {
+                match app {
+                    AppError::CsrMissingPublicKey
+                    | AppError::CsrVerificationFailed
+                    | AppError::KeyPolicyRsaTooSmall { .. }
+                    | AppError::KeyPolicyUnsupportedEcCurve { .. }
+                    | AppError::KeyPolicyUnknownEcCurve
+                    | AppError::KeyPolicyUnsupportedKeyType { .. } => Err(Status::BadRequest),
+                    _ => Err(Status::InternalServerError),
+                }
             } else {
                 Err(Status::InternalServerError)
             }
