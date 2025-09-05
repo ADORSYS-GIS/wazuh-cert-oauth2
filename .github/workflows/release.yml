@@ -48,11 +48,13 @@ jobs:
         run: cargo install cross
 
       - name: Build with cross
-        run: cross build --profile prod --target ${{ matrix.target }}
-        working-directory: wazuh-cert-oauth2-client
+        env:
+          PKG_CONFIG_ALLOW_CROSS: "1"
+          OPENSSL_NO_VENDOR: "1"
+        run: cross build -p wazuh-cert-oauth2-client --profile prod --target ${{ matrix.target }}
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
+        run: mv target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -62,12 +64,16 @@ jobs:
 
   build-macos:
     name: Build CLI for macOS
-    runs-on: macos-latest
     strategy:
       matrix:
-        target:
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
+        include:
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            brew_prefix: /usr/local/opt/openssl@3
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            brew_prefix: /opt/homebrew/opt/openssl@3
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout code
@@ -91,15 +97,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-build-${{ matrix.target }}-
 
+      - name: Install OpenSSL and pkg-config
+        run: |
+          brew update
+          brew install pkg-config openssl@3
+
       - name: Install macOS target
         run: rustup target add ${{ matrix.target }}
 
       - name: Build with cargo
-        run: cargo build --profile prod --target ${{ matrix.target }}
-        working-directory: wazuh-cert-oauth2-client
+        env:
+          PKG_CONFIG_PATH: ${{ matrix.brew_prefix }}/lib/pkgconfig
+          OPENSSL_NO_VENDOR: "1"
+        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target ${{ matrix.target }}
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
+        run: mv target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -142,11 +155,10 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Build with cargo
-        run: cargo build --profile prod --target ${{ matrix.target }}
-        working-directory: wazuh-cert-oauth2-client
+        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target ${{ matrix.target }}
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client.exe wazuh-cert-oauth2-client-${{ matrix.target }}.exe
+        run: mv target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client.exe wazuh-cert-oauth2-client-${{ matrix.target }}.exe
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
