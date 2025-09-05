@@ -12,9 +12,9 @@ use crate::shared::cli::Opt;
 use anyhow::Result;
 use clap::Parser;
 use env_logger::{Builder, Env};
+use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
-use wazuh_cert_oauth2_model::services::fetch_only::fetch_only;
 use wazuh_cert_oauth2_model::services::jwks::validate_token;
 
 mod services;
@@ -57,7 +57,10 @@ async fn app() -> Result<()> {
                 .map(|s| s.to_string())
                 .collect::<Vec<String>>();
 
-            let document = fetch_only::<DiscoveryDocument>(&format!(
+            // Shared HTTP client for the CLI flow
+            let http = HttpClient::new_with_defaults()?;
+
+            let document: DiscoveryDocument = http.fetch_json(&format!(
                 "{}/.well-known/openid-configuration",
                 issuer
             ))
@@ -69,10 +72,10 @@ async fn app() -> Result<()> {
             }
 
             info!("Getting JWKS");
-            let jwks = fetch_only(&document.jwks_uri).await?;
+            let jwks = http.fetch_json(&document.jwks_uri).await?;
 
             debug!("Getting token");
-            let token = get_token(GetTokenParams {
+            let token = get_token(&http, GetTokenParams {
                 document,
                 client_id,
                 client_secret,
@@ -87,7 +90,7 @@ async fn app() -> Result<()> {
             let (csr_pem, private_key_pem) = generate_key_and_csr(&sub)?;
 
             debug!("Submitting CSR for signing");
-            let signed = submit_csr(&endpoint, &token, &csr_pem).await?;
+            let signed = submit_csr(&http, &endpoint, &token, &csr_pem).await?;
 
             debug!("Saving certificate and private key");
             save_cert_and_key(

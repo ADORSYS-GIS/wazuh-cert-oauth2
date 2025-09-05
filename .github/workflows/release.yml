@@ -13,14 +13,16 @@ on:
       - 'Cargo.toml'
 
 jobs:
-  build-ubuntu:
-    name: Build CLI
-    runs-on: ubuntu-latest
+  build-linux:
+    name: Build CLI (Linux)
     strategy:
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm64
+            target: aarch64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
@@ -44,14 +46,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-build-${{ matrix.target }}-
 
-      - name: Install cross
-        run: cargo install cross
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libssl-dev
 
-      - name: Build with cross
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build with cargo
         env:
-          PKG_CONFIG_ALLOW_CROSS: "1"
           OPENSSL_NO_VENDOR: "1"
-        run: cross build -p wazuh-cert-oauth2-client --profile prod --target ${{ matrix.target }}
+        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target ${{ matrix.target }}
 
       - name: Rename resource
         run: mv target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
@@ -151,6 +157,17 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-build-${{ matrix.target }}-
 
+      - name: Install OpenSSL via vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
+          & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
+          $triplet = "x64-windows"
+          if ("${{ matrix.target }}" -eq "aarch64-pc-windows-msvc") { $triplet = "arm64-windows" }
+          & $env:USERPROFILE\vcpkg\vcpkg.exe install openssl:$triplet
+          echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "VCPKGRS_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Install Windows target
         run: rustup target add ${{ matrix.target }}
 
@@ -170,7 +187,7 @@ jobs:
     name: Release
     permissions: write-all
     needs:
-      - build-ubuntu
+      - build-linux
       - build-macos
       - build-windows
     runs-on: ubuntu-latest

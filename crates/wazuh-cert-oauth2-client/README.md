@@ -22,7 +22,7 @@ The client performs the following key operations:
 -   Secure retrieval and local storage of agent certificates and private keys.
 -   Automatic configuration of Wazuh agent name based on token claims.
 -   Integration with local Wazuh agent service management.
--   Cross-compilation support for Linux (x86_64, aarch64).
+    
 -   Configurable via command-line arguments and environment variables.
 
 ## Prerequisites
@@ -31,7 +31,7 @@ The client performs the following key operations:
 -   Access to an OAuth2/OIDC provider.
 -   A running instance of the `wazuh-cert-oauth2` server.
 -   A local Wazuh agent installation (if managing agent services).
--   For cross-compilation: Docker or a compatible container runtime with `cross` installed (`cargo install cross`). `libssl-dev` is required for the target architecture (handled by `Cross.toml` for specified targets).
+    
 
 ## Building
 
@@ -42,19 +42,17 @@ cargo build --release
 ```
 The executable will be located at `target/release/wazuh-cert-oauth2-client`.
 
-### Cross-Compilation
+### Building for specific targets
 
-This project uses `cross` for cross-compilation. The following targets are pre-configured in [`Cross.toml`](Cross.toml:1):
-- `x86_64-unknown-linux-gnu`
-- `aarch64-unknown-linux-gnu`
+If you need artifacts for a specific target locally:
 
-To cross-compile for a specific target (e.g., `x86_64-unknown-linux-gnu`):
-```bash
-cross build --target x86_64-unknown-linux-gnu --release
-```
-The executable will be in `target/x86_64-unknown-linux-gnu/release/wazuh-cert-oauth2-client`.
-
-The `Cross.toml` includes pre-build steps to install `libssl-dev` for the Linux targets.
+- Linux: ensure `pkg-config` and `libssl-dev` are installed, then
+  `rustup target add <triple>` and `cargo build --target <triple> --release`.
+- macOS: install Homebrew `pkg-config` and `openssl@3`, set `PKG_CONFIG_PATH` to
+  your brew prefix (e.g., `/usr/local/opt/openssl@3/lib/pkgconfig` on Intel or
+  `/opt/homebrew/opt/openssl@3/lib/pkgconfig` on Apple Silicon).
+- Windows (MSVC): install OpenSSL via vcpkg (e.g., `vcpkg install openssl:x64-windows`)
+  and set `VCPKG_ROOT` (and optionally `VCPKGRS_TRIPLET`).
 
 ## Configuration
 

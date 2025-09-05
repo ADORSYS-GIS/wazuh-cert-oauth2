@@ -22,6 +22,7 @@ use mimalloc::MiMalloc;
 use crate::shared::opts::Opt;
 use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
+use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -46,12 +47,17 @@ async fn main() -> Result<()> {
     } = Opt::parse();
     let kc_audiences = kc_audiences.split(",").map(|s| s.to_string());
 
+    // Shared HTTP client service with connection pooling
+    let http_client = HttpClient::new_with_defaults()?;
+
     rocket::build()
+        .manage(http_client.clone())
         .manage(OidcState::new(
             oauth_issuer,
             kc_audiences.collect(),
             Duration::from_secs(discovery_ttl_secs),
             Duration::from_secs(jwks_ttl_secs),
+            http_client,
         ))
         .manage(CaProvider::new(
             root_ca_path,

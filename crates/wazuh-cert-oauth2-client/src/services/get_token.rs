@@ -4,7 +4,7 @@ use oauth2::{
     AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     RedirectUrl, TokenResponse, TokenUrl,
 };
-use reqwest::ClientBuilder;
+use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 
 #[derive(Debug)]
@@ -17,10 +17,7 @@ pub struct GetTokenParams {
 }
 
 /// Get a token from the OAuth2 server.
-pub async fn get_token(params: GetTokenParams) -> Result<String> {
-    let http_client = ClientBuilder::new()
-        .build()?;
-    
+pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> Result<String> {
     let mut basic_client = BasicClient::new(ClientId::new(params.client_id.to_string()))
         .set_auth_uri(AuthUrl::new(params.document.authorization_endpoint)?)
         .set_token_uri_option(Some(TokenUrl::new(params.document.token_endpoint)?));
@@ -39,7 +36,7 @@ pub async fn get_token(params: GetTokenParams) -> Result<String> {
     if params.is_service_account {
         let token_result = client
             .exchange_client_credentials()?
-            .request_async(&http_client)
+            .request_async(http.client())
             .await?;
 
         info!("Token received!");
@@ -65,7 +62,7 @@ pub async fn get_token(params: GetTokenParams) -> Result<String> {
     let token_result = client
         .exchange_code(code)?
         .set_pkce_verifier(pkce_verifier)
-        .request_async(&http_client)
+        .request_async(http.client())
         .await?;
 
     info!("Token received!");
