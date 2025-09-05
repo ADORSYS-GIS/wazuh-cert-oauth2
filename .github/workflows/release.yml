@@ -165,8 +165,24 @@ jobs:
           $triplet = "x64-windows"
           if ("${{ matrix.target }}" -eq "aarch64-pc-windows-msvc") { $triplet = "arm64-windows" }
           & $env:USERPROFILE\vcpkg\vcpkg.exe install openssl:$triplet
+          # Prefer dynamic linkage for OpenSSL from vcpkg on Windows
           echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           echo "VCPKGRS_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "VCPKGRS_DYNAMIC=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # Export OpenSSL dirs for both generic and target-specific envs
+          $OPENSSL_DIR = "$env:USERPROFILE\vcpkg\installed\$triplet"
+          echo "OPENSSL_DIR=$OPENSSL_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "OPENSSL_LIB_DIR=$OPENSSL_DIR\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "OPENSSL_INCLUDE_DIR=$OPENSSL_DIR\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          if ($triplet -eq 'arm64-windows') {
+            echo "AARCH64_PC_WINDOWS_MSVC_OPENSSL_DIR=$OPENSSL_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "AARCH64_PC_WINDOWS_MSVC_OPENSSL_LIB_DIR=$OPENSSL_DIR\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "AARCH64_PC_WINDOWS_MSVC_OPENSSL_INCLUDE_DIR=$OPENSSL_DIR\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            echo "X86_64_PC_WINDOWS_MSVC_OPENSSL_DIR=$OPENSSL_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "X86_64_PC_WINDOWS_MSVC_OPENSSL_LIB_DIR=$OPENSSL_DIR\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "X86_64_PC_WINDOWS_MSVC_OPENSSL_INCLUDE_DIR=$OPENSSL_DIR\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
 
       - name: Install Windows target
         run: rustup target add ${{ matrix.target }}
