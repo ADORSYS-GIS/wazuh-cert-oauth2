@@ -7,24 +7,28 @@ use openssl::nid::Nid;
 use openssl::pkey::Id as PKeyId;
 use openssl::pkey::PKey;
 use openssl::x509::extension::{
-    AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, SubjectKeyIdentifier,
+    AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, SubjectAlternativeName,
+    SubjectKeyIdentifier,
 };
+use openssl::x509::X509Extension;
 use openssl::x509::{X509NameBuilder, X509Ref, X509Req, X509};
 use rand::rngs::OsRng;
 use rand::TryRngCore;
 
+use wazuh_cert_oauth2_model::models::errors::AppError;
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
-use wazuh_cert_oauth2_model::models::errors::AppError;
 
 use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
+use crate::shared::ledger::Ledger;
 
 /// Sign a client-provided CSR with the issuing CA; never generate or return private keys
 pub async fn sign_csr(
     dto: SignCsrRequest,
     JwtToken { claims }: JwtToken,
     ca: &CaProvider,
+    ledger: &Ledger,
 ) -> Result<SignedCertResponse> {
     let csr = X509Req::from_pem(dto.csr_pem.as_bytes())?;
 
@@ -44,12 +48,25 @@ pub async fn sign_csr(
     let (ca_cert, ca_key) = ca.get().await?;
 
     // Build certificate using CSR public key, but enforce subject from OAuth2 claims
-    let cert = sign_csr_with_ca(&csr, &ca_cert, &ca_key, &claims.sub)?;
+    let cert = sign_csr_with_ca(&csr, &ca_cert, &ca_key, &claims.sub, ca.crl_dist_url())?;
 
-    Ok(SignedCertResponse {
-        certificate_pem: String::from_utf8(cert.to_pem()?)?,
-        ca_cert_pem: String::from_utf8(ca_cert.to_pem()?)?,
-    })
+    // Extract serial as hex for recording only
+    let serial_hex = cert
+        .serial_number()
+        .to_bn()
+        .map_err(|_| anyhow::anyhow!("serial to_bn failed"))?
+        .to_hex_str()
+        .map_err(|_| anyhow::anyhow!("serial to_hex_str failed"))?
+        .to_string();
+
+    // Record issuance for later revoke-by-subject
+    ledger.record_issued(claims.sub.clone(), serial_hex).await?;
+
+    // PEM strings for response
+    let certificate_pem = String::from_utf8(cert.to_pem()?)?;
+    let ca_cert_pem = String::from_utf8(ca_cert.to_pem()?)?;
+
+    Ok(SignedCertResponse { certificate_pem, ca_cert_pem })
 }
 
 fn set_subject_cn(name_builder: &mut X509NameBuilder, cn: &str) -> Result<()> {
@@ -64,6 +81,7 @@ fn sign_csr_with_ca(
     ca_cert: &X509Ref,
     ca_key: &PKey<openssl::pkey::Private>,
     subject_cn: &str,
+    crl_dist_url: Option<&str>,
 ) -> Result<X509> {
     let mut builder = X509::builder()?;
     builder.set_version(2)?;
@@ -114,6 +132,18 @@ fn sign_csr_with_ca(
         .build(&builder.x509v3_context(Some(ca_cert), None))?;
     builder.append_extension(aki)?;
 
+    // CRL Distribution Points (if configured)
+    if let Some(url) = crl_dist_url {
+        // Use a generic X509Extension to avoid strict builder requirements
+        let cdp = X509Extension::new(
+            None,
+            Some(&builder.x509v3_context(Some(ca_cert), None)),
+            "crlDistributionPoints",
+            &format!("URI:{}", url),
+        )?;
+        builder.append_extension(cdp)?;
+    }
+
     // Key Usage
     let is_rsa = matches!(pkey.id(), PKeyId::RSA);
     let mut ku = KeyUsage::new();
@@ -128,10 +158,12 @@ fn sign_csr_with_ca(
     let eku = ExtendedKeyUsage::new().client_auth().build()?;
     builder.append_extension(eku)?;
 
-    // Optional: put subjectAltName with CN as DNS-like if desired; here omit unless needed
+    // put subjectAltName with CN as DNS-like if desired; here omit unless needed
     // If you want SAN copy, uncomment and adapt:
-    // let san = SubjectAlternativeName::new().dns(subject_cn).build(&context)?;
-    // builder.append_extension(san)?;
+    let san = SubjectAlternativeName::new()
+        .dns(subject_cn)
+        .build(&builder.x509v3_context(Some(ca_cert), None))?;
+    builder.append_extension(san)?;
 
     // Sign
     builder.sign(ca_key, MessageDigest::sha256())?;
@@ -155,11 +187,15 @@ fn enforce_key_policy(pkey: &PKey<openssl::pkey::Public>) -> Result<()> {
                 .curve_name()
                 .ok_or_else(|| anyhow::anyhow!(AppError::KeyPolicyUnknownEcCurve))?;
             if nid != Nid::X9_62_PRIME256V1 {
-                bail!(AppError::KeyPolicyUnsupportedEcCurve { nid: format!("{:?}", nid) });
+                bail!(AppError::KeyPolicyUnsupportedEcCurve {
+                    nid: format!("{:?}", nid)
+                });
             }
         }
         other => {
-            bail!(AppError::KeyPolicyUnsupportedKeyType { key_type: format!("{:?}", other) });
+            bail!(AppError::KeyPolicyUnsupportedKeyType {
+                key_type: format!("{:?}", other)
+            });
         }
     }
     Ok(())

@@ -62,8 +62,8 @@ RUN \
 
 FROM gcr.io/distroless/base-debian12:nonroot
 
-LABEL maintainer="stephane.segning-lambou@adorsys.com"
-LABEL org.opencontainers.image.description="adorsys Cameroon"
+LABEL maintainer="Stephane Segning <selastlambou@gmail.com>"
+LABEL org.opencontainers.image.description="adorsys GIS Cameroon"
 
 ENV RUST_LOG=warn
 ENV PORT=8000

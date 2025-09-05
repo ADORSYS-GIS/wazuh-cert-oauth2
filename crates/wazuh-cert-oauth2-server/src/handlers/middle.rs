@@ -1,6 +1,5 @@
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
-use log::info;
 use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::services::jwks::validate_token;
 
@@ -26,7 +25,6 @@ impl<'r> FromRequest<'r> for JwtToken {
             .and_then(|auth| auth.strip_prefix("Bearer "));
 
         if let Some(token) = token {
-            info!("Got a token from request");
             let state = request.rocket().state::<OidcState>().unwrap();
             match state.get_jwks().await {
                 Ok(jwks) => match validate_token(token, jwks.as_ref(), &state.audiences).await {

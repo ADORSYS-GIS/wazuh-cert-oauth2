@@ -7,3 +7,6 @@
 charts
 target
 .DS_Store
+
+*.csv
+*.crl

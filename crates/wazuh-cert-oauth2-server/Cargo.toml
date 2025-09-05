@@ -16,9 +16,12 @@ jsonwebtoken.workspace = true
 openssl.workspace = true
 rand.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 mimalloc.workspace = true
 clap.workspace = true
 log = "0.4.28"
+openssl-sys = "0.9"
+foreign-types = "0.3"
 
 
 [dependencies.wazuh-cert-oauth2-model]

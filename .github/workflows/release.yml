@@ -8,8 +8,9 @@ on:
       - 'v*'
     paths:
       - '.github/workflows/release.yml'
-      - '../../crates/wazuh-cert-oauth2-client/**'
-      - '../../crates/wazuh-cert-oauth2-model/**'
+      - 'crates/wazuh-cert-oauth2-client/**'
+      - 'crates/wazuh-cert-oauth2-model/**'
+      - 'Cargo.toml'
 
 jobs:
   build-ubuntu:

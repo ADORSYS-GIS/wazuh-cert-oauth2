@@ -12,6 +12,7 @@ pub struct CaProvider {
     root_ca_path: String,
     root_ca_key_path: String,
     ttl: Duration,
+    crl_dist_url: Option<String>,
     inner: RwLock<Inner>,
 }
 
@@ -21,11 +22,17 @@ struct Inner {
 }
 
 impl CaProvider {
-    pub fn new(root_ca_path: String, root_ca_key_path: String, ttl: Duration) -> Self {
+    pub fn new(
+        root_ca_path: String,
+        root_ca_key_path: String,
+        ttl: Duration,
+        crl_dist_url: Option<String>,
+    ) -> Self {
         Self {
             root_ca_path,
             root_ca_key_path,
             ttl,
+            crl_dist_url,
             inner: RwLock::new(Inner {
                 ca_cert: None,
                 ca_key: None,
@@ -51,5 +58,9 @@ impl CaProvider {
         inner.ca_cert = Some((cert.clone(), Instant::now()));
         inner.ca_key = Some((key.clone(), Instant::now()));
         Ok((cert, key))
+    }
+
+    pub fn crl_dist_url(&self) -> Option<&str> {
+        self.crl_dist_url.as_deref()
     }
 }

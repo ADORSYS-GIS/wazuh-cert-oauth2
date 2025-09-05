@@ -1,6 +1,7 @@
 use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
 use crate::shared::certs::sign_csr;
+use crate::shared::ledger::Ledger;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::State;
@@ -15,8 +16,9 @@ pub async fn register_agent(
     dto: Json<SignCsrRequest>,
     token: JwtToken,
     config: &State<CaProvider>,
+    ledger: &State<Ledger>,
 ) -> Result<Json<SignedCertResponse>, Status> {
-    match sign_csr(dto.into_inner(), token, config.inner()).await {
+    match sign_csr(dto.into_inner(), token, config.inner(), ledger.inner()).await {
         Ok(res) => Ok(Json(res)),
         Err(e) => {
             error!("CSR signing failed: {}", e);

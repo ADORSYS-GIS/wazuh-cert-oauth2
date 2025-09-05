@@ -50,6 +50,10 @@ pub enum AppError {
     #[cfg(feature = "rocket")]
     #[error("Rocket error: {source}")]
     RocketError { #[from] source: rocket::Error },
+
+    // CRL / OpenSSL FFI
+    #[error("CRL/OpenSSL FFI error in {func}")]
+    CrlFfi { func: &'static str },
 }
 
 // Convenience alias used where appropriate

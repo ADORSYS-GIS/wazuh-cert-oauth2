@@ -26,4 +26,13 @@ pub struct Opt {
 
     #[arg(long, env = "CA_CACHE_TTL_SECS", default_value_t = 300)]
     pub ca_cache_ttl_secs: u64,
+    
+    #[arg(long, env = "CRL_DIST_URL")]
+    pub crl_dist_url: Option<String>,
+
+    #[arg(long, env = "CRL_PATH", default_value = "/data/issuing.crl")]
+    pub crl_path: String,
+    
+    #[arg(long, env = "LEDGER_PATH", default_value = "/data/ledger.csv")]
+    pub ledger_path: String,
 }
