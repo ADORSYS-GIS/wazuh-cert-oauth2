@@ -1,19 +1,19 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use openssl::asn1::Asn1Time;
 use openssl::hash::MessageDigest;
 use openssl::nid::Nid;
 use openssl::pkey::Id as PKeyId;
 use openssl::pkey::PKey;
+use openssl::x509::X509Extension;
 use openssl::x509::extension::{
     AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, SubjectAlternativeName,
     SubjectKeyIdentifier,
 };
-use openssl::x509::X509Extension;
-use openssl::x509::{X509NameBuilder, X509Ref, X509Req, X509};
-use rand::rngs::OsRng;
+use openssl::x509::{X509, X509NameBuilder, X509Ref, X509Req};
 use rand::TryRngCore;
+use rand::rngs::OsRng;
 
 use wazuh_cert_oauth2_model::models::errors::AppError;
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
@@ -66,7 +66,10 @@ pub async fn sign_csr(
     let certificate_pem = String::from_utf8(cert.to_pem()?)?;
     let ca_cert_pem = String::from_utf8(ca_cert.to_pem()?)?;
 
-    Ok(SignedCertResponse { certificate_pem, ca_cert_pem })
+    Ok(SignedCertResponse {
+        certificate_pem,
+        ca_cert_pem,
+    })
 }
 
 fn set_subject_cn(name_builder: &mut X509NameBuilder, cn: &str) -> Result<()> {

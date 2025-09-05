@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::path::Path;
-use tokio::fs::{create_dir_all, write, OpenOptions};
+use tokio::fs::{OpenOptions, create_dir_all, write};
 use tokio::io::AsyncWriteExt;
 
 /// Save the certificate (and optional chain) and the private key to files.

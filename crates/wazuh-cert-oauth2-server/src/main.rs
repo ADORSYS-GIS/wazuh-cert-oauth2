@@ -5,11 +5,10 @@ use anyhow::*;
 use env_logger::{Builder, Env};
 use std::time::Duration;
 
-
+use crate::handlers::crl::{get_crl, get_revocations};
 use crate::handlers::health::health;
 use crate::handlers::register_agent::register_agent;
 use crate::handlers::revoke::revoke;
-use crate::handlers::crl::{get_crl, get_revocations};
 use crate::models::oidc_state::OidcState;
 
 mod handlers;
@@ -17,11 +16,11 @@ mod models;
 mod shared;
 
 use crate::models::ca_config::CaProvider;
-use clap::Parser;
-use mimalloc::MiMalloc;
-use crate::shared::opts::Opt;
 use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
+use crate::shared::opts::Opt;
+use clap::Parser;
+use mimalloc::MiMalloc;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 #[global_allocator]

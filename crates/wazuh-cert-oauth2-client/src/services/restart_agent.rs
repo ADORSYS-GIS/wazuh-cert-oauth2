@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use tokio::process::Command;
 use wazuh_cert_oauth2_model::models::errors::AppError;
 
@@ -14,10 +14,16 @@ pub async fn restart_agent() -> Result<()> {
     match status {
         Ok(s) => {
             if !s.success() {
-                bail!(AppError::CommandFailed { program: "powershell".into(), code: s.code() });
+                bail!(AppError::CommandFailed {
+                    program: "powershell".into(),
+                    code: s.code()
+                });
             }
         }
-        Err(e) => bail!(AppError::CommandSpawn { program: "powershell".into(), err: e.to_string() }),
+        Err(e) => bail!(AppError::CommandSpawn {
+            program: "powershell".into(),
+            err: e.to_string()
+        }),
     }
 
     Ok(())
@@ -34,10 +40,16 @@ pub async fn restart_agent() -> Result<()> {
     match status {
         Ok(s) => {
             if !s.success() {
-                bail!(AppError::CommandFailed { program: control_bin, code: s.code() });
+                bail!(AppError::CommandFailed {
+                    program: control_bin,
+                    code: s.code()
+                });
             }
         }
-        Err(e) => bail!(AppError::CommandSpawn { program: control_bin, err: e.to_string() }),
+        Err(e) => bail!(AppError::CommandSpawn {
+            program: control_bin,
+            err: e.to_string()
+        }),
     }
 
     Ok(())

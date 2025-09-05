@@ -1,7 +1,7 @@
 use crate::models::claims::Claims;
 use crate::models::errors::AppError;
-use anyhow::{bail, Result};
-use jsonwebtoken::{decode, decode_header, DecodingKey, Validation};
+use anyhow::{Result, bail};
+use jsonwebtoken::{DecodingKey, Validation, decode, decode_header};
 
 /// Validate the token using the provided JWKS.
 pub async fn validate_token(

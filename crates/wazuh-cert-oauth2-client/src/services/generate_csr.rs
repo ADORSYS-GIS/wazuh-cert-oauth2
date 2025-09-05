@@ -27,4 +27,3 @@ pub fn generate_key_and_csr(sub: &str) -> Result<(String, String)> {
 
     Ok((csr_pem, key_pem))
 }
-

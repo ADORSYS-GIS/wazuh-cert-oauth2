@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use tokio::process::Command;
 use wazuh_cert_oauth2_model::models::errors::AppError;
 
@@ -23,13 +23,27 @@ pub async fn sed_command(content: &str, file_path: &str) -> Result<()> {
     match status {
         Ok(s) => {
             if !s.success() {
-                let program = if cfg!(target_os = "macos") { "gsed" } else { "sed" };
-                bail!(AppError::CommandFailed { program: program.into(), code: s.code() });
+                let program = if cfg!(target_os = "macos") {
+                    "gsed"
+                } else {
+                    "sed"
+                };
+                bail!(AppError::CommandFailed {
+                    program: program.into(),
+                    code: s.code()
+                });
             }
         }
         Err(e) => {
-            let program = if cfg!(target_os = "macos") { "gsed" } else { "sed" };
-            bail!(AppError::CommandSpawn { program: program.into(), err: e.to_string() });
+            let program = if cfg!(target_os = "macos") {
+                "gsed"
+            } else {
+                "sed"
+            };
+            bail!(AppError::CommandSpawn {
+                program: program.into(),
+                err: e.to_string()
+            });
         }
     }
 

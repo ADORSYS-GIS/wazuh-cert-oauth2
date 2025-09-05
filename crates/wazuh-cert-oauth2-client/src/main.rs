@@ -2,7 +2,7 @@
 extern crate log;
 
 use crate::services::generate_csr::generate_key_and_csr;
-use crate::services::get_token::{get_token, GetTokenParams};
+use crate::services::get_token::{GetTokenParams, get_token};
 use crate::services::restart_agent::restart_agent;
 use crate::services::save_to_file::save_cert_and_key;
 use crate::services::set_name::set_name;
@@ -12,9 +12,9 @@ use crate::shared::cli::Opt;
 use anyhow::Result;
 use clap::Parser;
 use env_logger::{Builder, Env};
-use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
+use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 use wazuh_cert_oauth2_model::services::jwks::validate_token;
 
 mod services;
@@ -60,11 +60,9 @@ async fn app() -> Result<()> {
             // Shared HTTP client for the CLI flow
             let http = HttpClient::new_with_defaults()?;
 
-            let document: DiscoveryDocument = http.fetch_json(&format!(
-                "{}/.well-known/openid-configuration",
-                issuer
-            ))
-            .await?;
+            let document: DiscoveryDocument = http
+                .fetch_json(&format!("{}/.well-known/openid-configuration", issuer))
+                .await?;
 
             if agent_control {
                 info!("Stopping agent");
@@ -75,12 +73,15 @@ async fn app() -> Result<()> {
             let jwks = http.fetch_json(&document.jwks_uri).await?;
 
             debug!("Getting token");
-            let token = get_token(&http, GetTokenParams {
-                document,
-                client_id,
-                client_secret,
-                is_service_account,
-            })
+            let token = get_token(
+                &http,
+                GetTokenParams {
+                    document,
+                    client_id,
+                    client_secret,
+                    is_service_account,
+                },
+            )
             .await?;
 
             debug!("Validating token & getting the name claim");

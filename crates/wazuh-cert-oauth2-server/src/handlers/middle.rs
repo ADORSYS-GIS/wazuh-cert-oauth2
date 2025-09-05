@@ -20,7 +20,8 @@ impl<'r> FromRequest<'r> for JwtToken {
     type Error = ();
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let token = request.headers()
+        let token = request
+            .headers()
             .get_one("Authorization")
             .and_then(|auth| auth.strip_prefix("Bearer "));
 

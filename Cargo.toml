@@ -2,7 +2,8 @@
 members = [
     "crates/wazuh-cert-oauth2-server",
     "crates/wazuh-cert-oauth2-client",
-    "crates/wazuh-cert-oauth2-model"
+    "crates/wazuh-cert-oauth2-model",
+    "crates/wazuh-cert-oauth2-webhook"
 ]
 resolver = "3"
 
@@ -10,6 +11,7 @@ resolver = "3"
 wazuh-cert-oauth2-server = { path = "crates/wazuh-cert-oauth2-server" }
 wazuh-cert-oauth2-client = { path = "crates/wazuh-cert-oauth2-client" }
 wazuh-cert-oauth2-model = { path = "crates/wazuh-cert-oauth2-model" }
+wazuh-cert-oauth2-webhook = { path = "crates/wazuh-cert-oauth2-webhook" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

@@ -4,8 +4,8 @@ use oauth2::{
     AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     RedirectUrl, TokenResponse, TokenUrl,
 };
-use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
+use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 #[derive(Debug)]
 /// Parameters to request an OAuth2 access token.

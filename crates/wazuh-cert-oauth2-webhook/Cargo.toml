@@ -1,0 +1,27 @@
+[package]
+name = "wazuh-cert-oauth2-webhook"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+tokio.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+env_logger.workspace = true
+rocket.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+log.workspace = true
+reqwest.workspace = true
+wazuh-cert-oauth2-model.workspace = true
+oauth2.workspace = true
+mimalloc.workspace = true
+rand.workspace = true
+base64 = "0.22"
+
+[features]
+default = []

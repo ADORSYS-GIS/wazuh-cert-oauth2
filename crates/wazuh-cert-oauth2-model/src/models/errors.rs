@@ -21,10 +21,10 @@ pub enum AppError {
     JwtKeyNotFound(String),
 
     // CSR / X509 policy
-    #[error("CSR missing public key")] 
+    #[error("CSR missing public key")]
     CsrMissingPublicKey,
 
-    #[error("CSR verification failed")] 
+    #[error("CSR verification failed")]
     CsrVerificationFailed,
 
     #[error("RSA key too small: {bits} bits (min 2048)")]
@@ -33,10 +33,10 @@ pub enum AppError {
     #[error("Unsupported EC curve: {nid} (only P-256 allowed)")]
     KeyPolicyUnsupportedEcCurve { nid: String },
 
-    #[error("Unknown EC curve")] 
+    #[error("Unknown EC curve")]
     KeyPolicyUnknownEcCurve,
 
-    #[error("Unsupported key type: {key_type}")] 
+    #[error("Unsupported key type: {key_type}")]
     KeyPolicyUnsupportedKeyType { key_type: String },
 
     // External command execution
@@ -49,7 +49,10 @@ pub enum AppError {
     // Rocket (when enabled)
     #[cfg(feature = "rocket")]
     #[error("Rocket error: {source}")]
-    RocketError { #[from] source: rocket::Error },
+    RocketError {
+        #[from]
+        source: rocket::Error,
+    },
 
     // CRL / OpenSSL FFI
     #[error("CRL/OpenSSL FFI error in {func}")]

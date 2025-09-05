@@ -6,9 +6,9 @@ pub struct Health {
 }
 
 impl Health {
-    pub fn new() -> Health {
-        Health {
-            status: "OK".to_string(),
+    pub fn ok() -> Self {
+        Self {
+            status: "OK".into(),
         }
     }
 }

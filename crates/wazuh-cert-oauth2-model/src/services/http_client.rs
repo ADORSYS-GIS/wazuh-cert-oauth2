@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use anyhow::Result;
 use reqwest::Client;
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 #[derive(Clone)]
 pub struct HttpClient {
@@ -31,16 +31,15 @@ impl HttpClient {
     }
 
     pub async fn fetch_json<R: DeserializeOwned>(&self, url: &str) -> Result<R> {
-        let resp = self
-            .client
-            .get(url)
-            .send()
-            .await?
-            .error_for_status()?;
+        let resp = self.client.get(url).send().await?.error_for_status()?;
         Ok(resp.json().await?)
     }
 
-    pub async fn post_json<B: Serialize, R: DeserializeOwned>(&self, url: &str, body: &B) -> Result<R> {
+    pub async fn post_json<B: Serialize, R: DeserializeOwned>(
+        &self,
+        url: &str,
+        body: &B,
+    ) -> Result<R> {
         let resp = self
             .client
             .post(url)
@@ -51,7 +50,12 @@ impl HttpClient {
         Ok(resp.json().await?)
     }
 
-    pub async fn post_json_auth<B: Serialize, R: DeserializeOwned>(&self, url: &str, token: &str, body: &B) -> Result<R> {
+    pub async fn post_json_auth<B: Serialize, R: DeserializeOwned>(
+        &self,
+        url: &str,
+        token: &str,
+        body: &B,
+    ) -> Result<R> {
         let resp = self
             .client
             .post(url)
@@ -63,4 +67,3 @@ impl HttpClient {
         Ok(resp.json().await?)
     }
 }
-

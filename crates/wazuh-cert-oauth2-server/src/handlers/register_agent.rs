@@ -2,12 +2,12 @@ use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
 use crate::shared::certs::sign_csr;
 use crate::shared::ledger::Ledger;
+use rocket::State;
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::State;
+use wazuh_cert_oauth2_model::models::errors::AppError;
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
-use wazuh_cert_oauth2_model::models::errors::AppError;
 
 /// Sign a CSR for a new agent using the issuing CA
 /// Expects a PKCS#10 CSR in PEM format; returns the signed certificate and CA cert

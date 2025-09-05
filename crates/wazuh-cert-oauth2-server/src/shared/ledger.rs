@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::fs;
-use tokio::sync::{mpsc, oneshot, RwLock};
+use tokio::sync::{RwLock, mpsc, oneshot};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LedgerEntry {
@@ -57,7 +57,12 @@ impl Ledger {
         tokio::spawn(async move {
             while let Some(cmd) = rx.recv().await {
                 match cmd {
-                    Command::RecordIssued { subject, serial_hex, issued_at_unix, respond_to } => {
+                    Command::RecordIssued {
+                        subject,
+                        serial_hex,
+                        issued_at_unix,
+                        respond_to,
+                    } => {
                         let res = async {
                             {
                                 let mut guard = inner_clone.write().await;
@@ -71,10 +76,16 @@ impl Ledger {
                                 });
                             }
                             persist_csv(&path_clone, &inner_clone).await
-                        }.await;
+                        }
+                        .await;
                         let _ = respond_to.send(res);
                     }
-                    Command::MarkRevoked { serial_hex, reason, revoked_at_unix, respond_to } => {
+                    Command::MarkRevoked {
+                        serial_hex,
+                        reason,
+                        revoked_at_unix,
+                        respond_to,
+                    } => {
                         let res = async {
                             {
                                 let mut guard = inner_clone.write().await;
@@ -99,7 +110,8 @@ impl Ledger {
                                 }
                             }
                             persist_csv(&path_clone, &inner_clone).await
-                        }.await;
+                        }
+                        .await;
                         let _ = respond_to.send(res);
                     }
                 }
@@ -110,24 +122,42 @@ impl Ledger {
     }
 
     pub async fn record_issued(&self, subject: String, serial_hex: String) -> Result<()> {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
         let (tx, rx) = oneshot::channel();
         self.tx
-            .send(Command::RecordIssued { subject, serial_hex, issued_at_unix: now, respond_to: tx })
+            .send(Command::RecordIssued {
+                subject,
+                serial_hex,
+                issued_at_unix: now,
+                respond_to: tx,
+            })
             .await
             .map_err(|e| anyhow::anyhow!("ledger writer dropped: {}", e))?;
-        rx.await.map_err(|e| anyhow::anyhow!("ledger writer closed: {}", e))??;
+        rx.await
+            .map_err(|e| anyhow::anyhow!("ledger writer closed: {}", e))??;
         Ok(())
     }
 
     pub async fn mark_revoked(&self, serial_hex: String, reason: Option<String>) -> Result<()> {
-        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
         let (tx, rx) = oneshot::channel();
         self.tx
-            .send(Command::MarkRevoked { serial_hex, reason, revoked_at_unix: now, respond_to: tx })
+            .send(Command::MarkRevoked {
+                serial_hex,
+                reason,
+                revoked_at_unix: now,
+                respond_to: tx,
+            })
             .await
             .map_err(|e| anyhow::anyhow!("ledger writer dropped: {}", e))?;
-        rx.await.map_err(|e| anyhow::anyhow!("ledger writer closed: {}", e))??;
+        rx.await
+            .map_err(|e| anyhow::anyhow!("ledger writer closed: {}", e))??;
         Ok(())
     }
 
@@ -165,10 +195,7 @@ async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) -> R
         let serial = escape_csv_field(&e.serial_hex);
         let issued = e.issued_at_unix.to_string();
         let revoked = if e.revoked { "true" } else { "false" };
-        let revoked_at = e
-            .revoked_at_unix
-            .map(|v| v.to_string())
-            .unwrap_or_default();
+        let revoked_at = e.revoked_at_unix.map(|v| v.to_string()).unwrap_or_default();
         let reason = e.reason.as_deref().unwrap_or("");
         let reason = escape_csv_field(reason);
         out.push_str(&format!(
@@ -191,19 +218,34 @@ fn parse_csv(s: &str) -> Result<Vec<LedgerEntry>> {
             continue;
         }
         let line = line.trim_end();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
         let fields = split_csv_line(line);
-        if fields.len() < 6 { continue; }
+        if fields.len() < 6 {
+            continue;
+        }
         let subject = unescape_csv_field(&fields[0]);
         let serial_hex = unescape_csv_field(&fields[1]);
         let issued_at_unix = fields[2].parse::<u64>().unwrap_or_default();
         let revoked = matches!(fields[3].as_str(), "true" | "TRUE" | "1");
-        let revoked_at_unix = if fields[4].is_empty() { None } else { Some(fields[4].parse::<u64>().unwrap_or_default()) };
+        let revoked_at_unix = if fields[4].is_empty() {
+            None
+        } else {
+            Some(fields[4].parse::<u64>().unwrap_or_default())
+        };
         let reason = {
             let r = unescape_csv_field(&fields[5]);
             if r.is_empty() { None } else { Some(r) }
         };
-        out.push(LedgerEntry { subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason });
+        out.push(LedgerEntry {
+            subject,
+            serial_hex,
+            issued_at_unix,
+            revoked,
+            revoked_at_unix,
+            reason,
+        });
     }
     Ok(out)
 }
@@ -246,7 +288,12 @@ fn escape_csv_field(s: &str) -> String {
         let mut out = String::with_capacity(s.len() + 2);
         out.push('"');
         for ch in s.chars() {
-            if ch == '"' { out.push('"'); out.push('"'); } else { out.push(ch); }
+            if ch == '"' {
+                out.push('"');
+                out.push('"');
+            } else {
+                out.push(ch);
+            }
         }
         out.push('"');
         out
@@ -258,13 +305,18 @@ fn escape_csv_field(s: &str) -> String {
 fn unescape_csv_field(s: &str) -> String {
     let s = s.trim();
     if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
-        let inner = &s[1..s.len()-1];
+        let inner = &s[1..s.len() - 1];
         let mut out = String::with_capacity(inner.len());
         let mut chars = inner.chars().peekable();
         while let Some(c) = chars.next() {
             if c == '"' {
-                if let Some('"') = chars.peek() { let _ = chars.next(); out.push('"'); }
-            } else { out.push(c); }
+                if let Some('"') = chars.peek() {
+                    let _ = chars.next();
+                    out.push('"');
+                }
+            } else {
+                out.push(c);
+            }
         }
         out
     } else {

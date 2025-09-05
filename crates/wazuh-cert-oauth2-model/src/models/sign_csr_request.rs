@@ -4,4 +4,3 @@ use serde::{Deserialize, Serialize};
 pub struct SignCsrRequest {
     pub csr_pem: String,
 }
-

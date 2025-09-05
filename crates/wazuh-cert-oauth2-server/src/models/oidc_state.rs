@@ -52,10 +52,7 @@ impl OidcState {
             }
         }
 
-        let url = format!(
-            "{}/.well-known/openid-configuration",
-            self.issuer
-        );
+        let url = format!("{}/.well-known/openid-configuration", self.issuer);
         let doc: DiscoveryDocument = self.http.fetch_json(&url).await?;
         let doc = Arc::new(doc);
         inner.discovery = Some((doc.clone(), Instant::now()));

@@ -2888,6 +2888,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "wazuh-cert-oauth2-webhook"
+version = "0.2.20"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "clap",
+ "env_logger",
+ "log",
+ "mimalloc",
+ "oauth2",
+ "rand 0.8.5",
+ "reqwest",
+ "rocket",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.16",
+ "tokio",
+ "wazuh-cert-oauth2-model",
+]
+
+[[package]]
 name = "web-sys"
 version = "0.3.77"
 source = "registry+https://github.com/rust-lang/crates.io-index"
