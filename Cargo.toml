@@ -21,7 +21,7 @@ anyhow = "1"
 reqwest = { version = "0.12", features = ["json"] }
 log = "0.4"
 env_logger = "0"
-openssl = { version = "0", features = ["vendored"] }
+openssl = { version = "0" }
 rand = "0"
 rocket = { version = "0", features = ["tls", "json", "mtls", "serde_json"] }
 diacritics = "0"
