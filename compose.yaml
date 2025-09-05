@@ -12,12 +12,31 @@ services:
       KC_AUDIENCES: 'account'
       ROOT_CA_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca.pem'
       ROOT_CA_KEY_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem'
-      LEDGER_PATH: '/usr/share/wazuh-cert-oauth2/certs/ledger.csv'
-      CRL_PATH: '/usr/share/wazuh-cert-oauth2/certs/issuing.crl'
+      LEDGER_PATH: '/data/ledger.csv'
+      CRL_PATH: '/data/issuing.crl'
       CRL_DIST_URL: 'http://localhost:8000/crl/issuing.crl'
+    volumes:
+      - oauth2:/data
+      
+  webhook:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      target: webhook
+    ports:
+      - "8100:8100"
+    environment:
+      RUST_LOG: 'info'
+      ROCKET_ADDRESS: '0.0.0.0'
+      SERVER_BASE_URL: 'http://localhost:8100'
+      SPOOL_DIR: '/data/spool'
+      WEBHOOK_BASIC_USER: 'user'
+      WEBHOOK_BASIC_PASSWORD: 'password'
+    volumes:
+      - webhook:/data/spool
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.2.3
+    image: quay.io/keycloak/keycloak:26.3.3
     ports:
       - '9100:9100'
     environment:
@@ -25,12 +44,56 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: password
       KC_LOG_CONSOLE_COLOR: 'true'
       KC_HTTP_PORT: 9100
+      
+      WEBHOOK_HTTP_BASE_PATH: "http://host.docker.internal:8100/api/webhook"
+      WEBHOOK_HTTP_AUTH_USERNAME: "user"
+      WEBHOOK_HTTP_AUTH_PASSWORD: "password"
     entrypoint: /bin/sh
     command:
       - -c
       - |
         set -ex
 
+        cp /tmp/libs/*.jar /opt/keycloak/providers # Copy the provider jars to the providers directory
         /opt/keycloak/bin/kc.sh start-dev --import-realm # Start Keycloak in dev mode and import the realm
     volumes:
       - ./.docker/keycloak_config/:/opt/keycloak/data/import/:ro
+      - ./root-ca.pem:/etc/ssl/root-ca.pem
+      - spi:/tmp/libs:ro
+    depends_on:
+      download-theme:
+        condition: service_completed_successfully
+        
+  keycloak-config:
+    image: quay.io/keycloak/keycloak:26.3.3
+    restart: on-failure
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        /opt/keycloak/bin/kcadm.sh config credentials --server http://keycloak:9100 --realm master --user admin --password password
+        /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
+        echo "Done" 
+    depends_on:
+      keycloak:
+        condition: service_started
+  
+  download-theme:
+    image: busybox
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -ex;
+        rm -rf /spi/*.jar
+        wget -O /spi/keycloak-webhook-provider-core.jar "https://github.com/vymalo/keycloak-webhook/releases/download/v0.9.1/keycloak-webhook-provider-core-0.9.1-all.jar"
+        wget -O /spi/keycloak-webhook-provider-http.jar "https://github.com/vymalo/keycloak-webhook/releases/download/v0.9.1/keycloak-webhook-provider-http-0.9.1-all.jar"
+        echo "Downloaded theme";
+        ls -lash /spi;
+    volumes:
+      - spi:/spi
+
+volumes:
+  spi:
+  webhook:
+  oauth2:

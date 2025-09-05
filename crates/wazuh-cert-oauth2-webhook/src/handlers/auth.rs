@@ -39,28 +39,24 @@ impl<'r> FromRequest<'r> for WebhookAuth {
         }
 
         // Check API key header first
-        if let Some(cfg_key) = state.webhook_api_key() {
-            if let Some(h) = request.headers().get_one("X-API-KEY") {
-                if consttime_eq(h, cfg_key) {
+        if let Some(cfg_key) = state.webhook_api_key()
+            && let Some(h) = request.headers().get_one("X-API-KEY")
+                && consttime_eq(h, cfg_key) {
                     return Outcome::Success(WebhookAuth);
                 }
-            }
-        }
 
         // Authorization: Basic ... or Bearer ...
         if let Some(authz) = request.headers().get_one("Authorization") {
             if let Some(token) = authz.strip_prefix("Bearer ") {
-                if let Some(cfg) = state.webhook_bearer_token() {
-                    if consttime_eq(token, cfg) {
+                if let Some(cfg) = state.webhook_bearer_token()
+                    && consttime_eq(token, cfg) {
                         return Outcome::Success(WebhookAuth);
                     }
-                }
-            } else if let Some(b64) = authz.strip_prefix("Basic ") {
-                if let (Some(u), Some(p)) =
+            } else if let Some(b64) = authz.strip_prefix("Basic ")
+                && let (Some(u), Some(p)) =
                     (state.webhook_basic_user(), state.webhook_basic_password())
-                {
-                    if let Ok(decoded) = B64.decode(b64.as_bytes()) {
-                        if let Ok(s) = String::from_utf8(decoded) {
+                    && let Ok(decoded) = B64.decode(b64.as_bytes())
+                        && let Ok(s) = String::from_utf8(decoded) {
                             let mut parts = s.splitn(2, ':');
                             let user_ok = parts.next().map(|x| consttime_eq(x, u)).unwrap_or(false);
                             let pass_ok = parts.next().map(|x| consttime_eq(x, p)).unwrap_or(false);
@@ -68,9 +64,6 @@ impl<'r> FromRequest<'r> for WebhookAuth {
                                 return Outcome::Success(WebhookAuth);
                             }
                         }
-                    }
-                }
-            }
         }
 
         Outcome::Error((Status::Unauthorized, ()))

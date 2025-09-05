@@ -7,15 +7,15 @@ pub async fn sed_command(content: &str, file_path: &str) -> Result<()> {
     let status = if cfg!(target_os = "macos") {
         Command::new("gsed")
             .arg("-i")
-            .arg(&content)
-            .arg(&file_path)
+            .arg(content)
+            .arg(file_path)
             .status()
             .await
     } else {
         Command::new("sed")
             .arg("-i")
-            .arg(&content)
-            .arg(&file_path)
+            .arg(content)
+            .arg(file_path)
             .status()
             .await
     };

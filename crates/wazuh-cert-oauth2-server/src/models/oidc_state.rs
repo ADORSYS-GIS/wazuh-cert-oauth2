@@ -46,11 +46,10 @@ impl OidcState {
         let now = Instant::now();
         let mut inner = self.inner.write().await;
         // Check again after acquiring write lock
-        if let Some((doc, fetched)) = &inner.discovery {
-            if now.duration_since(*fetched) < self.discovery_ttl {
+        if let Some((doc, fetched)) = &inner.discovery
+            && now.duration_since(*fetched) < self.discovery_ttl {
                 return Ok(doc.clone());
             }
-        }
 
         let url = format!("{}/.well-known/openid-configuration", self.issuer);
         let doc: DiscoveryDocument = self.http.fetch_json(&url).await?;
@@ -63,11 +62,10 @@ impl OidcState {
         let now = Instant::now();
         let mut inner = self.inner.write().await;
         // Check again after acquiring write lock
-        if let Some((jwks, fetched)) = &inner.jwks {
-            if now.duration_since(*fetched) < self.jwks_ttl {
+        if let Some((jwks, fetched)) = &inner.jwks
+            && now.duration_since(*fetched) < self.jwks_ttl {
                 return Ok(jwks.clone());
             }
-        }
 
         let doc = match &inner.discovery {
             Some((d, fetched)) if now.duration_since(*fetched) < self.discovery_ttl => d.clone(),

@@ -29,12 +29,16 @@ RUN \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-model/src,target=/app/crates/wazuh-cert-oauth2-model/src \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-client/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-client/Cargo.toml \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-client/src,target=/app/crates/wazuh-cert-oauth2-client/src \
+  --mount=type=bind,source=./crates/wazuh-cert-oauth2-webhook/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-webhook/Cargo.toml \
+  --mount=type=bind,source=./crates/wazuh-cert-oauth2-webhook/src,target=/app/crates/wazuh-cert-oauth2-webhook/src \
+  --mount=type=bind,source=./crates/wazuh-cert-oauth2-webhook/Rocket.toml,target=/app/crates/wazuh-cert-oauth2-webhook/Rocket.toml \
   --mount=type=cache,target=/app/target \
   --mount=type=cache,target=/usr/local/cargo/registry/cache \
   --mount=type=cache,target=/usr/local/cargo/registry/index \
   --mount=type=cache,target=/usr/local/cargo/git/db \
-  cargo build -p wazuh-cert-oauth2-server --profile prod --locked \
-  && cp ./target/prod/wazuh-cert-oauth2-server server
+  cargo build --profile prod --locked \
+  && cp ./target/prod/wazuh-cert-oauth2-server server \
+  && cp ./target/prod/wazuh-cert-oauth2-webhook webhook 
 
 FROM debian:12 as dep
 
@@ -59,6 +63,24 @@ RUN \
   cp /usr/lib/*-linux-gnu/libcrypto.so.* /deps && \
   mkdir -p /deps/etc/ssl/certs && \
   cp /etc/ssl/certs/ca-certificates.crt /deps/etc/ssl/certs/ca-certificates.crt
+
+FROM gcr.io/distroless/base-debian12:nonroot as webhook
+
+LABEL maintainer="Stephane Segning <selastlambou@gmail.com>"
+LABEL org.opencontainers.image.description="adorsys GIS Cameroon"
+
+ENV RUST_LOG=warn
+ENV PORT=8100
+
+WORKDIR /app
+
+COPY --from=builder /app/webhook /app/webhook
+COPY --from=dep /deps /usr/lib/
+COPY --from=dep /deps/etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+EXPOSE $PORT
+
+ENTRYPOINT ["/app/webhook"]
 
 FROM gcr.io/distroless/base-debian12:nonroot
 

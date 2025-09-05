@@ -21,12 +21,8 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> Result<Stri
     let mut basic_client = BasicClient::new(ClientId::new(params.client_id.to_string()))
         .set_auth_uri(AuthUrl::new(params.document.authorization_endpoint)?)
         .set_token_uri_option(Some(TokenUrl::new(params.document.token_endpoint)?));
+    if let Some(secret) = params.client_secret.map(ClientSecret::new) { basic_client = basic_client.set_client_secret(secret) }
 
-    if let Some(secret) = params.client_secret.map(ClientSecret::new) {
-        basic_client = basic_client.set_client_secret(secret)
-    }
-
-    // Create an OAuth2 client by specifying the client ID, client secret, authorization URL and token URL.
     let client = if params.is_service_account {
         basic_client.set_auth_type(AuthType::BasicAuth)
     } else {
@@ -34,38 +30,19 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> Result<Stri
     };
 
     if params.is_service_account {
-        let token_result = client
-            .exchange_client_credentials()?
-            .request_async(http.client())
-            .await?;
-
+        let token_result = client.exchange_client_credentials()?.request_async(http.client()).await?;
         info!("Token received!");
         return Ok(token_result.access_token().secret().clone());
     }
-    // Generate a PKCE challenge.
+
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-
-    // User needs to go to the authorization URL manually
-    let (auth_url, _csrf_token) = client
-        .authorize_url(CsrfToken::new_random)
-        .set_pkce_challenge(pkce_challenge)
-        .url();
-
+    let (auth_url, _csrf_token) = client.authorize_url(CsrfToken::new_random).set_pkce_challenge(pkce_challenge).url();
     info!("Please open this URL in your browser: {}\n", auth_url);
-
     let mut auth_code = String::new();
     std::io::stdin().read_line(&mut auth_code)?;
     let code = AuthorizationCode::new(auth_code.trim().to_string());
-
     info!("Exchanging code for token...");
-
-    let token_result = client
-        .exchange_code(code)?
-        .set_pkce_verifier(pkce_verifier)
-        .request_async(http.client())
-        .await?;
-
+    let token_result = client.exchange_code(code)?.set_pkce_verifier(pkce_verifier).request_async(http.client()).await?;
     info!("Token received!");
-
     Ok(token_result.access_token().secret().clone())
 }
