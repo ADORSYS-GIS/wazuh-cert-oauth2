@@ -28,25 +28,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+          fetch-depth: "0"
+          persist-credentials: 'false'
 
-      - name: Cache Cargo build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+      # Note: intentionally avoid caches in release build to prevent cache poisoning
 
       - name: Install build dependencies
         run: |
@@ -65,7 +52,7 @@ jobs:
         run: mv target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}
@@ -85,25 +72,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+          fetch-depth: "0"
+          persist-credentials: 'false'
 
-      - name: Cache Cargo build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+      # Note: intentionally avoid caches in release build to prevent cache poisoning
 
       - name: Install OpenSSL and pkg-config
         run: |
@@ -123,7 +97,7 @@ jobs:
         run: mv target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}
@@ -139,25 +113,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+          fetch-depth: "0"
+          persist-credentials: 'false'
 
-      - name: Cache Cargo build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+      # Note: intentionally avoid caches in release build to prevent cache poisoning
 
       - name: Install OpenSSL via vcpkg
         shell: pwsh
@@ -196,7 +157,7 @@ jobs:
         run: mv target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client.exe wazuh-cert-oauth2-client-${{ matrix.target }}.exe
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}.exe
@@ -219,7 +180,7 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # actions/create-release@v1
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -230,12 +191,12 @@ jobs:
           prerelease: false
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # actions/download-artifact@v4
         with:
           path: .
 
       - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: '**'
