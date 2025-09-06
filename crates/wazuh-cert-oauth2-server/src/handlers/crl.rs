@@ -9,7 +9,7 @@ use rocket::serde::json::Json;
 use tracing::{debug, error, info};
 
 #[get("/crl/issuing.crl")]
-pub async fn get_crl(crl: &State<CrlState>) -> anyhow::Result<(ContentType, Vec<u8>), Status> {
+pub async fn get_crl(crl: &State<CrlState>) -> Result<(ContentType, Vec<u8>), Status> {
     info!("GET /crl/issuing.crl requested");
     let bytes = crl.read_crl_file().await.map_err(|e| {
         error!("Failed to read CRL file: {}", e);

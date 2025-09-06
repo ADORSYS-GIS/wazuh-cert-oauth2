@@ -19,7 +19,7 @@ pub async fn register_agent(
     token: JwtToken,
     config: &State<CaProvider>,
     ledger: &State<Ledger>,
-) -> anyhow::Result<Json<SignedCertResponse>, Status> {
+) -> Result<Json<SignedCertResponse>, Status> {
     info!(
         "POST /register-agent called for subject={}",
         token.claims.sub

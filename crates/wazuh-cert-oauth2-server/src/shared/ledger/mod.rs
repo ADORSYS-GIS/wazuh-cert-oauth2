@@ -11,7 +11,7 @@ mod types;
 mod worker;
 
 pub use types::LedgerEntry;
-use wazuh_cert_oauth2_model::models::errors::AppResult;
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 
 #[derive(Clone)]
 pub struct Ledger {
@@ -32,7 +32,13 @@ impl Ledger {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn record_issued(&self, subject: String, serial_hex: String) -> AppResult<()> {
+    pub async fn record_issued(
+        &self,
+        subject: String,
+        serial_hex: String,
+        issuer: Option<String>,
+        realm: Option<String>,
+    ) -> AppResult<()> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -43,12 +49,14 @@ impl Ledger {
                 subject,
                 serial_hex,
                 issued_at_unix: now,
+                issuer,
+                realm,
                 respond_to: tx,
             })
             .await
-            .map_err(|e| anyhow::anyhow!("ledger writer dropped: {}", e))?;
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer dropped: {}", e)))?;
         rx.await
-            .map_err(|e| anyhow::anyhow!("ledger writer closed: {}", e))??;
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer closed: {}", e)))??;
         Ok(())
     }
 
@@ -67,9 +75,9 @@ impl Ledger {
                 respond_to: tx,
             })
             .await
-            .map_err(|e| anyhow::anyhow!("ledger writer dropped: {}", e))?;
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer dropped: {}", e)))?;
         rx.await
-            .map_err(|e| anyhow::anyhow!("ledger writer closed: {}", e))??;
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer closed: {}", e)))??;
         Ok(())
     }
 

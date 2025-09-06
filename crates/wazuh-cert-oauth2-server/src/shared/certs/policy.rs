@@ -17,7 +17,7 @@ pub(crate) fn enforce_key_policy(pkey: &PKey<openssl::pkey::Public>) -> AppResul
             let nid = ec
                 .group()
                 .curve_name()
-                .ok_or_else(|| anyhow::anyhow!(AppError::KeyPolicyUnknownEcCurve))?;
+                .ok_or(AppError::KeyPolicyUnknownEcCurve)?;
             if nid != Nid::X9_62_PRIME256V1 {
                 return Err(AppError::KeyPolicyUnsupportedEcCurve {
                     nid: format!("{:?}", nid),

@@ -10,7 +10,6 @@ services:
       ROCKET_ADDRESS: '0.0.0.0'
       
       OAUTH_ISSUER: 'http://host.docker.internal/realms/dev'
-      KC_AUDIENCES: 'account'
       
       ROOT_CA_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca.pem'
       ROOT_CA_KEY_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem'

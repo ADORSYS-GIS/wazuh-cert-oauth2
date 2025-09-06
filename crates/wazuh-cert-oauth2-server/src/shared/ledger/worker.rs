@@ -28,10 +28,20 @@ async fn ledger_worker(
                 subject,
                 serial_hex,
                 issued_at_unix,
+                issuer,
+                realm,
                 respond_to,
             } => {
-                let res =
-                    apply_record_issued(&inner, &path, subject, serial_hex, issued_at_unix).await;
+                let res = apply_record_issued(
+                    &inner,
+                    &path,
+                    subject,
+                    serial_hex,
+                    issued_at_unix,
+                    issuer,
+                    realm,
+                )
+                .await;
                 let _ = respond_to.send(res);
             }
             Command::MarkRevoked {
@@ -54,6 +64,8 @@ async fn apply_record_issued(
     subject: String,
     serial_hex: String,
     issued_at_unix: u64,
+    issuer: Option<String>,
+    realm: Option<String>,
 ) -> AppResult<()> {
     {
         let mut guard = inner.write().await;
@@ -64,6 +76,8 @@ async fn apply_record_issued(
             revoked: false,
             revoked_at_unix: None,
             reason: None,
+            issuer,
+            realm,
         });
     }
     persist_csv(path, inner).await
@@ -94,6 +108,8 @@ async fn apply_mark_revoked(
                 revoked: true,
                 revoked_at_unix: Some(revoked_at_unix),
                 reason: reason.clone(),
+                issuer: None,
+                realm: None,
             });
         }
     }

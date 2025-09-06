@@ -16,6 +16,15 @@ Endpoints
 - `POST /api/register-agent`: sign CSR and return signed cert + CA (auth required).
   (All metrics are exported via OTLP; no Prometheus endpoint.)
 
+Certificate contents
+
+- Subject CN: set to the JWT subject (`sub`).
+- SANs:
+  - DNS entry mirroring CN for compatibility.
+  - URI binding issuer realm + subject: `{iss}#sub={sub}`. Example: `https://kc.example/realms/foo#sub=1234-...`.
+- Key usage: digital signature (+ key encipherment for RSA).
+- EKU: clientAuth.
+
 Configuration
 
 - `--oauth-issuer` (`OAUTH_ISSUER`): OIDC issuer URL (required).
@@ -32,6 +41,11 @@ Configuration
 Data and persistence
 
 - Mount a writable volume at `/data` (or adjust paths) so CRL and ledger persist.
+
+Ledger fields
+
+- CSV columns: `subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm`.
+- `issuer` and `realm` are optional; older rows may omit them and are handled gracefully.
 
 Telemetry (OTel + tracing)
 
@@ -76,3 +90,9 @@ wazuh-cert-oauth2-server \
   --root-ca-path /data/issuing.pem \
   --root-ca-key-path /data/issuing.key
 ```
+
+Operational guidance
+
+- Issue one certificate per installed agent (machine) and one per human user (UI/API).
+- Never share client certificates across users or machines.
+- Use ledger lookups by subject or serial for fast ban/revocation decisions.

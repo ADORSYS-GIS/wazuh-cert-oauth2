@@ -3293,6 +3293,7 @@ dependencies = [
  "serde",
  "tokio",
  "tracing",
+ "url",
  "wazuh-cert-oauth2-metrics",
  "wazuh-cert-oauth2-model",
 ]

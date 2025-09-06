@@ -8,4 +8,6 @@ pub struct LedgerEntry {
     pub revoked: bool,
     pub revoked_at_unix: Option<u64>,
     pub reason: Option<String>,
+    pub issuer: Option<String>,
+    pub realm: Option<String>,
 }

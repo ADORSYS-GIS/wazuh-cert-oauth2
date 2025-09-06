@@ -7,6 +7,8 @@ pub(super) enum Command {
         subject: String,
         serial_hex: String,
         issued_at_unix: u64,
+        issuer: Option<String>,
+        realm: Option<String>,
         respond_to: tokio::sync::oneshot::Sender<AppResult<()>>,
     },
     MarkRevoked {
