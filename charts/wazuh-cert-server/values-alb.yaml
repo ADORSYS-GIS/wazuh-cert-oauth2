@@ -1,0 +1,34 @@
+cert: 
+  ingress: 
+    app: 
+      enabled: true
+      className: alb
+      annotations:
+        alb.ingress.kubernetes.io/load-balancer-name: '{{ include "common.names.fullname" $ }}'
+        alb.ingress.kubernetes.io/target-type: 'ip'
+        alb.ingress.kubernetes.io/scheme: 'internet-facing'
+        alb.ingress.kubernetes.io/listen-ports: |
+          [
+            {
+              "HTTP": 80
+            },
+            {
+              "HTTPS": 443
+            }
+          ]
+        alb.ingress.kubernetes.io/actions.forward-single: |
+          {
+            "Type": "forward",
+            "ForwardConfig": {
+              "TargetGroups": [
+                {
+                  "ServiceName": "{{ include "common.names.fullname" $ }}",
+                  "ServicePort": "8000"
+                }
+              ]
+            }
+          }
+        alb.ingress.kubernetes.io/certificate-arn: '{{ .Values.global.eks.domain.wildcardCertArn }}'
+        alb.ingress.kubernetes.io/ssl-redirect: '443'
+        external-dns.alpha.kubernetes.io/hostname: 'cert.{{ .Values.global.domain }}'
+        alb.ingress.kubernetes.io/healthcheck-path: '/health'
