@@ -1,11 +1,14 @@
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::Result;
-use log::{debug, error, info, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, error, info, warn};
 
+use wazuh_cert_oauth2_metrics::{
+    inc_spool_canceled, inc_spool_dequeued, inc_spool_enqueued, update_spool_gauges,
+};
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 use super::ProxyState;
@@ -17,10 +20,11 @@ struct SpoolItem {
 
 /// Remove queued revoke requests targeting the given subject.
 /// Returns the number of files removed.
+#[tracing::instrument(skip(state))]
 pub async fn cancel_pending_revokes_for_subject(
     state: &ProxyState,
     subject: &str,
-) -> Result<usize> {
+) -> AppResult<usize> {
     let mut removed: usize = 0;
     let mut dir = match tokio::fs::read_dir(&state.spool_dir).await {
         Ok(d) => d,
@@ -59,10 +63,14 @@ pub async fn cancel_pending_revokes_for_subject(
             Err(e) => warn!("failed to read {}: {}", path.display(), e),
         }
     }
+    if removed > 0 {
+        inc_spool_canceled(removed as u64);
+    }
     Ok(removed)
 }
 
-pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -> Result<()> {
+#[tracing::instrument(skip(state, req))]
+pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -> AppResult<()> {
     let item = SpoolItem { req };
     let data = serde_json::to_vec(&item)?;
     let ms = SystemTime::now()
@@ -70,7 +78,7 @@ pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -
         .unwrap_or_default()
         .as_millis();
     let mut buf = [0u8; 8];
-    rand::thread_rng().fill(&mut buf);
+    rand::rng().fill(&mut buf);
     let mut rid = String::with_capacity(buf.len() * 2);
     for b in buf {
         rid.push_str(&format!("{:02x}", b));
@@ -80,10 +88,12 @@ pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -
     let tmp = state.spool_dir.join(format!("{}.tmp", filename));
     tokio::fs::write(&tmp, data).await?;
     tokio::fs::rename(&tmp, &path).await?;
+    inc_spool_enqueued("forward_fail", 1);
     Ok(())
 }
 
-pub async fn spawn_spool_processor(state: ProxyState) -> Result<()> {
+#[tracing::instrument(skip(state))]
+pub async fn spawn_spool_processor(state: ProxyState) -> AppResult<()> {
     info!(
         "spool processor running; dir={} interval={:?}",
         state.spool_dir.display(),
@@ -93,11 +103,14 @@ pub async fn spawn_spool_processor(state: ProxyState) -> Result<()> {
         if let Err(e) = process_once(&state).await {
             error!("error in spool cycle: {}", e);
         }
+        // Update gauges once per cycle
+        update_spool_gauges(&state.spool_dir);
         tokio::time::sleep(state.spool_interval).await;
     }
 }
 
-async fn process_once(state: &ProxyState) -> Result<()> {
+#[tracing::instrument(skip(state))]
+async fn process_once(state: &ProxyState) -> AppResult<()> {
     let mut dir = match tokio::fs::read_dir(&state.spool_dir).await {
         Ok(d) => d,
         Err(e) => {
@@ -118,6 +131,7 @@ async fn process_once(state: &ProxyState) -> Result<()> {
                         Ok(()) => {
                             debug!("forwarded; removing {}", path.display());
                             let _ = tokio::fs::remove_file(&path).await;
+                            inc_spool_dequeued("forwarded", 1);
                         }
                         Err(e) => warn!("still failing for {}: {}", path.display(), e),
                     }
@@ -125,6 +139,7 @@ async fn process_once(state: &ProxyState) -> Result<()> {
                 Err(e) => {
                     warn!("invalid spool item {}; deleting: {}", path.display(), e);
                     let _ = tokio::fs::remove_file(&path).await;
+                    inc_spool_dequeued("deleted_invalid", 1);
                 }
             },
             Err(e) => warn!("failed to read {}: {}", path.display(), e),

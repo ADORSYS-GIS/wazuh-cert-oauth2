@@ -3,9 +3,9 @@ extern crate log;
 
 use crate::flow::run_oauth2_flow;
 use crate::shared::cli::Opt;
-use anyhow::Result;
 use clap::Parser;
 use env_logger::{Builder, Env};
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 mod flow;
 mod services;
@@ -30,8 +30,8 @@ async fn main() {
 
 /// Orchestrates the CSR flow: stop agent, obtain token, validate claims,
 /// generate CSR and key, submit CSR, save cert+key, set agent name, restart agent.
-async fn app() -> Result<()> {
-    match Opt::parse() {
+async fn app() -> AppResult<()> {
+    match Opt::try_parse()? {
         Opt::OAuth2 {
             issuer,
             audience,

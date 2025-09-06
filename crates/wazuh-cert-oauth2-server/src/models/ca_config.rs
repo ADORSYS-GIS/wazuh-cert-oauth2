@@ -2,11 +2,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::fs::read;
 
-use anyhow::Result;
 use openssl::pkey::PKey;
 use openssl::pkey::Private;
 use openssl::x509::X509;
 use tokio::sync::RwLock;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 pub struct CaProvider {
     root_ca_path: String,
@@ -40,7 +40,8 @@ impl CaProvider {
         }
     }
 
-    pub async fn get(&self) -> Result<(Arc<X509>, Arc<PKey<Private>>)> {
+    #[tracing::instrument(skip(self))]
+    pub async fn get(&self) -> AppResult<(Arc<X509>, Arc<PKey<Private>>)> {
         let now = Instant::now();
 
         let mut inner = self.inner.write().await;

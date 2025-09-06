@@ -1,9 +1,8 @@
-use anyhow::{Result, bail};
 use tokio::process::Command;
-use wazuh_cert_oauth2_model::models::errors::AppError;
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 
 /// Run a sed command to replace the content of a file.
-pub async fn sed_command(content: &str, file_path: &str) -> Result<()> {
+pub async fn sed_command(content: &str, file_path: &str) -> AppResult<()> {
     let status = if cfg!(target_os = "macos") {
         Command::new("gsed")
             .arg("-i")
@@ -28,9 +27,10 @@ pub async fn sed_command(content: &str, file_path: &str) -> Result<()> {
                 } else {
                     "sed"
                 };
-                bail!(AppError::CommandFailed {
+
+                return Err(AppError::CommandFailed {
                     program: program.into(),
-                    code: s.code()
+                    code: s.code(),
                 });
             }
         }
@@ -40,9 +40,9 @@ pub async fn sed_command(content: &str, file_path: &str) -> Result<()> {
             } else {
                 "sed"
             };
-            bail!(AppError::CommandSpawn {
+            return Err(AppError::CommandSpawn {
                 program: program.into(),
-                err: e.to_string()
+                err: e.to_string(),
             });
         }
     }

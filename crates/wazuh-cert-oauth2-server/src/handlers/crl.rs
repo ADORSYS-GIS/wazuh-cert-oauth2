@@ -5,11 +5,11 @@ use crate::handlers::middle::JwtToken;
 use crate::shared::crl::CrlState;
 use crate::shared::crl::RevocationEntry;
 use crate::shared::ledger::Ledger;
-use log::{info, debug, error};
 use rocket::serde::json::Json;
+use tracing::{debug, error, info};
 
 #[get("/crl/issuing.crl")]
-pub async fn get_crl(crl: &State<CrlState>) -> Result<(ContentType, Vec<u8>), Status> {
+pub async fn get_crl(crl: &State<CrlState>) -> anyhow::Result<(ContentType, Vec<u8>), Status> {
     info!("GET /crl/issuing.crl requested");
     let bytes = crl.read_crl_file().await.map_err(|e| {
         error!("Failed to read CRL file: {}", e);
@@ -20,7 +20,7 @@ pub async fn get_crl(crl: &State<CrlState>) -> Result<(ContentType, Vec<u8>), St
 }
 
 /// Fetch the current revocation DB as JSON (admin/auth token recommended)
-#[get("/api/revocations")]
+#[get("/revocations")]
 pub async fn get_revocations(
     _token: JwtToken,
     ledger: &State<Ledger>,

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
@@ -9,7 +9,7 @@ pub async fn submit_csr(
     endpoint: &str,
     token: &str,
     csr_pem: &str,
-) -> Result<SignedCertResponse> {
+) -> AppResult<SignedCertResponse> {
     let dto = SignCsrRequest {
         csr_pem: csr_pem.to_string(),
     };

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use anyhow::Result;
 use tokio::sync::RwLock;
 
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 pub struct OidcState {
@@ -42,7 +42,8 @@ impl OidcState {
         }
     }
 
-    pub async fn get_discovery(&self) -> Result<Arc<DiscoveryDocument>> {
+    #[tracing::instrument(skip(self))]
+    pub async fn get_discovery(&self) -> AppResult<Arc<DiscoveryDocument>> {
         let now = Instant::now();
         let mut inner = self.inner.write().await;
         // Check again after acquiring write lock
@@ -59,7 +60,8 @@ impl OidcState {
         Ok(doc)
     }
 
-    pub async fn get_jwks(&self) -> Result<Arc<jsonwebtoken::jwk::JwkSet>> {
+    #[tracing::instrument(skip(self))]
+    pub async fn get_jwks(&self) -> AppResult<Arc<jsonwebtoken::jwk::JwkSet>> {
         let now = Instant::now();
         let mut inner = self.inner.write().await;
         // Check again after acquiring write lock

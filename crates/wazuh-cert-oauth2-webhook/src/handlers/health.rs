@@ -1,7 +1,7 @@
 use rocket::serde::json::Json;
-use log::info;
 
 use crate::models::Health;
+use tracing::debug;
 
 #[get("/health")]
 pub async fn health() -> Json<Health> {

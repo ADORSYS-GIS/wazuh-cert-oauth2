@@ -1,10 +1,10 @@
-use anyhow::Result;
 use oauth2::basic::BasicClient;
 use oauth2::{
     AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     RedirectUrl, TokenResponse, TokenUrl,
 };
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 #[derive(Debug)]
@@ -17,7 +17,7 @@ pub struct GetTokenParams {
 }
 
 /// Get a token from the OAuth2 server.
-pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> Result<String> {
+pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> AppResult<String> {
     let mut basic_client = BasicClient::new(ClientId::new(params.client_id.to_string()))
         .set_auth_uri(AuthUrl::new(params.document.authorization_endpoint)?)
         .set_token_uri_option(Some(TokenUrl::new(params.document.token_endpoint)?));
@@ -55,6 +55,5 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> Result<Stri
         .set_pkce_verifier(pkce_verifier)
         .request_async(http.client())
         .await?;
-    info!("Token received!");
     Ok(token_result.access_token().secret().clone())
 }

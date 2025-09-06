@@ -1,7 +1,7 @@
-use anyhow::Result;
 use std::path::Path;
 use tokio::fs::{OpenOptions, create_dir_all, write};
 use tokio::io::AsyncWriteExt;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 /// Save the certificate (and optional chain) and the private key to files.
 pub async fn save_cert_and_key(
@@ -10,7 +10,7 @@ pub async fn save_cert_and_key(
     certificate_pem: &str,
     private_key_pem: &str,
     ca_chain_pem: Option<&str>,
-) -> Result<()> {
+) -> AppResult<()> {
     create_parent_dir_if_not_exists(cert_file).await?;
     create_parent_dir_if_not_exists(key_file).await?;
 
@@ -38,7 +38,7 @@ pub async fn save_cert_and_key(
 }
 
 /// Ensure the directory for the given file path exists.
-async fn create_parent_dir_if_not_exists(file_path: &str) -> Result<()> {
+async fn create_parent_dir_if_not_exists(file_path: &str) -> AppResult<()> {
     let parent_dir = Path::new(file_path).parent().unwrap();
     log::info!("Creating parent directory: {:?}", parent_dir);
     create_dir_all(parent_dir).await?;

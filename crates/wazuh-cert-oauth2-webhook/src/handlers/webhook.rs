@@ -1,7 +1,7 @@
-use log::{debug, info, warn};
 use rocket::State;
 use rocket::http::Status;
 use rocket::serde::json::Json;
+use tracing::{debug, info, warn};
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 use crate::handlers::auth::WebhookAuth;
@@ -9,8 +9,10 @@ use crate::handlers::webhook_util::extract_user_id;
 use crate::models::WebhookRequest;
 use crate::state::ProxyState;
 use crate::state::core::EventAction;
+use wazuh_cert_oauth2_metrics::record_http_params;
 
 #[post("/webhook", format = "application/json", data = "<payload>")]
+#[tracing::instrument(skip(_auth, state, payload), fields(event_type = %payload.event_type, resource = ?payload.resource_path))]
 pub async fn send_webhook(
     _auth: WebhookAuth,
     state: &State<ProxyState>,
@@ -34,6 +36,7 @@ pub async fn send_webhook(
     }
 }
 
+#[tracing::instrument(skip(state), fields(event_type = %p.event_type))]
 async fn handle_enable(state: &State<ProxyState>, p: WebhookRequest) -> Result<Status, Status> {
     info!(
         "handling enable event; type={} resourcePath={:?}",
@@ -53,6 +56,7 @@ async fn handle_enable(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
     Ok(Status::Ok)
 }
 
+#[tracing::instrument(skip(state), fields(event_type = %p.event_type))]
 async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<Status, Status> {
     let subject = extract_user_id(&p);
     if subject.is_none() {
@@ -60,6 +64,8 @@ async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
             "webhook event missing userId; type={} details={:?} resource={:?}",
             p.event_type, p.details, p.resource_path
         );
+        // Params counter: indicate lack of subject, serial not present in webhook
+        record_http_params("/api/webhook", "POST", false, false);
         return Ok(Status::Ok);
     }
     let subject = subject.unwrap();
@@ -69,6 +75,8 @@ async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
         subject: Some(subject),
         reason: state.revoke_reason(),
     };
+    // Params counter: subject present for webhook revoke
+    record_http_params("/api/webhook", "POST", true, false);
 
     match state.forward_revoke_with_retry(req.clone()).await {
         Ok(()) => Ok(Status::Ok),

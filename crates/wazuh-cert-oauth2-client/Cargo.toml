@@ -13,9 +13,11 @@ log.workspace = true
 env_logger.workspace = true
 clap.workspace = true
 oauth2.workspace = true
-reqwest.workspace = true
-wazuh-cert-oauth2-model.workspace = true
 mid.workspace = true
 rand.workspace = true
 diacritics.workspace = true
 openssl.workspace = true
+
+[dependencies.wazuh-cert-oauth2-model]
+features = ["openssl"]
+workspace = true

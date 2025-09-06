@@ -1,6 +1,6 @@
-use anyhow::Result;
 use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 use wazuh_cert_oauth2_model::services::jwks::validate_token;
 
@@ -22,7 +22,7 @@ pub async fn run_oauth2_flow(
     cert_path: &str,
     key_path: &str,
     agent_control: bool,
-) -> Result<()> {
+) -> AppResult<()> {
     let kc_audiences = audience_csv
         .split(',')
         .map(|s| s.to_string())
@@ -70,13 +70,18 @@ pub async fn run_oauth2_flow(
     .await?;
 
     if agent_control {
-        debug!("Setting name");
-        set_name(&name).await?;
-    }
-    if agent_control {
+        if let Some(name) = name {
+            debug!("Setting name");
+            set_name(&name).await?;
+        } else {
+            return Err(AppError::JwtMissingName);
+        }
+
+        info!("Name set successfully!");
+
         debug!("Restarting agent");
         restart_agent().await?;
     }
-    info!("Name set successfully!");
+
     Ok(())
 }

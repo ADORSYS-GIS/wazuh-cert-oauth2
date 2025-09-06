@@ -4,7 +4,7 @@ use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::services::jwks::validate_token;
 
 use crate::models::oidc_state::OidcState;
-use log::{debug, info, error};
+use tracing::{debug, error, info};
 
 pub struct JwtToken {
     pub claims: Claims,

@@ -1,8 +1,7 @@
-use anyhow::Result;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::{RwLock, mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, RwLock};
 
 mod commands;
 mod csv;
@@ -12,6 +11,7 @@ mod types;
 mod worker;
 
 pub use types::LedgerEntry;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 #[derive(Clone)]
 pub struct Ledger {
@@ -20,7 +20,8 @@ pub struct Ledger {
 }
 
 impl Ledger {
-    pub async fn new(path: PathBuf) -> Result<Self> {
+    #[tracing::instrument(skip(path))]
+    pub async fn new(path: PathBuf) -> AppResult<Self> {
         let entries = worker::load_entries(&path).await?;
 
         let inner = Arc::new(RwLock::new(entries));
@@ -30,7 +31,8 @@ impl Ledger {
         Ok(Self { inner, tx })
     }
 
-    pub async fn record_issued(&self, subject: String, serial_hex: String) -> Result<()> {
+    #[tracing::instrument(skip(self))]
+    pub async fn record_issued(&self, subject: String, serial_hex: String) -> AppResult<()> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -50,7 +52,8 @@ impl Ledger {
         Ok(())
     }
 
-    pub async fn mark_revoked(&self, serial_hex: String, reason: Option<String>) -> Result<()> {
+    #[tracing::instrument(skip(self))]
+    pub async fn mark_revoked(&self, serial_hex: String, reason: Option<String>) -> AppResult<()> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -70,6 +73,7 @@ impl Ledger {
         Ok(())
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn find_by_subject(&self, subject: &str) -> Vec<LedgerEntry> {
         self.inner
             .read()
@@ -80,6 +84,7 @@ impl Ledger {
             .collect()
     }
 
+    #[tracing::instrument(skip(self))]
     pub async fn revoked_as_revocations(&self) -> Vec<crate::shared::crl::RevocationEntry> {
         self.inner
             .read()

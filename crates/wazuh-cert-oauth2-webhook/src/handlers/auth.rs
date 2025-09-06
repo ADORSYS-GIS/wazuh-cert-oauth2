@@ -5,7 +5,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD as B64;
 
 use crate::state::ProxyState;
-use log::{debug, info, warn};
+use tracing::{debug, info, warn};
 
 pub struct WebhookAuth;
 
@@ -65,8 +65,14 @@ impl<'r> FromRequest<'r> for WebhookAuth {
                 && let Ok(s) = String::from_utf8(decoded)
             {
                 let mut parts = s.splitn(2, ':');
-                let user_ok = parts.next().map(|x| constant_time_eq(x, u)).unwrap_or(false);
-                let pass_ok = parts.next().map(|x| constant_time_eq(x, p)).unwrap_or(false);
+                let user_ok = parts
+                    .next()
+                    .map(|x| constant_time_eq(x, u))
+                    .unwrap_or(false);
+                let pass_ok = parts
+                    .next()
+                    .map(|x| constant_time_eq(x, p))
+                    .unwrap_or(false);
                 if user_ok && pass_ok {
                     info!("Webhook auth: Basic credentials validated");
                     return Outcome::Success(WebhookAuth);

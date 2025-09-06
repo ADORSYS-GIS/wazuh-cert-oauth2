@@ -7,6 +7,9 @@ pub enum AppError {
     #[error("HTTP error: {0}")]
     Http(#[from] reqwest::Error),
 
+    #[error("Upstream error: {0}")]
+    UpstreamError(String),
+
     #[error("Random error: {0}")]
     Serialization(String),
 
@@ -22,6 +25,9 @@ pub enum AppError {
 
     #[error("JWT header missing 'kid'")]
     JwtMissingKid,
+
+    #[error("JWT payload missing 'name'")]
+    JwtMissingName,
 
     #[error("No matching JWK found for kid: {0}")]
     JwtKeyNotFound(String),
@@ -54,10 +60,54 @@ pub enum AppError {
 
     // Rocket (when enabled)
     #[cfg(feature = "rocket")]
-    #[error("Rocket error: {source}")]
-    RocketError {
+    #[error("Rocket error: {0}")]
+    RocketError(#[from] Box<rocket::Error>),
+
+    #[error("CLI error: {0}")]
+    CliError(#[from] clap::Error),
+
+    #[error("OAuth2 Error error: {0}")]
+    OAuth2Error(#[from] oauth2::http::Error),
+
+    #[error("Configuration Error error: {0}")]
+    ConfigurationError(#[from] oauth2::ConfigurationError),
+
+    #[error("Basic auth request error: {0}")]
+    RequestTokenError(
         #[from]
-        source: rocket::Error,
+        oauth2::RequestTokenError<
+            oauth2::HttpClientError<reqwest::Error>,
+            oauth2::StandardErrorResponse<oauth2::basic::BasicErrorResponseType>,
+        >,
+    ),
+
+    #[error("URL Parse Error error: {0}")]
+    UrlParseError(#[from] url::ParseError),
+
+    #[cfg(feature = "openssl")]
+    #[error("URL Parse Error error: {0}")]
+    ErrorStack(#[from] openssl::error::ErrorStack),
+
+    #[error("Parse JSON Error error: {0}")]
+    SerdeError(#[from] serde_json::Error),
+
+    //#[error("Random generation error: {0}")]
+    //RandOsError(#[from] rand_core::Error),
+    #[error("Rand OS generation error: {0}")]
+    RandOsError(#[from] rand_core::OsError),
+
+    #[cfg(feature = "rocket")]
+    #[error("ExporterBuildError error: {source}")]
+    ExporterBuildError {
+        #[from]
+        source: opentelemetry_otlp::ExporterBuildError,
+    },
+
+    #[cfg(feature = "rocket")]
+    #[error("SetGlobalDefaultError error: {source}")]
+    SetGlobalDefaultError {
+        #[from]
+        source: tracing::dispatcher::SetGlobalDefaultError,
     },
 
     // CRL / OpenSSL FFI

@@ -1,13 +1,12 @@
-use anyhow::Result;
+use super::LedgerEntry;
+use super::csv_utils::{escape_csv_field, split_csv_line, unescape_csv_field};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::fs;
 use tokio::sync::RwLock;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
-use super::LedgerEntry;
-use super::csv_utils::{escape_csv_field, split_csv_line, unescape_csv_field};
-
-pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) -> Result<()> {
+pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) -> AppResult<()> {
     let data = inner.read().await.clone();
     let mut out = String::new();
     out.push_str("subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason\n");
@@ -31,7 +30,7 @@ pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) 
     Ok(())
 }
 
-pub fn parse_csv(s: &str) -> Result<Vec<LedgerEntry>> {
+pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
     let mut out = Vec::new();
     for (idx, line) in s.lines().enumerate() {
         if idx == 0 {

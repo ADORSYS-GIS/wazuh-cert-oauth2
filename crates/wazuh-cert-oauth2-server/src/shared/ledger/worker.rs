@@ -1,10 +1,9 @@
-use anyhow::Result;
+use super::LedgerEntry;
+use super::csv::persist_csv;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{RwLock, mpsc};
-
-use super::LedgerEntry;
-use super::csv::persist_csv;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 // Re-export to preserve worker::Command and worker::load_entries API
 pub(super) use super::commands::Command;
@@ -55,7 +54,7 @@ async fn apply_record_issued(
     subject: String,
     serial_hex: String,
     issued_at_unix: u64,
-) -> Result<()> {
+) -> AppResult<()> {
     {
         let mut guard = inner.write().await;
         guard.push(LedgerEntry {
@@ -76,7 +75,7 @@ async fn apply_mark_revoked(
     serial_hex: String,
     reason: Option<String>,
     revoked_at_unix: u64,
-) -> Result<()> {
+) -> AppResult<()> {
     {
         let mut guard = inner.write().await;
         if let Some(entry) = guard

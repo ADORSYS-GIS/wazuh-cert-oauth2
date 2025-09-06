@@ -1,8 +1,8 @@
-use anyhow::Result;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 use super::{ProxyState, oauth, utils};
@@ -28,7 +28,7 @@ impl ProxyState {
         webhook_basic_password: Option<String>,
         webhook_api_key: Option<String>,
         webhook_bearer_token: Option<String>,
-    ) -> Result<Self> {
+    ) -> AppResult<Self> {
         utils::ensure_spool_dir(&spool_dir);
         let oauth = oauth::build_oauth(
             oauth_issuer,

@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
-use anyhow::Result;
 use openssl::pkey::PKey;
 use openssl::x509::X509Ref;
 use serde::{Deserialize, Serialize};
 use tokio::fs;
-use log::{debug, info};
+use tracing::{debug, info};
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 mod ffi;
 
@@ -21,24 +21,30 @@ pub struct CrlState {
 }
 
 impl CrlState {
-    pub async fn new(crl_file_path: PathBuf) -> Result<Self> {
-        info!("Initialized CrlState with path: {}", crl_file_path.display());
+    #[tracing::instrument(skip(crl_file_path))]
+    pub async fn new(crl_file_path: PathBuf) -> AppResult<Self> {
+        info!(
+            "Initialized CrlState with path: {}",
+            crl_file_path.display()
+        );
         Ok(Self { crl_file_path })
     }
 
-    pub async fn read_crl_file(&self) -> Result<Vec<u8>> {
+    #[tracing::instrument(skip(self))]
+    pub async fn read_crl_file(&self) -> AppResult<Vec<u8>> {
         debug!("Reading CRL file from: {}", self.crl_file_path.display());
         let bytes = fs::read(&self.crl_file_path).await?;
         debug!("Read CRL file ({} bytes)", bytes.len());
         Ok(bytes)
     }
 
+    #[tracing::instrument(skip(self, ca_cert, ca_key, entries_snapshot), err)]
     pub async fn rebuild_crl_from(
         &self,
         ca_cert: &X509Ref,
         ca_key: &PKey<openssl::pkey::Private>,
         entries_snapshot: Vec<RevocationEntry>,
-    ) -> Result<()> {
+    ) -> AppResult<()> {
         info!(
             "Rebuilding CRL with {} revocation entries",
             entries_snapshot.len()

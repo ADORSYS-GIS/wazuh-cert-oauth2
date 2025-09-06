@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use log::warn;
+use tracing::warn;
 
 pub(crate) fn ensure_spool_dir(spool_dir: &Path) {
     if !spool_dir.exists()

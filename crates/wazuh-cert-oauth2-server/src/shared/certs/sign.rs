@@ -1,7 +1,6 @@
-use anyhow::{Result, bail};
 use openssl::pkey::PKey;
-use openssl::x509::{X509, X509Ref, X509Req};
-use wazuh_cert_oauth2_model::models::errors::AppError;
+use openssl::x509::{X509Ref, X509Req, X509};
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
 
@@ -20,15 +19,16 @@ pub async fn sign_csr(
     JwtToken { claims }: JwtToken,
     ca: &CaProvider,
     ledger: &Ledger,
-) -> Result<SignedCertResponse> {
+) -> AppResult<SignedCertResponse> {
     let csr = X509Req::from_pem(dto.csr_pem.as_bytes())?;
     let csr_pubkey = csr
         .public_key()
         .map_err(|_| AppError::CsrMissingPublicKey)?;
     let verified = csr.verify(&csr_pubkey)?;
     if !verified {
-        bail!(AppError::CsrVerificationFailed);
+        return Err(AppError::CsrVerificationFailed);
     }
+
     enforce_key_policy(&csr_pubkey)?;
     let (ca_cert, ca_key) = ca.get().await?;
     let cert = sign_csr_with_ca(&csr, &ca_cert, &ca_key, &claims.sub, ca.crl_dist_url())?;
@@ -42,6 +42,7 @@ pub async fn sign_csr(
     ledger.record_issued(claims.sub.clone(), serial_hex).await?;
     let certificate_pem = String::from_utf8(cert.to_pem()?)?;
     let ca_cert_pem = String::from_utf8(ca_cert.to_pem()?)?;
+
     Ok(SignedCertResponse {
         certificate_pem,
         ca_cert_pem,
@@ -55,7 +56,7 @@ fn sign_csr_with_ca(
     ca_key: &PKey<openssl::pkey::Private>,
     subject_cn: &str,
     crl_dist_url: Option<&str>,
-) -> Result<X509> {
+) -> AppResult<X509> {
     let mut builder = X509::builder()?;
     builder.set_version(2)?;
     let is_rsa = set_subject_and_pubkey(&mut builder, csr, ca_cert, subject_cn)?;

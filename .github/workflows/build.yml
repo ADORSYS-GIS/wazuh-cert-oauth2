@@ -9,9 +9,12 @@ on:
     paths:
       - '.github/workflows/build.yml'
       - 'crates/wazuh-cert-oauth2-server/**'
+      - 'crates/wazuh-cert-oauth2-metrics/**'
       - 'crates/wazuh-cert-oauth2-model/**'
       - 'Cargo.toml'
+      - 'Cargo.lock'
       - 'Dockerfile'
+      - '.dockerignore'
 
 env:
   CARGO_TERM_COLOR: always

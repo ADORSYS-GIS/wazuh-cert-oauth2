@@ -1,13 +1,13 @@
-use anyhow::{Result, anyhow};
-
-use super::ProxyState;
 use super::oauth;
 use super::spool;
+use super::ProxyState;
 use crate::models::WebhookRequest;
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 impl ProxyState {
-    pub async fn forward_revoke_with_retry(&self, req: RevokeRequest) -> Result<()> {
+    #[tracing::instrument(skip(self, req), fields(subject = %req.subject.as_deref().unwrap_or(""), serial = %req.serial_hex.as_deref().unwrap_or("")))]
+    pub async fn forward_revoke_with_retry(&self, req: RevokeRequest) -> AppResult<()> {
         let url = format!("{}/api/revoke", self.server_base_url.trim_end_matches('/'));
         let mut attempt: u32 = 0;
         let max = self.retry_attempts.max(1);
@@ -27,7 +27,8 @@ impl ProxyState {
         }
     }
 
-    async fn try_send(&self, url: &str, req: &RevokeRequest) -> Result<()> {
+    #[tracing::instrument(skip(self, req))]
+    async fn try_send(&self, url: &str, req: &RevokeRequest) -> AppResult<()> {
         let token = self.acquire_token().await?;
         let builder = self.http.client().post(url).json(req);
         let builder = if let Some(t) = token {
@@ -35,18 +36,22 @@ impl ProxyState {
         } else {
             builder
         };
+
         let resp = builder.send().await?;
         if resp.status().as_u16() == 401 {
             let mut guard = self.token_cache.write().await;
             *guard = None;
         }
+
         if !resp.status().is_success() {
-            return Err(anyhow!("upstream status {}", resp.status()));
+            return Err(AppError::UpstreamError(resp.status().to_string()));
         }
+
         Ok(())
     }
 
-    async fn acquire_token(&self) -> Result<Option<String>> {
+    #[tracing::instrument(skip(self))]
+    async fn acquire_token(&self) -> AppResult<Option<String>> {
         if let Some(s) = &self.static_bearer {
             return Ok(Some(s.clone()));
         }
@@ -56,6 +61,7 @@ impl ProxyState {
         Ok(None)
     }
 
+    #[tracing::instrument(skip(self, webhook_request), fields(event_type = %event_type_lower))]
     pub fn is_allowed_event(
         &self,
         event_type_lower: &str,
@@ -104,11 +110,11 @@ impl ProxyState {
         self.webhook_bearer_token.as_deref()
     }
 
-    pub async fn queue_revoke(&self, req: RevokeRequest) -> Result<()> {
+    pub async fn queue_revoke(&self, req: RevokeRequest) -> AppResult<()> {
         spool::queue_revoke_to_spool_dir(self, req).await
     }
 
-    pub async fn cancel_pending_revokes_for_subject(&self, subject: &str) -> Result<usize> {
+    pub async fn cancel_pending_revokes_for_subject(&self, subject: &str) -> AppResult<usize> {
         spool::cancel_pending_revokes_for_subject(self, subject).await
     }
 }

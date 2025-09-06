@@ -9,21 +9,20 @@ authors.workspace = true
 [dependencies]
 tokio.workspace = true
 anyhow.workspace = true
-thiserror.workspace = true
-env_logger.workspace = true
+tracing.workspace = true
 rocket.workspace = true
 jsonwebtoken.workspace = true
 openssl.workspace = true
 rand.workspace = true
 serde.workspace = true
-serde_json.workspace = true
 mimalloc.workspace = true
 clap.workspace = true
-log = "0.4.28"
-openssl-sys = "0.9"
-foreign-types = "0.3"
-
+openssl-sys.workspace = true
+foreign-types.workspace = true
 
 [dependencies.wazuh-cert-oauth2-model]
-features = ["rocket"]
+features = ["rocket", "openssl"]
+workspace = true
+
+[dependencies.wazuh-cert-oauth2-metrics]
 workspace = true

@@ -1,9 +1,9 @@
 use crate::shared::path::default_path_to_ossec_conf;
 use crate::shared::sed_command::sed_command;
-use anyhow::Result;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 /// Set the name of the agent.
-pub async fn set_name(name: &str) -> Result<()> {
+pub async fn set_name(name: &str) -> AppResult<()> {
     info!("Set Name function entered");
     let name = diacritics::remove_diacritics(name);
     let long_machine_id = if let Ok(machine_id) = mid::get(&name) {

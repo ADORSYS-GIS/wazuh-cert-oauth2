@@ -31,9 +31,6 @@ pub struct WebhookRequest {
     #[serde(rename = "clientId")]
     pub client_id: Option<String>,
 
-    #[serde(rename = "userId")]
-    pub user_id: Option<String>,
-
     #[serde(rename = "ipAddress")]
     pub ip_address: Option<String>,
 
@@ -69,6 +66,7 @@ impl WebhookRequest {
 
 #[derive(Deserialize, Debug, Serialize, Clone, PartialEq)]
 pub struct SimpleUserRepresentation {
+    pub id: String,
     pub enabled: bool,
     pub username: String,
     pub email: String,

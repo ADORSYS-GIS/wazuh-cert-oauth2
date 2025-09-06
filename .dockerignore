@@ -12,6 +12,9 @@
 !crates/wazuh-cert-oauth2-client/src
 !crates/wazuh-cert-oauth2-client/Cargo.toml
 
+!crates/wazuh-cert-oauth2-metrics/src
+!crates/wazuh-cert-oauth2-metrics/Cargo.toml
+
 !crates/wazuh-cert-oauth2-webhook/src
 !crates/wazuh-cert-oauth2-webhook/Cargo.toml
 !crates/wazuh-cert-oauth2-webhook/Rocket.toml

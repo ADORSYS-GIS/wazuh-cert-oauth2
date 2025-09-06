@@ -1,13 +1,12 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use anyhow::Result;
+use super::ProxyState;
 use oauth2::basic::BasicClient;
 use oauth2::{AuthType, AuthUrl, ClientId, ClientSecret, Scope, TokenResponse, TokenUrl};
 use tokio::sync::RwLock;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
-
-use super::ProxyState;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 #[derive(Clone)]
 pub(crate) struct OAuthConfig {
@@ -43,7 +42,7 @@ pub(crate) fn build_oauth(
     }
 }
 
-pub(crate) async fn acquire_oauth_token(state: &ProxyState) -> Result<Option<String>> {
+pub(crate) async fn acquire_oauth_token(state: &ProxyState) -> AppResult<Option<String>> {
     let cfg = match &state.oauth {
         Some(c) => c.clone(),
         None => return Ok(None),

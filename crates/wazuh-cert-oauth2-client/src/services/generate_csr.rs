@@ -1,14 +1,14 @@
-use anyhow::Result;
 use openssl::hash::MessageDigest;
 use openssl::nid::Nid;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use openssl::x509::X509NameBuilder;
 use openssl::x509::X509ReqBuilder;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 /// Generate an RSA-2048 keypair and a PKCS#10 CSR with CN set to `sub`.
 /// Returns (csr_pem, private_key_pem)
-pub fn generate_key_and_csr(sub: &str) -> Result<(String, String)> {
+pub fn generate_key_and_csr(sub: &str) -> AppResult<(String, String)> {
     let rsa = Rsa::generate(2048)?;
     let pkey = PKey::from_rsa(rsa)?;
 
