@@ -4,7 +4,7 @@
 *.pem
 *.cert
 *.key
-charts
+*/charts
 target
 .DS_Store
 
@@ -12,3 +12,5 @@ target
 *.crl
 
 tmp
+test.yaml
+*.tgz
