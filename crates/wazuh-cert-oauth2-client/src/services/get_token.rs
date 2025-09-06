@@ -3,6 +3,7 @@ use oauth2::{
     AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     RedirectUrl, TokenResponse, TokenUrl,
 };
+use std::process::Command;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
@@ -45,7 +46,17 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> AppResult<S
         .authorize_url(CsrfToken::new_random)
         .set_pkce_challenge(pkce_challenge)
         .url();
-    info!("Please open this URL in your browser: {}\n", auth_url);
+    let auth_url_string = auth_url.to_string();
+    // Try to open the URL in the default browser, but always print it as fallback.
+    if !open_in_browser(&auth_url_string) {
+        info!(
+            "Please open this URL in your browser: {}\n",
+            auth_url_string
+        );
+    } else {
+        info!("Opened your default browser to: {}\n", auth_url_string);
+    }
+    
     let mut auth_code = String::new();
     std::io::stdin().read_line(&mut auth_code)?;
     let code = AuthorizationCode::new(auth_code.trim().to_string());
@@ -56,4 +67,49 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> AppResult<S
         .request_async(http.client())
         .await?;
     Ok(token_result.access_token().secret().clone())
+}
+
+/// Attempt to open a URL in the user's default browser.
+/// Returns true on success, false if launching failed.
+fn open_in_browser(url: &str) -> bool {
+    // Windows: use `start` via cmd.exe. The empty string is a window title placeholder.
+    #[cfg(target_os = "windows")]
+    {
+        return Command::new("cmd")
+            .args(["/C", "start", "", url])
+            .spawn()
+            .map(|_| true)
+            .unwrap_or(false);
+    }
+
+    // macOS: use `open`.
+    #[cfg(target_os = "macos")]
+    {
+        return Command::new("open")
+            .arg(url)
+            .spawn()
+            .map(|_| true)
+            .unwrap_or(false);
+    }
+
+    // Linux and other Unix: prefer `xdg-open`.
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "freebsd",
+        target_os = "dragonfly",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    {
+        // Try xdg-open; if unavailable, fall back to printing.
+        return Command::new("xdg-open")
+            .arg(url)
+            .spawn()
+            .map(|_| true)
+            .unwrap_or(false);
+    }
+
+    // Fallback for any other targets: do nothing.
+    #[allow(unreachable_code)]
+    false
 }
