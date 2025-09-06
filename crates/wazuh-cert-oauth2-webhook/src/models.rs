@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{from_str, Value as JsonValue};
+use serde_json::{Value as JsonValue, from_str};
 use std::collections::HashMap;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 
@@ -54,10 +54,13 @@ impl WebhookRequest {
                 "Webhook missing representation".to_string(),
             )),
             Some(rep) => {
-                let d = from_str::<SimpleUserRepresentation>(&rep);
+                let d = from_str::<SimpleUserRepresentation>(rep);
                 match d {
                     Ok(v) => Ok(v),
-                    Err(e) => Err(AppError::Serialization(format!("Wrong object passed {}", e))),
+                    Err(e) => Err(AppError::Serialization(format!(
+                        "Wrong object passed {}",
+                        e
+                    ))),
                 }
             }
         }

@@ -1,14 +1,14 @@
-use log::{info, warn};
+use log::{debug, info, warn};
+use rocket::State;
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::State;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 use crate::handlers::auth::WebhookAuth;
 use crate::handlers::webhook_util::extract_user_id;
 use crate::models::WebhookRequest;
-use crate::state::core::EventAction;
 use crate::state::ProxyState;
+use crate::state::core::EventAction;
 
 #[post("/webhook", format = "application/json", data = "<payload>")]
 pub async fn send_webhook(
@@ -34,12 +34,22 @@ pub async fn send_webhook(
     }
 }
 
-async fn handle_enable(_state: &State<ProxyState>, p: WebhookRequest) -> Result<Status, Status> {
+async fn handle_enable(state: &State<ProxyState>, p: WebhookRequest) -> Result<Status, Status> {
     info!(
         "handling enable event; type={} resourcePath={:?}",
         p.event_type, p.resource_path
     );
-    // For now, no upstream call on enable; treated as no-op.
+    // On enable: cancel any queued revoke requests for the subject to avoid
+    // revoking immediately after a quick re-enable.
+    if let Some(subject) = extract_user_id(&p) {
+        match state.cancel_pending_revokes_for_subject(&subject).await {
+            Ok(n) => info!("canceled {} pending revokes for subject {}", n, subject),
+            Err(e) => warn!("failed to cancel pending revokes for {}: {}", subject, e),
+        }
+    } else {
+        debug!("enable event without subject; nothing to cancel");
+    }
+    // No upstream "unrevoke"; return OK
     Ok(Status::Ok)
 }
 

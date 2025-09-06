@@ -7,16 +7,14 @@ use openssl::nid::Nid;
 use openssl::pkey::Id as PKeyId;
 use openssl::pkey::PKey;
 use openssl::x509::{X509NameBuilder, X509Ref, X509Req};
-use rand::rngs::OsRng;
 use rand::TryRngCore;
+use rand::rngs::OsRng;
 
-#[inline]
 pub(crate) fn set_subject_cn(name_builder: &mut X509NameBuilder, cn: &str) -> Result<()> {
     name_builder.append_entry_by_nid(Nid::COMMONNAME, cn)?;
     Ok(())
 }
 
-#[inline]
 pub(crate) fn set_subject_and_pubkey(
     builder: &mut openssl::x509::X509Builder,
     csr: &X509Req,
@@ -33,18 +31,18 @@ pub(crate) fn set_subject_and_pubkey(
     Ok(matches!(pkey.id(), PKeyId::RSA))
 }
 
-#[inline]
 pub(crate) fn set_serial_number(builder: &mut openssl::x509::X509Builder) -> Result<()> {
     let mut serial = [0u8; 16];
     OsRng.try_fill_bytes(&mut serial)?;
     serial[0] &= 0x7F;
-    if serial.iter().all(|&b| b == 0) { serial[0] = 1; }
+    if serial.iter().all(|&b| b == 0) {
+        serial[0] = 1;
+    }
     let serial_number = openssl::bn::BigNum::from_slice(&serial)?.to_asn1_integer()?;
     builder.set_serial_number(&serial_number)?;
     Ok(())
 }
 
-#[inline]
 pub(crate) fn set_validity_1y(builder: &mut openssl::x509::X509Builder) -> Result<()> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -56,9 +54,10 @@ pub(crate) fn set_validity_1y(builder: &mut openssl::x509::X509Builder) -> Resul
     Ok(())
 }
 
-#[inline]
-pub(crate) fn sign_builder(builder: &mut openssl::x509::X509Builder, ca_key: &PKey<openssl::pkey::Private>) -> Result<()> {
+pub(crate) fn sign_builder(
+    builder: &mut openssl::x509::X509Builder,
+    ca_key: &PKey<openssl::pkey::Private>,
+) -> Result<()> {
     builder.sign(ca_key, MessageDigest::sha256())?;
     Ok(())
 }
-

@@ -45,9 +45,11 @@ impl CaProvider {
 
         let mut inner = self.inner.write().await;
         if let (Some((cert, c_ts)), Some((key, k_ts))) = (&inner.ca_cert, &inner.ca_key)
-            && now.duration_since(*c_ts) < self.ttl && now.duration_since(*k_ts) < self.ttl {
-                return Ok((cert.clone(), key.clone()));
-            }
+            && now.duration_since(*c_ts) < self.ttl
+            && now.duration_since(*k_ts) < self.ttl
+        {
+            return Ok((cert.clone(), key.clone()));
+        }
 
         // Refresh from disk
         let cert_pem = read(&self.root_ca_path).await?;

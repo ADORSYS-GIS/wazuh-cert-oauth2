@@ -1,5 +1,5 @@
-use std::time::{Duration, Instant};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use oauth2::basic::BasicClient;
@@ -24,7 +24,6 @@ pub(crate) struct CachedToken {
     pub exp: Instant,
 }
 
-#[inline]
 pub(crate) fn build_oauth(
     issuer: Option<String>,
     client_id: Option<String>,
@@ -33,14 +32,22 @@ pub(crate) fn build_oauth(
     audience: Option<String>,
 ) -> Option<OAuthConfig> {
     match (issuer, client_id, client_secret) {
-        (Some(iss), Some(id), Some(sec)) => Some(OAuthConfig { issuer: iss, client_id: id, client_secret: sec, scope, audience }),
+        (Some(iss), Some(id), Some(sec)) => Some(OAuthConfig {
+            issuer: iss,
+            client_id: id,
+            client_secret: sec,
+            scope,
+            audience,
+        }),
         _ => None,
     }
 }
 
-#[inline]
 pub(crate) async fn acquire_oauth_token(state: &ProxyState) -> Result<Option<String>> {
-    let cfg = match &state.oauth { Some(c) => c.clone(), None => return Ok(None) };
+    let cfg = match &state.oauth {
+        Some(c) => c.clone(),
+        None => return Ok(None),
+    };
     let disc_url = format!(
         "{}/.well-known/openid-configuration",
         cfg.issuer.trim_end_matches('/')
@@ -48,7 +55,10 @@ pub(crate) async fn acquire_oauth_token(state: &ProxyState) -> Result<Option<Str
     let doc: DiscoveryDocument = state.http.fetch_json(&disc_url).await?;
 
     if let Some(cached) = state.token_cache.read().await.clone()
-        && Instant::now() < cached.exp { return Ok(Some(cached.token)); }
+        && Instant::now() < cached.exp
+    {
+        return Ok(Some(cached.token));
+    }
 
     let mut basic_client = BasicClient::new(ClientId::new(cfg.client_id.clone()))
         .set_auth_uri(AuthUrl::new(doc.authorization_endpoint)?)
@@ -57,8 +67,12 @@ pub(crate) async fn acquire_oauth_token(state: &ProxyState) -> Result<Option<Str
     let client = basic_client.set_auth_type(AuthType::BasicAuth);
 
     let mut req = client.exchange_client_credentials()?;
-    if let Some(s) = &cfg.scope { req = req.add_scope(Scope::new(s.clone())); }
-    if let Some(aud) = &cfg.audience { req = req.add_extra_param("audience", aud.clone()); }
+    if let Some(s) = &cfg.scope {
+        req = req.add_scope(Scope::new(s.clone()));
+    }
+    if let Some(aud) = &cfg.audience {
+        req = req.add_extra_param("audience", aud.clone());
+    }
 
     let token = req.request_async(state.http.client()).await?;
     let access = token.access_token().secret().to_string();
@@ -66,8 +80,11 @@ pub(crate) async fn acquire_oauth_token(state: &ProxyState) -> Result<Option<Str
     Ok(Some(access))
 }
 
-#[inline]
-pub(crate) async fn cache_token(cache: &Arc<RwLock<Option<CachedToken>>>, token: String, ttl: Option<Duration>) {
+pub(crate) async fn cache_token(
+    cache: &Arc<RwLock<Option<CachedToken>>>,
+    token: String,
+    ttl: Option<Duration>,
+) {
     let now = Instant::now();
     let ttl = ttl.unwrap_or_else(|| Duration::from_secs(300));
     let skew = Duration::from_secs(30);
@@ -75,4 +92,3 @@ pub(crate) async fn cache_token(cache: &Arc<RwLock<Option<CachedToken>>>, token:
     let mut guard = cache.write().await;
     *guard = Some(CachedToken { token, exp });
 }
-

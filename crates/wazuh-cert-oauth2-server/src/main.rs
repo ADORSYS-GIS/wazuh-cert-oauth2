@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
         crl_path,
         ledger_path,
     } = Opt::parse();
-    let kc_audiences = kc_audiences.split(",").map(|s| s.to_string());
+    let kc_audiences = kc_audiences.map(|a| a.split(",").map(|s| s.to_string()).collect());
 
     // Shared HTTP client service with connection pooling
     let http_client = HttpClient::new_with_defaults()?;
@@ -53,7 +53,7 @@ async fn main() -> Result<()> {
         .manage(http_client.clone())
         .manage(OidcState::new(
             oauth_issuer,
-            kc_audiences.collect(),
+            kc_audiences,
             Duration::from_secs(discovery_ttl_secs),
             Duration::from_secs(jwks_ttl_secs),
             http_client,

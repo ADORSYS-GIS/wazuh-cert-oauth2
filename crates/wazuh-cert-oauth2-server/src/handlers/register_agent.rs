@@ -5,6 +5,7 @@ use crate::shared::ledger::Ledger;
 use rocket::State;
 use rocket::http::Status;
 use rocket::serde::json::Json;
+use log::{info, debug, error};
 use wazuh_cert_oauth2_model::models::errors::AppError;
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
@@ -18,6 +19,8 @@ pub async fn register_agent(
     config: &State<CaProvider>,
     ledger: &State<Ledger>,
 ) -> Result<Json<SignedCertResponse>, Status> {
+    info!("POST /register-agent called for subject={}", token.claims.sub);
+    debug!("CSR payload received (not logging PEM contents)");
     match sign_csr(dto.into_inner(), token, config.inner(), ledger.inner()).await {
         Ok(res) => Ok(Json(res)),
         Err(e) => {

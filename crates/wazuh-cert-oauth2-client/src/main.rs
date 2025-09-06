@@ -6,13 +6,9 @@ use crate::shared::cli::Opt;
 use anyhow::Result;
 use clap::Parser;
 use env_logger::{Builder, Env};
-use wazuh_cert_oauth2_model::models::claims::Claims;
-use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
-use wazuh_cert_oauth2_model::services::http_client::HttpClient;
-use wazuh_cert_oauth2_model::services::jwks::validate_token;
 
-mod services;
 mod flow;
+mod services;
 pub mod shared;
 
 /// Entry point: configures logging and runs the app workflow.
@@ -36,7 +32,17 @@ async fn main() {
 /// generate CSR and key, submit CSR, save cert+key, set agent name, restart agent.
 async fn app() -> Result<()> {
     match Opt::parse() {
-        Opt::OAuth2 { issuer, audience, client_id, client_secret, endpoint, is_service_account, cert_path, key_path, agent_control } => {
+        Opt::OAuth2 {
+            issuer,
+            audience,
+            client_id,
+            client_secret,
+            endpoint,
+            is_service_account,
+            cert_path,
+            key_path,
+            agent_control,
+        } => {
             run_oauth2_flow(
                 &issuer,
                 &audience,
@@ -47,7 +53,8 @@ async fn app() -> Result<()> {
                 &cert_path,
                 &key_path,
                 agent_control,
-            ).await
+            )
+            .await
         }
     }
 }

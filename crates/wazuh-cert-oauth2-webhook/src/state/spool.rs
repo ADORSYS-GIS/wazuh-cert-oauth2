@@ -11,17 +11,70 @@ use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 use super::ProxyState;
 
 #[derive(Serialize, Deserialize)]
-struct SpoolItem { req: RevokeRequest }
+struct SpoolItem {
+    req: RevokeRequest,
+}
 
-#[inline]
+/// Remove queued revoke requests targeting the given subject.
+/// Returns the number of files removed.
+pub async fn cancel_pending_revokes_for_subject(
+    state: &ProxyState,
+    subject: &str,
+) -> Result<usize> {
+    let mut removed: usize = 0;
+    let mut dir = match tokio::fs::read_dir(&state.spool_dir).await {
+        Ok(d) => d,
+        Err(e) => {
+            warn!("spool read_dir failed: {}", e);
+            return Ok(0);
+        }
+    };
+    while let Some(entry) = dir.next_entry().await? {
+        let path = entry.path();
+        if !is_json(&path) {
+            continue;
+        }
+        match tokio::fs::read(&path).await {
+            Ok(bytes) => match serde_json::from_slice::<SpoolItem>(&bytes) {
+                Ok(item) => {
+                    if item.req.subject.as_deref() == Some(subject) {
+                        debug!(
+                            "canceling pending revoke for {} in {}",
+                            subject,
+                            path.display()
+                        );
+                        match tokio::fs::remove_file(&path).await {
+                            Ok(()) => {
+                                removed += 1;
+                            }
+                            Err(e) => warn!("failed to remove {}: {}", path.display(), e),
+                        }
+                    }
+                }
+                Err(e) => {
+                    // Leave invalid files to the regular processor to clean up
+                    warn!("invalid spool item {}; skipping: {}", path.display(), e);
+                }
+            },
+            Err(e) => warn!("failed to read {}: {}", path.display(), e),
+        }
+    }
+    Ok(removed)
+}
+
 pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -> Result<()> {
     let item = SpoolItem { req };
     let data = serde_json::to_vec(&item)?;
-    let ms = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis();
+    let ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
     let mut buf = [0u8; 8];
     rand::thread_rng().fill(&mut buf);
     let mut rid = String::with_capacity(buf.len() * 2);
-    for b in buf { rid.push_str(&format!("{:02x}", b)); }
+    for b in buf {
+        rid.push_str(&format!("{:02x}", b));
+    }
     let filename = format!("revoke-{}-{}.json", ms, rid);
     let path = state.spool_dir.join(&filename);
     let tmp = state.spool_dir.join(format!("{}.tmp", filename));
@@ -37,7 +90,9 @@ pub async fn spawn_spool_processor(state: ProxyState) -> Result<()> {
         state.spool_interval
     );
     loop {
-        if let Err(e) = process_once(&state).await { error!("error in spool cycle: {}", e); }
+        if let Err(e) = process_once(&state).await {
+            error!("error in spool cycle: {}", e);
+        }
         tokio::time::sleep(state.spool_interval).await;
     }
 }
@@ -45,11 +100,16 @@ pub async fn spawn_spool_processor(state: ProxyState) -> Result<()> {
 async fn process_once(state: &ProxyState) -> Result<()> {
     let mut dir = match tokio::fs::read_dir(&state.spool_dir).await {
         Ok(d) => d,
-        Err(e) => { warn!("spool read_dir failed: {}", e); return Ok(()); }
+        Err(e) => {
+            warn!("spool read_dir failed: {}", e);
+            return Ok(());
+        }
     };
     while let Some(entry) = dir.next_entry().await? {
         let path = entry.path();
-        if !is_json(&path) { continue; }
+        if !is_json(&path) {
+            continue;
+        }
         match tokio::fs::read(&path).await {
             Ok(bytes) => match serde_json::from_slice::<SpoolItem>(&bytes) {
                 Ok(item) => {
@@ -73,6 +133,6 @@ async fn process_once(state: &ProxyState) -> Result<()> {
     Ok(())
 }
 
-#[inline]
-fn is_json(p: &Path) -> bool { p.extension().and_then(|s| s.to_str()).unwrap_or("") == "json" }
-
+fn is_json(p: &Path) -> bool {
+    p.extension().and_then(|s| s.to_str()).unwrap_or("") == "json"
+}

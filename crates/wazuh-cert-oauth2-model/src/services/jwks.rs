@@ -1,10 +1,14 @@
 use crate::models::claims::Claims;
 use crate::models::errors::AppError;
-use anyhow::{bail, Result};
-use jsonwebtoken::{decode, decode_header, jwk::JwkSet, DecodingKey, Validation};
+use anyhow::{Result, bail};
+use jsonwebtoken::{DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
 
 /// Validate the token using the provided JWKS.
-pub async fn validate_token(token: &str, jwks: &JwkSet, audiences: &[String]) -> Result<Claims> {
+pub async fn validate_token(
+    token: &str,
+    jwks: &JwkSet,
+    audiences: &Option<Vec<String>>,
+) -> Result<Claims> {
     let header = decode_header(token)?;
     debug!("decoded header: {:?}", header);
     let kid = match header.kid {
@@ -27,7 +31,11 @@ pub async fn validate_token(token: &str, jwks: &JwkSet, audiences: &[String]) ->
 
     debug!("validating token");
     let mut validation = Validation::new(header.alg);
-    validation.set_audience(audiences);
+    if let Some(audiences) = &audiences {
+        validation.set_audience(audiences);
+    } else {
+        validation.validate_aud = false;
+    }
 
     debug!("decoding token");
     match decode::<Claims>(token, &key, &validation) {

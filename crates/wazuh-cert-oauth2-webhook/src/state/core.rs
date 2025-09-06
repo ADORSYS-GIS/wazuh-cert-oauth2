@@ -1,8 +1,8 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
+use super::ProxyState;
 use super::oauth;
 use super::spool;
-use super::ProxyState;
 use crate::models::WebhookRequest;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
@@ -106,6 +106,10 @@ impl ProxyState {
 
     pub async fn queue_revoke(&self, req: RevokeRequest) -> Result<()> {
         spool::queue_revoke_to_spool_dir(self, req).await
+    }
+
+    pub async fn cancel_pending_revokes_for_subject(&self, subject: &str) -> Result<usize> {
+        spool::cancel_pending_revokes_for_subject(self, subject).await
     }
 }
 

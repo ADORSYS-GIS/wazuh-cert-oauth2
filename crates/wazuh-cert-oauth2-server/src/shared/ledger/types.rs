@@ -9,4 +9,3 @@ pub struct LedgerEntry {
     pub revoked_at_unix: Option<u64>,
     pub reason: Option<String>,
 }
-

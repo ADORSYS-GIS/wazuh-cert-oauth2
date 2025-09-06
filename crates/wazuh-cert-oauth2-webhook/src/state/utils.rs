@@ -3,7 +3,6 @@ use std::path::Path;
 
 use log::warn;
 
-#[inline]
 pub(crate) fn ensure_spool_dir(spool_dir: &Path) {
     if !spool_dir.exists()
         && let Err(e) = fs::create_dir_all(spool_dir)

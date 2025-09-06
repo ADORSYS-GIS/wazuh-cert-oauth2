@@ -47,14 +47,10 @@ pub struct Opt {
     #[arg(long, env = "OAUTH_AUDIENCE")]
     pub oauth_audience: Option<String>,
 
-    // Keycloak mapping config
-    #[arg(
-        long,
-        env = "KEYCLOAK_REVOKE_EVENT_TYPES",
-        default_value = "USER_DISABLED,DELETE_USER,USER_DELETED"
-    )]
-    pub keycloak_revoke_event_types: String,
-    
+    // Reason string to attach to revocations created from webhook events
+    #[arg(long, env = "KEYCLOAK_REVOKE_REASON", default_value = "Keycloak event")]
+    pub keycloak_revoke_reason: String,
+
     // Incoming webhook auth (any that are set will be accepted)
     #[arg(long, env = "WEBHOOK_BASIC_USER")]
     pub webhook_basic_user: Option<String>,
@@ -65,4 +61,3 @@ pub struct Opt {
     #[arg(long, env = "WEBHOOK_BEARER_TOKEN")]
     pub webhook_bearer_token: Option<String>,
 }
-

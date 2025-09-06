@@ -2,10 +2,9 @@ use anyhow::Result;
 use std::path::PathBuf;
 use tokio::fs;
 
-use super::csv::parse_csv;
 use super::LedgerEntry;
+use super::csv::parse_csv;
 
-#[inline]
 pub async fn load_entries(path: &PathBuf) -> Result<Vec<LedgerEntry>> {
     if !fs::try_exists(path).await? {
         return Ok(Vec::new());
@@ -16,4 +15,3 @@ pub async fn load_entries(path: &PathBuf) -> Result<Vec<LedgerEntry>> {
     }
     parse_csv(&String::from_utf8_lossy(&data))
 }
-

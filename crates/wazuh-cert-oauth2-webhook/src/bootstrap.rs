@@ -6,9 +6,8 @@ use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 use crate::handlers::health::health;
 use crate::handlers::webhook::send_webhook;
 use crate::opts::Opt;
-use crate::state::{spawn_spool_processor, ProxyState};
+use crate::state::{ProxyState, spawn_spool_processor};
 
-#[inline]
 pub fn build_state(opt: &Opt) -> Result<ProxyState> {
     let http_client = HttpClient::new_with_defaults()?;
     ProxyState::new(
@@ -25,7 +24,7 @@ pub fn build_state(opt: &Opt) -> Result<ProxyState> {
         opt.oauth_client_secret.clone(),
         opt.oauth_scope.clone(),
         opt.oauth_audience.clone(),
-        opt.keycloak_revoke_event_types.clone(),
+        opt.keycloak_revoke_reason.clone(),
         opt.webhook_basic_user.clone(),
         opt.webhook_basic_password.clone(),
         opt.webhook_api_key.clone(),
@@ -33,7 +32,6 @@ pub fn build_state(opt: &Opt) -> Result<ProxyState> {
     )
 }
 
-#[inline]
 pub fn spawn_spool_bg(state: ProxyState) {
     let bg = state.clone();
     tokio::spawn(async move {
@@ -43,7 +41,6 @@ pub fn spawn_spool_bg(state: ProxyState) {
     });
 }
 
-#[inline]
 pub async fn launch_rocket(state: ProxyState) -> Result<()> {
     rocket::build()
         .manage(state)

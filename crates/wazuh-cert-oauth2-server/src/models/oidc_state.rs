@@ -8,7 +8,7 @@ use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 pub struct OidcState {
-    pub(crate) audiences: Vec<String>,
+    pub(crate) audiences: Option<Vec<String>>,
     issuer: String,
     discovery_ttl: Duration,
     jwks_ttl: Duration,
@@ -24,7 +24,7 @@ struct Inner {
 impl OidcState {
     pub fn new(
         issuer: String,
-        audiences: Vec<String>,
+        audiences: Option<Vec<String>>,
         discovery_ttl: Duration,
         jwks_ttl: Duration,
         http: HttpClient,
@@ -47,9 +47,10 @@ impl OidcState {
         let mut inner = self.inner.write().await;
         // Check again after acquiring write lock
         if let Some((doc, fetched)) = &inner.discovery
-            && now.duration_since(*fetched) < self.discovery_ttl {
-                return Ok(doc.clone());
-            }
+            && now.duration_since(*fetched) < self.discovery_ttl
+        {
+            return Ok(doc.clone());
+        }
 
         let url = format!("{}/.well-known/openid-configuration", self.issuer);
         let doc: DiscoveryDocument = self.http.fetch_json(&url).await?;
@@ -63,9 +64,10 @@ impl OidcState {
         let mut inner = self.inner.write().await;
         // Check again after acquiring write lock
         if let Some((jwks, fetched)) = &inner.jwks
-            && now.duration_since(*fetched) < self.jwks_ttl {
-                return Ok(jwks.clone());
-            }
+            && now.duration_since(*fetched) < self.jwks_ttl
+        {
+            return Ok(jwks.clone());
+        }
 
         let doc = match &inner.discovery {
             Some((d, fetched)) if now.duration_since(*fetched) < self.discovery_ttl => d.clone(),

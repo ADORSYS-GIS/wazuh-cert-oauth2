@@ -5,7 +5,7 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
-use super::{oauth, utils, ProxyState};
+use super::{ProxyState, oauth, utils};
 
 impl ProxyState {
     #[allow(clippy::too_many_arguments)]
@@ -56,4 +56,3 @@ impl ProxyState {
         })
     }
 }
-

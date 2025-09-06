@@ -9,8 +9,8 @@ pub struct Opt {
     #[arg(long, env = "OAUTH_ISSUER", short = 'i')]
     pub oauth_issuer: String,
 
-    #[arg(long, env = "KC_AUDIENCES", default_value = "account", short = 'a')]
-    pub kc_audiences: String,
+    #[arg(long, env = "KC_AUDIENCES")]
+    pub kc_audiences: Option<String>,
 
     #[arg(long, env = "ROOT_CA_PATH", required = true, short = 'c')]
     pub root_ca_path: String,

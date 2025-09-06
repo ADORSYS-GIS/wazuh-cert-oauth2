@@ -8,7 +8,7 @@ use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
-use log::error;
+use log::{debug, info, error};
 
 /// Revoke a certificate by serial and optional reason, then rebuild CRL
 #[post("/revoke", format = "application/json", data = "<dto>")]
@@ -19,28 +19,71 @@ pub async fn revoke(
     ledger: &State<Ledger>,
     ca: &State<CaProvider>,
 ) -> Result<Status, Status> {
-    let RevokeRequest { serial_hex, subject, reason } = dto.into_inner();
+    info!("POST /revoke called");
+    let RevokeRequest {
+        serial_hex,
+        subject,
+        reason,
+    } = dto.into_inner();
+    debug!(
+        "revoke request params: serial_hex_present={} subject_present={} reason={:?}",
+        serial_hex.as_ref().map(|s| !s.is_empty()).unwrap_or(false),
+        subject.as_ref().map(|s| !s.is_empty()).unwrap_or(false),
+        reason
+    );
     let targets = resolve_targets(ledger, serial_hex, subject).await?;
+    info!("revocation targets resolved: {} certificates", targets.len());
     for s in targets {
-        ledger.mark_revoked(s, reason.clone()).await.map_err(|e| { error!("Failed to record revocation: {}", e); Status::InternalServerError })?;
+        ledger.mark_revoked(s, reason.clone()).await.map_err(|e| {
+            error!("Failed to record revocation: {}", e);
+            Status::InternalServerError
+        })?;
     }
     rebuild_crl_now(crl, ledger, ca).await?;
+    info!("revocation recorded and CRL rebuild triggered");
     Ok(Status::NoContent)
 }
 
-#[inline]
-async fn resolve_targets(ledger: &State<Ledger>, serial_hex: Option<String>, subject: Option<String>) -> Result<Vec<String>, Status> {
-    if let Some(s) = serial_hex { return if s.trim().is_empty() { Err(Status::BadRequest) } else { Ok(vec![s]) } };
+async fn resolve_targets(
+    ledger: &State<Ledger>,
+    serial_hex: Option<String>,
+    subject: Option<String>,
+) -> Result<Vec<String>, Status> {
+    debug!("resolving revocation targets");
+    if let Some(s) = serial_hex {
+        return if s.trim().is_empty() {
+            Err(Status::BadRequest)
+        } else {
+            Ok(vec![s])
+        };
+    };
     if let Some(subj) = subject {
         let entries = ledger.find_by_subject(&subj).await;
-        return if entries.is_empty() { Err(Status::NotFound) } else { Ok(entries.into_iter().map(|e| e.serial_hex).collect()) };
+        debug!("found {} entries for subject", entries.len());
+        return if entries.is_empty() {
+            Err(Status::NotFound)
+        } else {
+            Ok(entries.into_iter().map(|e| e.serial_hex).collect())
+        };
     }
     Err(Status::BadRequest)
 }
 
-#[inline]
-async fn rebuild_crl_now(crl: &State<CrlState>, ledger: &State<Ledger>, ca: &State<CaProvider>) -> Result<(), Status> {
-    let (ca_cert, ca_key) = ca.get().await.map_err(|e| { error!("Failed to load CA for CRL rebuild: {}", e); Status::InternalServerError })?;
+async fn rebuild_crl_now(
+    crl: &State<CrlState>,
+    ledger: &State<Ledger>,
+    ca: &State<CaProvider>,
+) -> Result<(), Status> {
+    let (ca_cert, ca_key) = ca.get().await.map_err(|e| {
+        error!("Failed to load CA for CRL rebuild: {}", e);
+        Status::InternalServerError
+    })?;
     let revs = ledger.revoked_as_revocations().await;
-    crl.rebuild_crl_from(ca_cert.as_ref(), ca_key.as_ref(), revs).await.map_err(|e| { error!("Failed to rebuild CRL: {}", e); Status::InternalServerError })
+    info!("rebuilding CRL with {} revocations", revs.len());
+    crl.rebuild_crl_from(ca_cert.as_ref(), ca_key.as_ref(), revs)
+        .await
+        .map_err(|e| {
+            error!("Failed to rebuild CRL: {}", e);
+            Status::InternalServerError
+        })
 }

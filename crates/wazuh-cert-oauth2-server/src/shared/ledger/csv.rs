@@ -7,7 +7,6 @@ use tokio::sync::RwLock;
 use super::LedgerEntry;
 use super::csv_utils::{escape_csv_field, split_csv_line, unescape_csv_field};
 
-#[inline]
 pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) -> Result<()> {
     let data = inner.read().await.clone();
     let mut out = String::new();
@@ -32,22 +31,41 @@ pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) 
     Ok(())
 }
 
-#[inline]
 pub fn parse_csv(s: &str) -> Result<Vec<LedgerEntry>> {
     let mut out = Vec::new();
     for (idx, line) in s.lines().enumerate() {
-        if idx == 0 { continue; }
+        if idx == 0 {
+            continue;
+        }
         let line = line.trim_end();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
         let fields = split_csv_line(line);
-        if fields.len() < 6 { continue; }
+        if fields.len() < 6 {
+            continue;
+        }
         let subject = unescape_csv_field(&fields[0]);
         let serial_hex = unescape_csv_field(&fields[1]);
         let issued_at_unix = fields[2].parse::<u64>().unwrap_or_default();
         let revoked = matches!(fields[3].as_str(), "true" | "TRUE" | "1");
-        let revoked_at_unix = if fields[4].is_empty() { None } else { Some(fields[4].parse::<u64>().unwrap_or_default()) };
-        let reason = { let r = unescape_csv_field(&fields[5]); if r.is_empty() { None } else { Some(r) } };
-        out.push(LedgerEntry { subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason });
+        let revoked_at_unix = if fields[4].is_empty() {
+            None
+        } else {
+            Some(fields[4].parse::<u64>().unwrap_or_default())
+        };
+        let reason = {
+            let r = unescape_csv_field(&fields[5]);
+            if r.is_empty() { None } else { Some(r) }
+        };
+        out.push(LedgerEntry {
+            subject,
+            serial_hex,
+            issued_at_unix,
+            revoked,
+            revoked_at_unix,
+            reason,
+        });
     }
     Ok(out)
 }

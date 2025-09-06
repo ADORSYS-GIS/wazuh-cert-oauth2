@@ -1,16 +1,15 @@
 use anyhow::Result;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{RwLock, mpsc};
 
-use super::csv::persist_csv;
 use super::LedgerEntry;
+use super::csv::persist_csv;
 
 // Re-export to preserve worker::Command and worker::load_entries API
 pub(super) use super::commands::Command;
 pub(super) use super::loader::load_entries;
 
-#[inline]
 pub fn spawn_ledger_worker(
     inner: Arc<RwLock<Vec<LedgerEntry>>>,
     path: PathBuf,
@@ -19,7 +18,6 @@ pub fn spawn_ledger_worker(
     tokio::spawn(async move { ledger_worker(inner, path, &mut rx).await });
 }
 
-#[inline]
 async fn ledger_worker(
     inner: Arc<RwLock<Vec<LedgerEntry>>>,
     path: PathBuf,
@@ -27,19 +25,30 @@ async fn ledger_worker(
 ) {
     while let Some(cmd) = rx.recv().await {
         match cmd {
-            Command::RecordIssued { subject, serial_hex, issued_at_unix, respond_to } => {
-                let res = apply_record_issued(&inner, &path, subject, serial_hex, issued_at_unix).await;
+            Command::RecordIssued {
+                subject,
+                serial_hex,
+                issued_at_unix,
+                respond_to,
+            } => {
+                let res =
+                    apply_record_issued(&inner, &path, subject, serial_hex, issued_at_unix).await;
                 let _ = respond_to.send(res);
             }
-            Command::MarkRevoked { serial_hex, reason, revoked_at_unix, respond_to } => {
-                let res = apply_mark_revoked(&inner, &path, serial_hex, reason, revoked_at_unix).await;
+            Command::MarkRevoked {
+                serial_hex,
+                reason,
+                revoked_at_unix,
+                respond_to,
+            } => {
+                let res =
+                    apply_mark_revoked(&inner, &path, serial_hex, reason, revoked_at_unix).await;
                 let _ = respond_to.send(res);
             }
         }
     }
 }
 
-#[inline]
 async fn apply_record_issued(
     inner: &Arc<RwLock<Vec<LedgerEntry>>>,
     path: &PathBuf,
@@ -61,7 +70,6 @@ async fn apply_record_issued(
     persist_csv(path, inner).await
 }
 
-#[inline]
 async fn apply_mark_revoked(
     inner: &Arc<RwLock<Vec<LedgerEntry>>>,
     path: &PathBuf,
@@ -71,7 +79,11 @@ async fn apply_mark_revoked(
 ) -> Result<()> {
     {
         let mut guard = inner.write().await;
-        if let Some(entry) = guard.iter_mut().rev().find(|e| e.serial_hex.eq_ignore_ascii_case(&serial_hex)) {
+        if let Some(entry) = guard
+            .iter_mut()
+            .rev()
+            .find(|e| e.serial_hex.eq_ignore_ascii_case(&serial_hex))
+        {
             entry.revoked = true;
             entry.revoked_at_unix = Some(revoked_at_unix);
             entry.reason = reason.clone();

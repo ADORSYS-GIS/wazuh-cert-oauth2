@@ -8,7 +8,7 @@ services:
     environment:
       RUST_LOG: 'info'
       ROCKET_ADDRESS: '0.0.0.0'
-      OAUTH_ISSUER: 'https://login.wazuh.adorsys.team/realms/adorsys'
+      OAUTH_ISSUER: 'http://host.docker.internal/realms/dev'
       KC_AUDIENCES: 'account'
       ROOT_CA_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca.pem'
       ROOT_CA_KEY_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem'
@@ -28,6 +28,9 @@ services:
     environment:
       RUST_LOG: 'info'
       ROCKET_ADDRESS: '0.0.0.0'
+      OAUTH_ISSUER: 'http://host.docker.internal/realms/dev'
+      OAUTH_CLIENT_ID: 'test-client-secret'
+      OAUTH_CLIENT_SECRET: 'some-secret'
       SERVER_BASE_URL: 'http://localhost:8100'
       SPOOL_DIR: '/data/spool'
       WEBHOOK_BASIC_USER: 'user'
@@ -71,6 +74,8 @@ services:
     command:
       - -c
       - |
+        set -e
+        
         /opt/keycloak/bin/kcadm.sh config credentials --server http://keycloak:9100 --realm master --user admin --password password
         /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
         echo "Done" 
@@ -84,14 +89,27 @@ services:
       - /bin/sh
       - -c
       - |
-        set -ex;
+        set -e;
         rm -rf /spi/*.jar
         wget -O /spi/keycloak-webhook-provider-core.jar "https://github.com/vymalo/keycloak-webhook/releases/download/v0.9.1/keycloak-webhook-provider-core-0.9.1-all.jar"
         wget -O /spi/keycloak-webhook-provider-http.jar "https://github.com/vymalo/keycloak-webhook/releases/download/v0.9.1/keycloak-webhook-provider-http-0.9.1-all.jar"
         echo "Downloaded theme";
-        ls -lash /spi;
     volumes:
       - spi:/spi
+
+  ubuntu:
+    image: bitnami/os-shell
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -ex
+        
+        tail -f /dev/null
+    volumes:
+      - spi:/data/spi
+      - webhook:/data/webhook
+      - oauth2:/data/oauth2
 
 volumes:
   spi:

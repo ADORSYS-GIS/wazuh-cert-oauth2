@@ -7,11 +7,11 @@ use env_logger::{Builder, Env};
 use log::info;
 use mimalloc::MiMalloc;
 
+mod bootstrap;
 mod handlers;
 mod models;
-mod state;
 mod opts;
-mod bootstrap;
+mod state;
 
 use crate::bootstrap::{build_state, launch_rocket, spawn_spool_bg};
 use crate::opts::Opt;
