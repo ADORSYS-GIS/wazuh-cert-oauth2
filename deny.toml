@@ -8,6 +8,8 @@ allow = [
     "Apache-2.0",
     "EUPL-1.2",
     "BSD-3-Clause",
+    "GPL-3.0",
+    "CDLA-Permissive-2.0"
 ]
 
 [advisories]

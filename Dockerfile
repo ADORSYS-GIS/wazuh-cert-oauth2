@@ -16,8 +16,7 @@ RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update && \
-  apt-get install -y --no-install-recommends pkg-config libssl-dev && \
-  rm -rf /var/lib/apt/lists/*
+  apt-get install -y --no-install-recommends pkg-config libssl-dev
 
 RUN \
   # Mount workspace files and only the necessary crates
@@ -51,12 +50,10 @@ RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update \
-  # hadolint ignore=DL3008
   && apt-get install -y --no-install-recommends \
     gcc \
     ca-certificates \
-    libssl3 \
-  && rm -rf /var/lib/apt/lists/*
+    libssl3
 
 
 # Dependencies for libgcc

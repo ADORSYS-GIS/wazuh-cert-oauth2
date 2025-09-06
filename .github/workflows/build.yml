@@ -23,7 +23,7 @@ env:
 
 jobs:
   build:
-    name: Docker build for ${{ matrix.flavor }}
+    name: Docker build for ${{ matrix.flavour }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -87,7 +87,7 @@ jobs:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ matrix.flavor }}-
+            ${{ runner.os }}-buildx-${{ matrix.flavour }}-
 
       - name: Build and push
         uses: docker/build-push-action@v6

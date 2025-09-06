@@ -2,7 +2,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use openssl::pkey::PKey;
-use openssl::x509::X509Ref;
 use openssl::x509::X509;
 use tokio::sync::{mpsc, oneshot};
 use serde::{Deserialize, Serialize};

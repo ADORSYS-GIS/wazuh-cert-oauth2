@@ -30,7 +30,6 @@ jobs:
       - name: Run ESLint and post results
         uses: super-linter/super-linter@v8
         env:
-          PKG_CONFIG_PATH: ${{ matrix.brew_prefix }}/lib/pkgconfig
           OPENSSL_NO_VENDOR: "1"
           
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
