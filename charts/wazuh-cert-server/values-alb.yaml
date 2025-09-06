@@ -1,6 +1,6 @@
-cert: 
-  ingress: 
-    app: 
+cert:
+  ingress:
+    app:
       enabled: true
       className: alb
       annotations:

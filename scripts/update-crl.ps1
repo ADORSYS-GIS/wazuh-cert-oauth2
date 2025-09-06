@@ -16,4 +16,3 @@ if ($ReloadCmd -and $ReloadCmd.Trim().Length -gt 0) {
 }
 
 Write-Host "CRL updated at $DestPath from $CrlUrl"
-

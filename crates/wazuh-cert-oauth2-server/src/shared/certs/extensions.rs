@@ -4,8 +4,8 @@ use openssl::x509::extension::{
     AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, SubjectAlternativeName,
     SubjectKeyIdentifier,
 };
-use wazuh_cert_oauth2_model::models::errors::AppResult;
 use url::Url;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 pub(crate) fn append_core_extensions(
     builder: &mut openssl::x509::X509Builder,
@@ -29,13 +29,18 @@ pub(crate) fn append_crl_dp(
     crl_dist_url: Option<&str>,
 ) -> AppResult<()> {
     if let Some(url) = crl_dist_url {
-        let cdp = X509Extension::new(
-            None,
-            Some(&builder.x509v3_context(Some(ca_cert), None)),
-            "crlDistributionPoints",
-            &format!("URI:{}", url),
-        )?;
-        builder.append_extension(cdp)?;
+        // TODO OpenSSL crate does not yet provide a typed builder for CRL Distribution Points.
+        // Suppress the deprecation warning for this single usage until one exists upstream.
+        #[allow(deprecated)]
+        {
+            let cdp = X509Extension::new(
+                None,
+                Some(&builder.x509v3_context(Some(ca_cert), None)),
+                "crlDistributionPoints",
+                &format!("URI:{}", url),
+            )?;
+            builder.append_extension(cdp)?;
+        }
     }
     Ok(())
 }

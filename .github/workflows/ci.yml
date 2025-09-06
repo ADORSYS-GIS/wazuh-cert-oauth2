@@ -1,0 +1,79 @@
+name: Code Linting and SAST
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      # To report GitHub Actions status checks
+      statuses: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: "0"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libssl-dev
+
+      - name: Run ESLint and post results
+        uses: super-linter/super-linter@v8
+        env:
+          PKG_CONFIG_PATH: ${{ matrix.brew_prefix }}/lib/pkgconfig
+          OPENSSL_NO_VENDOR: "1"
+          
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_DOCKERFILE_HADOLINT: "true"
+          VALIDATE_GITHUB_ACTIONS: "true"
+          VALIDATE_GITLEAKS: "true"
+          VALIDATE_GIT_MERGE_CONFLICT_MARKERS: "true"
+          VALIDATE_RUST_CLIPPY: "true"
+          VALIDATE_YAML: "true"
+
+  sast:
+    name: "SAST Scan ${{ matrix.checks }}"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        checks:
+          - advisories
+          - bans licenses sources
+    continue-on-error: ${{ matrix.checks == 'advisories' }}
+    steps:
+      - uses: actions/checkout@v5
+        name: Checkout
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Run cargo-deny
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check ${{ matrix.checks }}
+
+  code-checks:
+    name: Code Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        name: Checkout
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: clippy, rustfmt
+      - name: Run cargo check
+        run: cargo check --all-targets --all-features
+      - name: Run cargo fmt
+        run: cargo fmt -- --check
+      - name: Run cargo clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+

@@ -31,7 +31,7 @@ sources:
 maintainers:
   - name: Stephane Segning Lambou
     email: selastlambou@gmail.com
-    
+
 dependencies:
   - name: common
     version: '2.x.x'

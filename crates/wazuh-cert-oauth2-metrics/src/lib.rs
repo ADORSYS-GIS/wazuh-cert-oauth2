@@ -109,20 +109,19 @@ pub fn update_spool_gauges(spool_dir: &Path) {
                 continue;
             }
             depth += 1;
-            if let Ok(md) = entry.metadata() {
-                if let Ok(mtime) = md.modified() {
-                    if let Ok(d) = mtime.duration_since(UNIX_EPOCH) {
-                        let ms = d.as_millis();
-                        oldest_millis = Some(oldest_millis.map_or(ms, |cur| cur.min(ms)));
-                    }
-                }
+            if let Ok(md) = entry.metadata()
+                && let Ok(mtime) = md.modified()
+                && let Ok(d) = mtime.duration_since(UNIX_EPOCH)
+            {
+                let ms = d.as_millis();
+                oldest_millis = Some(oldest_millis.map_or(ms, |cur| cur.min(ms)));
             }
         }
-        if let Some(ms) = oldest_millis {
-            if let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) {
-                let now_ms = now.as_millis();
-                oldest_secs = (now_ms.saturating_sub(ms) as u64 / 1000) as i64;
-            }
+        if let Some(ms) = oldest_millis
+            && let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH)
+        {
+            let now_ms = now.as_millis();
+            oldest_secs = (now_ms.saturating_sub(ms) as u64 / 1000) as i64;
         }
     }
     let prev = SPOOL_DEPTH_LAST.swap(depth, Ordering::Relaxed);

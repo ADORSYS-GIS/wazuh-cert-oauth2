@@ -6,7 +6,7 @@ cert:
     securityContext:
       runAsUser: 1001
       runAsGroup: 1001
-  
+
   controllers:
     main:
       type: deployment
@@ -40,7 +40,7 @@ cert:
             - -c
             - |
               set -ex
-              
+
               # Ensure the directory exists
               chown -R 1001:1001 /data
               chmod -R 775 /data
@@ -57,7 +57,7 @@ cert:
             repository: ghcr.io/adorsys-gis/wazuh-cert-oauth2
             tag: '{{ .Values.global.version }}'
             pullPolicy: IfNotPresent
-          
+
           resources:
             requests:
               cpu: 125m
@@ -65,12 +65,12 @@ cert:
             limits:
               cpu: 400m
               memory: 512Mi
-          
+
           # -- ConfigMap to be loaded as environment variables
           envFrom:
             - configMapRef:
                 identifier: config
-          
+
           env:
             RUST_LOG: 'info'
             ROCKET_ADDRESS: '0.0.0.0'
@@ -83,7 +83,7 @@ cert:
 
             CRL_PATH: '/data/issuing.crl'
             CRL_DIST_URL: 'https://this.server.ingress/crl/issuing.crl'
-  
+
   service:
     app:
       enabled: true
@@ -95,7 +95,7 @@ cert:
           enabled: true
           port: 8100
           targetPort: 8100
-  
+
   ingress:
     app:
       enabled: false
@@ -113,7 +113,7 @@ cert:
         - secretName: example-wazuh-adorsys-com-secret
           hosts:
             - cert.example-wazuh.adorsys.com
-  
+
   configMaps:
     config:
       enabled: true
@@ -122,7 +122,7 @@ cert:
       data:
         OTEL_EXPORTER_OTLP_ENDPOINT: 'http://alloy.collect:4317'
         OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
-  
+
   persistence:
     data:
       enabled: true

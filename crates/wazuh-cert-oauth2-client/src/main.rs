@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use crate::flow::run_oauth2_flow;
+use crate::flow::{FlowParams, run_oauth2_flow};
 use crate::shared::cli::Opt;
 use clap::Parser;
 use env_logger::{Builder, Env};
@@ -43,18 +43,18 @@ async fn app() -> AppResult<()> {
             key_path,
             agent_control,
         } => {
-            run_oauth2_flow(
-                &issuer,
-                &audience,
-                &client_id,
-                client_secret.as_ref(),
-                &endpoint,
+            let params = FlowParams {
+                issuer,
+                audience_csv: audience,
+                client_id,
+                client_secret,
+                endpoint,
                 is_service_account,
-                &cert_path,
-                &key_path,
+                cert_path,
+                key_path,
                 agent_control,
-            )
-            .await
+            };
+            run_oauth2_flow(&params).await
         }
     }
 }

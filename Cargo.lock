@@ -3231,7 +3231,6 @@ dependencies = [
 name = "wazuh-cert-oauth2-client"
 version = "0.2.20"
 dependencies = [
- "anyhow",
  "clap",
  "diacritics",
  "env_logger",
@@ -3281,7 +3280,6 @@ dependencies = [
 name = "wazuh-cert-oauth2-server"
 version = "0.2.20"
 dependencies = [
- "anyhow",
  "clap",
  "foreign-types",
  "jsonwebtoken",
@@ -3302,7 +3300,6 @@ dependencies = [
 name = "wazuh-cert-oauth2-webhook"
 version = "0.2.20"
 dependencies = [
- "anyhow",
  "base64 0.22.1",
  "clap",
  "mimalloc",

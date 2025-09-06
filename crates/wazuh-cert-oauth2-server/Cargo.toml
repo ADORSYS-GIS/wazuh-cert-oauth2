@@ -8,7 +8,6 @@ authors.workspace = true
 
 [dependencies]
 tokio.workspace = true
-anyhow.workspace = true
 tracing.workspace = true
 rocket.workspace = true
 jsonwebtoken.workspace = true

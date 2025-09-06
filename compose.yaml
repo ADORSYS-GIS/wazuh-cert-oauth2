@@ -3,26 +3,27 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+      target: oauth2
     ports:
       - "8000:8000"
     environment:
       RUST_LOG: 'info'
       ROCKET_ADDRESS: '0.0.0.0'
-      
+
       OAUTH_ISSUER: 'http://host.docker.internal/realms/dev'
-      
+
       ROOT_CA_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca.pem'
       ROOT_CA_KEY_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem'
       LEDGER_PATH: '/data/ledger.csv'
-      
+
       CRL_PATH: '/data/issuing.crl'
       CRL_DIST_URL: 'http://localhost:8000/crl/issuing.crl'
-      
+
       OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4317'
       OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
     volumes:
       - oauth2:/data
-      
+
   webhook:
     build:
       context: .
@@ -33,17 +34,17 @@ services:
     environment:
       RUST_LOG: 'info'
       ROCKET_ADDRESS: '0.0.0.0'
-      
+
       OAUTH_ISSUER: 'http://host.docker.internal:9100/realms/dev'
       OAUTH_CLIENT_ID: 'test-client-secret'
       OAUTH_CLIENT_SECRET: 'some-secret'
-      
+
       SERVER_BASE_URL: 'http://localhost:8100'
       SPOOL_DIR: '/data/spool'
-      
+
       WEBHOOK_BASIC_USER: 'user'
       WEBHOOK_BASIC_PASSWORD: 'password'
-      
+
       OTEL_EXPORTER_OTLP_ENDPOINT: 'http://localhost:4317'
       OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
     volumes:
@@ -58,7 +59,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: password
       KC_LOG_CONSOLE_COLOR: 'true'
       KC_HTTP_PORT: 9100
-      
+
       WEBHOOK_HTTP_BASE_PATH: "http://host.docker.internal:8100/api/webhook"
       WEBHOOK_HTTP_AUTH_USERNAME: "user"
       WEBHOOK_HTTP_AUTH_PASSWORD: "password"
@@ -77,7 +78,7 @@ services:
     depends_on:
       download-theme:
         condition: service_completed_successfully
-        
+
   keycloak-config:
     image: quay.io/keycloak/keycloak:26.3.3
     restart: on-failure
@@ -86,14 +87,14 @@ services:
       - -c
       - |
         set -e
-        
+
         /opt/keycloak/bin/kcadm.sh config credentials --server http://keycloak:9100 --realm master --user admin --password password
         /opt/keycloak/bin/kcadm.sh update realms/master -s sslRequired=NONE
-        echo "Done" 
+        echo "Done"
     depends_on:
       keycloak:
         condition: service_started
-  
+
   download-theme:
     image: busybox
     command:
@@ -115,13 +116,13 @@ services:
       - -c
       - |
         set -ex
-        
+
         tail -f /dev/null
     volumes:
       - spi:/data/spi
       - webhook:/data/webhook
       - oauth2:/data/oauth2
-  
+
   tracking:
     image: jaegertracing/all-in-one:latest
     deploy:
@@ -136,7 +137,7 @@ services:
       - "16686:16686" # Jaeger UI
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
-      
+
 volumes:
   spi:
   webhook:

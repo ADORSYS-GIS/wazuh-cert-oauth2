@@ -1,6 +1,6 @@
+use super::ProxyState;
 use super::oauth;
 use super::spool;
-use super::ProxyState;
 use crate::models::WebhookRequest;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;

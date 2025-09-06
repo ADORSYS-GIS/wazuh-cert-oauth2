@@ -12,26 +12,33 @@ use crate::services::set_name::set_name;
 use crate::services::stop_agent::stop_agent;
 use crate::services::submit_csr::submit_csr;
 
-pub async fn run_oauth2_flow(
-    issuer: &str,
-    audience_csv: &str,
-    client_id: &str,
-    client_secret: Option<&String>,
-    endpoint: &str,
-    is_service_account: bool,
-    cert_path: &str,
-    key_path: &str,
-    agent_control: bool,
-) -> AppResult<()> {
-    let kc_audiences = audience_csv
+#[derive(Debug, Clone)]
+pub struct FlowParams {
+    pub issuer: String,
+    pub audience_csv: String,
+    pub client_id: String,
+    pub client_secret: Option<String>,
+    pub endpoint: String,
+    pub is_service_account: bool,
+    pub cert_path: String,
+    pub key_path: String,
+    pub agent_control: bool,
+}
+
+pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
+    let kc_audiences = params
+        .audience_csv
         .split(',')
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
     let http = HttpClient::new_with_defaults()?;
     let document: DiscoveryDocument = http
-        .fetch_json(&format!("{}/.well-known/openid-configuration", issuer))
+        .fetch_json(&format!(
+            "{}/.well-known/openid-configuration",
+            params.issuer
+        ))
         .await?;
-    if agent_control {
+    if params.agent_control {
         info!("Stopping agent");
         stop_agent().await?;
     }
@@ -43,9 +50,9 @@ pub async fn run_oauth2_flow(
         &http,
         GetTokenParams {
             document,
-            client_id: client_id.to_string(),
-            client_secret: client_secret.cloned(),
-            is_service_account,
+            client_id: params.client_id.clone(),
+            client_secret: params.client_secret.clone(),
+            is_service_account: params.is_service_account,
         },
     )
     .await?;
@@ -57,19 +64,19 @@ pub async fn run_oauth2_flow(
     let (csr_pem, private_key_pem) = generate_key_and_csr(&sub)?;
 
     debug!("Submitting CSR for signing");
-    let signed = submit_csr(&http, endpoint, &token, &csr_pem).await?;
+    let signed = submit_csr(&http, &params.endpoint, &token, &csr_pem).await?;
 
     debug!("Saving certificate and private key");
     save_cert_and_key(
-        cert_path,
-        key_path,
+        &params.cert_path,
+        &params.key_path,
         &signed.certificate_pem,
         &private_key_pem,
         Some(&signed.ca_cert_pem),
     )
     .await?;
 
-    if agent_control {
+    if params.agent_control {
         if let Some(name) = name {
             debug!("Setting name");
             set_name(&name).await?;

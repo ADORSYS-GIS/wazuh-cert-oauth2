@@ -11,6 +11,7 @@ WORKDIR /app
 FROM base as builder
 
 # Install build dependencies for openssl-sys
+# hadolint ignore=DL3008
 RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -40,7 +41,7 @@ RUN \
   --mount=type=cache,target=/usr/local/cargo/git/db \
   cargo build --profile prod --locked \
   && cp ./target/prod/wazuh-cert-oauth2-server server \
-  && cp ./target/prod/wazuh-cert-oauth2-webhook webhook 
+  && cp ./target/prod/wazuh-cert-oauth2-webhook webhook
 
 FROM debian:12 as dep
 
@@ -50,6 +51,7 @@ RUN \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update \
+  # hadolint ignore=DL3008
   && apt-get install -y --no-install-recommends \
     gcc \
     ca-certificates \
@@ -84,7 +86,7 @@ EXPOSE $PORT
 
 ENTRYPOINT ["/app/webhook"]
 
-FROM gcr.io/distroless/base-debian12:nonroot
+FROM gcr.io/distroless/base-debian12:nonroot as oauth2
 
 LABEL maintainer="Stephane Segning <selastlambou@gmail.com>"
 LABEL org.opencontainers.image.description="adorsys GIS Cameroon"

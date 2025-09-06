@@ -23,16 +23,27 @@ env:
 
 jobs:
   build:
-
+    name: Docker build for ${{ matrix.flavor }}
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        flavour:
+          - OAuth2
+          - Webhook
+        include:
+          - flavour: OAuth2
+            suffix: ""
+            docker_target: "oauth2"
+          - flavour: Webhook
+            suffix: "-webhook"
+            docker_target: "webhook"
     permissions:
       packages: write
       contents: read
       id-token: write # Required to sign SLSA provenance
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         name: Checkout repository
         with:
           fetch-depth: "0"
@@ -67,22 +78,25 @@ jobs:
             type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Europe/Berlin'}}
             type=sha,format=long
             type=sha,format=long,prefix={{branch}}
-          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}
+          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}
 
       - name: Cache Docker layers
-        uses: actions/cache@v4
+        uses: actions/cache@4
         if: always()
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-buildx-${{ matrix.flavor }}-
 
       - name: Build and push
         uses: docker/build-push-action@v6
         if: github.event_name != 'pull_request'
         with:
+          context: .
+          file: "Dockerfile"
           push: "true"
+          target: ${{ matrix.docker_target }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}

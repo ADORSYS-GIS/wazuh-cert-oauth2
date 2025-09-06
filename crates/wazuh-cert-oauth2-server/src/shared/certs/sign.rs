@@ -1,5 +1,5 @@
 use openssl::pkey::PKey;
-use openssl::x509::{X509Ref, X509Req, X509};
+use openssl::x509::{X509, X509Ref, X509Req};
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::sign_csr_request::SignCsrRequest;
 use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
@@ -15,17 +15,16 @@ use super::{
 };
 
 fn extract_realm_from_issuer(iss: &str) -> Option<String> {
-    if let Ok(url) = url::Url::parse(iss) {
-        if let Some(segments) = url.path_segments() {
-            let parts: Vec<_> = segments.collect();
-            for i in 0..parts.len() {
-                if parts[i].eq_ignore_ascii_case("realms") {
-                    if let Some(next) = parts.get(i + 1) {
-                        if !next.is_empty() {
-                            return Some(next.to_string());
-                        }
-                    }
-                }
+    if let Ok(url) = url::Url::parse(iss)
+        && let Some(segments) = url.path_segments()
+    {
+        let parts: Vec<_> = segments.collect();
+        for i in 0..parts.len() {
+            if parts[i].eq_ignore_ascii_case("realms")
+                && let Some(next) = parts.get(i + 1)
+                && !next.is_empty()
+            {
+                return Some(next.to_string());
             }
         }
     }

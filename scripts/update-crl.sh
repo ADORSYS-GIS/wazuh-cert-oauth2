@@ -26,4 +26,3 @@ if [[ -n "${RELOAD_CMD:-}" ]]; then
 fi
 
 echo "CRL updated at $DEST_PATH from $CRL_URL"
-
