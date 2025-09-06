@@ -93,8 +93,10 @@ async fn rebuild_crl_now(
     })?;
     let revs = ledger.revoked_as_revocations().await;
     info!("rebuilding CRL with {} revocations", revs.len());
-    crl.request_rebuild(ca_cert, ca_key, revs).await.map_err(|e| {
-        error!("Failed to rebuild CRL: {}", e);
-        Status::InternalServerError
-    })
+    crl.request_rebuild(ca_cert, ca_key, revs)
+        .await
+        .map_err(|e| {
+            error!("Failed to rebuild CRL: {}", e);
+            Status::InternalServerError
+        })
 }

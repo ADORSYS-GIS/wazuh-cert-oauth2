@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use openssl::pkey::PKey;
 use openssl::x509::X509;
-use tokio::sync::{mpsc, oneshot};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
+use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
@@ -61,16 +61,18 @@ impl CrlState {
                 respond_to: tx_done,
             })
             .await
-            .map_err(|e| wazuh_cert_oauth2_model::models::errors::AppError::UpstreamError(format!(
-                "crl worker dropped: {}",
-                e
-            )))?;
-        rx_done
-            .await
-            .map_err(|e| wazuh_cert_oauth2_model::models::errors::AppError::UpstreamError(format!(
+            .map_err(|e| {
+                wazuh_cert_oauth2_model::models::errors::AppError::UpstreamError(format!(
+                    "crl worker dropped: {}",
+                    e
+                ))
+            })?;
+        rx_done.await.map_err(|e| {
+            wazuh_cert_oauth2_model::models::errors::AppError::UpstreamError(format!(
                 "crl worker closed: {}",
                 e
-            )))??;
+            ))
+        })??;
         Ok(())
     }
 }

@@ -8,8 +8,8 @@ use tokio::sync::{mpsc, oneshot};
 use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
-use super::ffi;
 use super::RevocationEntry;
+use super::ffi;
 
 pub(super) enum Command {
     Rebuild {
@@ -72,4 +72,3 @@ async fn apply_rebuild(
     );
     Ok(())
 }
-

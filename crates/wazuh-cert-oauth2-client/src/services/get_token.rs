@@ -56,7 +56,7 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> AppResult<S
     } else {
         info!("Opened your default browser to: {}\n", auth_url_string);
     }
-    
+
     let mut auth_code = String::new();
     std::io::stdin().read_line(&mut auth_code)?;
     let code = AuthorizationCode::new(auth_code.trim().to_string());

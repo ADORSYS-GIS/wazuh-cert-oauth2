@@ -2,15 +2,15 @@ use rocket::State;
 use rocket::http::{ContentType, Status};
 
 use crate::handlers::middle::JwtToken;
+use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
 use crate::shared::crl::RevocationEntry;
 use crate::shared::ledger::Ledger;
-use rocket::serde::json::Json;
-use tracing::{debug, error, info};
-use crate::models::ca_config::CaProvider;
 use openssl::asn1::Asn1Time;
 use openssl::x509::X509Crl;
+use rocket::serde::json::Json;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tracing::{debug, error, info};
 
 #[get("/crl/issuing.crl")]
 pub async fn get_crl(
