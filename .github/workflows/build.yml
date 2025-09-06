@@ -106,3 +106,63 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache
           provenance: true
           sbom: true
+
+      - name: Set canonical image ref
+        id: img
+        run: |
+          echo "image=${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}" >> $GITHUB_OUTPUT
+          echo "digest=${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+          echo "ref=${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.7.0
+
+      - name: Sign multi-arch image (keyless)
+        run: |
+          cosign sign --yes "${{ steps.img.outputs.ref }}"
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+      
+      # Optional: materialize an SBOM file in SPDX too (in addition to BuildKit’s)
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.img.outputs.ref }}
+          format: spdx-json
+          output-file: sbom-${{ matrix.flavour }}.spdx.json
+
+      - name: Attach SBOM as attestation
+        run: |
+          cosign attest --yes \
+            --predicate sbom-${{ matrix.flavour }}.spdx.json \
+            --type spdx \
+            "${{ steps.img.outputs.ref }}"
+
+      - name: Vulnerability scan (Trivy)
+        id: trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.img.outputs.ref }}
+          format: 'table'
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Malware scan (ClamAV)
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y clamav
+          sudo freshclam
+          cid=$(docker create "${{ steps.img.outputs.ref }}")
+          docker export "$cid" -o rootfs.tar
+          mkdir rootfs && tar -xf rootfs.tar -C rootfs
+          # ClamAV returns 1 on "found", 0 on clean, >1 on error.
+          clamscan -r rootfs || true
+
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-${{ matrix.flavour }}
+          path: |
+            sbom-${{ matrix.flavour }}.spdx.json
+            rootfs.tar
