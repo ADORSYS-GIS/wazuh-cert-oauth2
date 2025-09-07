@@ -166,19 +166,22 @@ jobs:
           }
 
       - name: Install Windows target
+        shell: pwsh
         env:
           TARGET: ${{ matrix.target }}
-        run: rustup target add "$TARGET"
+        run: rustup target add $env:TARGET
 
       - name: Build with cargo
+        shell: pwsh
         env:
           TARGET: ${{ matrix.target }}
-        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target "$TARGET"
+        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target $env:TARGET
 
       - name: Rename resource
+        shell: pwsh
         env:
           TARGET: ${{ matrix.target }}
-        run: mv "target/$TARGET/prod/wazuh-cert-oauth2-client.exe" "wazuh-cert-oauth2-client-$TARGET.exe"
+        run: Move-Item -Path "target/$env:TARGET/prod/wazuh-cert-oauth2-client.exe" -Destination "wazuh-cert-oauth2-client-$env:TARGET.exe"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
