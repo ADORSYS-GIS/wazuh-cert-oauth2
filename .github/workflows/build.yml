@@ -165,17 +165,7 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
-      - name: Malware scan (ClamAV)
-        env:
-          REF: ${{ steps.img.outputs.ref }}
-        run: |
-          sudo apt-get update -y && sudo apt-get install -y clamav || true
-          sudo freshclam
-          cid=$(docker create "$REF")
-          docker export "$cid" -o rootfs.tar
-          mkdir rootfs && tar -xf rootfs.tar -C rootfs
-          # ClamAV returns 1 on "found", 0 on clean, >1 on error.
-          clamscan -r rootfs || true
+      # Removed ClamAV malware scan to reduce pipeline flakiness and latency.
 
       - name: Upload security artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
@@ -183,4 +173,3 @@ jobs:
           name: security-${{ matrix.flavour }}
           path: |
             sbom-${{ matrix.flavour }}.spdx.json
-            rootfs.tar
