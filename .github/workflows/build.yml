@@ -169,7 +169,7 @@ jobs:
         env:
           REF: ${{ steps.img.outputs.ref }}
         run: |
-          sudo apt-get update -y && sudo apt-get install -y clamav
+          sudo apt-get update -y && sudo apt-get install -y clamav || true
           sudo freshclam
           cid=$(docker create "$REF")
           docker export "$cid" -o rootfs.tar
