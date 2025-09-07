@@ -33,6 +33,8 @@ RUN \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-webhook/src,target=/app/crates/wazuh-cert-oauth2-webhook/src \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-metrics/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-metrics/Cargo.toml \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-metrics/src,target=/app/crates/wazuh-cert-oauth2-metrics/src \
+  --mount=type=bind,source=./crates/wazuh-cert-oauth2-healthcheck/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-healthcheck/Cargo.toml \
+  --mount=type=bind,source=./crates/wazuh-cert-oauth2-healthcheck/src,target=/app/crates/wazuh-cert-oauth2-healthcheck/src \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-webhook/Rocket.toml,target=/app/crates/wazuh-cert-oauth2-webhook/Rocket.toml \
   --mount=type=cache,target=/app/target \
   --mount=type=cache,target=/usr/local/cargo/registry/cache \
@@ -40,7 +42,8 @@ RUN \
   --mount=type=cache,target=/usr/local/cargo/git/db \
   cargo build --profile prod --locked \
   && cp ./target/prod/wazuh-cert-oauth2-server server \
-  && cp ./target/prod/wazuh-cert-oauth2-webhook webhook
+  && cp ./target/prod/wazuh-cert-oauth2-webhook webhook \
+  && cp ./target/prod/wazuh-cert-oauth2-healthcheck healthcheck
 
 FROM debian:12 as dep
 
@@ -76,12 +79,15 @@ ENV PORT=8100
 WORKDIR /app
 
 COPY --from=builder /app/webhook /app/webhook
+COPY --from=builder /app/healthcheck /app/healthcheck
 COPY --from=dep /deps /usr/lib/
 COPY --from=dep /deps/etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 USER nonroot:nonroot
 
 EXPOSE $PORT
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD ["/app/healthcheck"]
 
 ENTRYPOINT ["/app/webhook"]
 
@@ -96,11 +102,14 @@ ENV PORT=8000
 WORKDIR /app
 
 COPY --from=builder /app/server /app/server
+COPY --from=builder /app/healthcheck /app/healthcheck
 COPY --from=dep /deps /usr/lib/
 COPY --from=dep /deps/etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 USER nonroot:nonroot
 
 EXPOSE $PORT
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD ["/app/healthcheck"]
 
 ENTRYPOINT ["/app/server"]

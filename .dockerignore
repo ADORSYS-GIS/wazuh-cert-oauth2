@@ -9,6 +9,9 @@
 !crates/wazuh-cert-oauth2-model/src
 !crates/wazuh-cert-oauth2-model/Cargo.toml
 
+!crates/wazuh-cert-oauth2-healthcheck/src
+!crates/wazuh-cert-oauth2-healthcheck/Cargo.toml
+
 !crates/wazuh-cert-oauth2-client/src
 !crates/wazuh-cert-oauth2-client/Cargo.toml
 

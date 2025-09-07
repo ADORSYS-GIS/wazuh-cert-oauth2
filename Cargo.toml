@@ -4,15 +4,13 @@ members = [
     "crates/wazuh-cert-oauth2-client",
     "crates/wazuh-cert-oauth2-model",
     "crates/wazuh-cert-oauth2-webhook",
-    "crates/wazuh-cert-oauth2-metrics"
+    "crates/wazuh-cert-oauth2-metrics",
+    "crates/wazuh-cert-oauth2-healthcheck"
 ]
 resolver = "3"
 
 [workspace.dependencies]
-wazuh-cert-oauth2-server = { path = "crates/wazuh-cert-oauth2-server" }
-wazuh-cert-oauth2-client = { path = "crates/wazuh-cert-oauth2-client" }
 wazuh-cert-oauth2-model = { path = "crates/wazuh-cert-oauth2-model" }
-wazuh-cert-oauth2-webhook = { path = "crates/wazuh-cert-oauth2-webhook" }
 wazuh-cert-oauth2-metrics = { path = "crates/wazuh-cert-oauth2-metrics" }
 
 serde = { version = "1.0", features = ["derive"] }

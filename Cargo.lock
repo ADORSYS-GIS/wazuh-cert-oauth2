@@ -3244,6 +3244,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "wazuh-cert-oauth2-healthcheck"
+version = "0.2.20"
+dependencies = [
+ "clap",
+ "env_logger",
+ "log",
+ "reqwest",
+ "tokio",
+]
+
+[[package]]
 name = "wazuh-cert-oauth2-metrics"
 version = "0.2.20"
 dependencies = [

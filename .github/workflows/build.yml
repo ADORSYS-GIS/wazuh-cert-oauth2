@@ -122,9 +122,9 @@ jobs:
       - name: Set canonical image ref
         id: img
         run: |
-          echo "image=${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}" >> $GITHUB_OUTPUT
-          echo "digest=${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
-          echo "ref=${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+          printf "image=%s\n" "${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
+          printf "digest=%s\n" "${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          printf "ref=%s\n" "${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.7.0
@@ -134,7 +134,7 @@ jobs:
           cosign sign --yes "${{ steps.img.outputs.ref }}"
         env:
           COSIGN_EXPERIMENTAL: "true"
-      
+
       # Optional: materialize an SBOM file in SPDX too (in addition to BuildKit’s)
       - name: Generate SBOM (Syft)
         uses: anchore/sbom-action@v0
