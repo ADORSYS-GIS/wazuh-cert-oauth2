@@ -8,100 +8,110 @@ on:
       - 'v*'
     paths:
       - '.github/workflows/release.yml'
-      - 'wazuh-cert-oauth2-client/**'
-      - 'wazuh-cert-oauth2-model/**'
+      - 'crates/wazuh-cert-oauth2-client/**'
+      - 'crates/wazuh-cert-oauth2-model/**'
+      - 'crates/wazuh-cert-oauth2-model/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
 
 jobs:
-  build-ubuntu:
-    name: Build CLI
-    runs-on: ubuntu-latest
+  build-linux:
+    name: Build CLI (Linux)
+    permissions:
+      contents: read
     strategy:
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - aarch64-unknown-linux-gnu
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+          fetch-depth: "0"
+          persist-credentials: 'false'
 
-      - name: Cache Cargo build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+      # Note: intentionally avoid caches in release build to prevent cache poisoning
 
-      - name: Install cross
-        run: cargo install cross
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libssl-dev
 
-      - name: Build with cross
-        run: cross build --profile prod --target ${{ matrix.target }}
-        working-directory: wazuh-cert-oauth2-client
+      - name: Install Rust target
+        env:
+          TARGET: ${{ matrix.target }}
+        run: rustup target add "$TARGET"
+
+      - name: Build with cargo
+        env:
+          OPENSSL_NO_VENDOR: "1"
+          TARGET: ${{ matrix.target }}
+        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target "$TARGET"
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
+        env:
+          TARGET: ${{ matrix.target }}
+        run: mv "target/$TARGET/prod/wazuh-cert-oauth2-client" "wazuh-cert-oauth2-client-$TARGET"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}
 
   build-macos:
     name: Build CLI for macOS
-    runs-on: macos-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
-        target:
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
+        include:
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            brew_prefix: /usr/local/opt/openssl@3
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            brew_prefix: /opt/homebrew/opt/openssl@3
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+          fetch-depth: "0"
+          persist-credentials: 'false'
 
-      - name: Cache Cargo build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+      # Note: intentionally avoid caches in release build to prevent cache poisoning
+
+      - name: Install OpenSSL and pkg-config
+        run: |
+          brew update
+          brew install pkg-config openssl@3
 
       - name: Install macOS target
-        run: rustup target add ${{ matrix.target }}
+        env:
+          TARGET: ${{ matrix.target }}
+        run: rustup target add "$TARGET"
 
       - name: Build with cargo
-        run: cargo build --profile prod --target ${{ matrix.target }}
-        working-directory: wazuh-cert-oauth2-client
+        env:
+          PKG_CONFIG_PATH: ${{ matrix.brew_prefix }}/lib/pkgconfig
+          OPENSSL_NO_VENDOR: "1"
+          TARGET: ${{ matrix.target }}
+        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target "$TARGET"
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client wazuh-cert-oauth2-client-${{ matrix.target }}
+        env:
+          TARGET: ${{ matrix.target }}
+        run: mv "target/$TARGET/prod/wazuh-cert-oauth2-client" "wazuh-cert-oauth2-client-$TARGET"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}
@@ -109,6 +119,8 @@ jobs:
   build-windows:
     name: Build CLI for Windows
     runs-on: windows-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         target:
@@ -117,58 +129,86 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
+          fetch-depth: "0"
+          persist-credentials: 'false'
 
-      - name: Cache Cargo build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-build-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-${{ matrix.target }}-
+      # Note: intentionally avoid caches in release build to prevent cache poisoning
+
+      - name: Install OpenSSL via vcpkg
+        shell: pwsh
+        env:
+          MATRIX_TARGET: ${{ matrix.target }}
+        run: |
+          git clone https://github.com/microsoft/vcpkg $env:USERPROFILE\vcpkg
+          & $env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat
+          $triplet = "x64-windows"
+          if ($env:MATRIX_TARGET -eq "aarch64-pc-windows-msvc") { $triplet = "arm64-windows" }
+          & $env:USERPROFILE\vcpkg\vcpkg.exe install openssl:$triplet
+          # Prefer dynamic linkage for OpenSSL from vcpkg on Windows
+          echo "VCPKG_ROOT=$env:USERPROFILE\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "VCPKGRS_TRIPLET=$triplet" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "VCPKGRS_DYNAMIC=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # Export OpenSSL dirs for both generic and target-specific envs
+          $OPENSSL_DIR = "$env:USERPROFILE\vcpkg\installed\$triplet"
+          echo "OPENSSL_DIR=$OPENSSL_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "OPENSSL_LIB_DIR=$OPENSSL_DIR\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "OPENSSL_INCLUDE_DIR=$OPENSSL_DIR\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          if ($triplet -eq 'arm64-windows') {
+            echo "AARCH64_PC_WINDOWS_MSVC_OPENSSL_DIR=$OPENSSL_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "AARCH64_PC_WINDOWS_MSVC_OPENSSL_LIB_DIR=$OPENSSL_DIR\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "AARCH64_PC_WINDOWS_MSVC_OPENSSL_INCLUDE_DIR=$OPENSSL_DIR\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          } else {
+            echo "X86_64_PC_WINDOWS_MSVC_OPENSSL_DIR=$OPENSSL_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "X86_64_PC_WINDOWS_MSVC_OPENSSL_LIB_DIR=$OPENSSL_DIR\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            echo "X86_64_PC_WINDOWS_MSVC_OPENSSL_INCLUDE_DIR=$OPENSSL_DIR\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          }
 
       - name: Install Windows target
-        run: rustup target add ${{ matrix.target }}
+        shell: pwsh
+        env:
+          TARGET: ${{ matrix.target }}
+        run: rustup target add $env:TARGET
 
       - name: Build with cargo
-        run: cargo build --profile prod --target ${{ matrix.target }}
-        working-directory: wazuh-cert-oauth2-client
+        shell: pwsh
+        env:
+          TARGET: ${{ matrix.target }}
+        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target $env:TARGET
 
       - name: Rename resource
-        run: mv wazuh-cert-oauth2-client/target/${{ matrix.target }}/prod/wazuh-cert-oauth2-client.exe wazuh-cert-oauth2-client-${{ matrix.target }}.exe
+        shell: pwsh
+        env:
+          TARGET: ${{ matrix.target }}
+        run: Move-Item -Path "target/$env:TARGET/prod/wazuh-cert-oauth2-client.exe" -Destination "wazuh-cert-oauth2-client-$env:TARGET.exe"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}.exe
 
   release:
     name: Release
-    permissions: write-all
+    permissions:
+      contents: write
     needs:
-      - build-ubuntu
+      - build-linux
       - build-macos
       - build-windows
     runs-on: ubuntu-latest
     steps:
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # actions/create-release@v1
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -179,12 +219,12 @@ jobs:
           prerelease: false
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # actions/download-artifact@v4
         with:
           path: .
 
       - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: '**'

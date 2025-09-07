@@ -8,9 +8,13 @@ on:
       - 'v*'
     paths:
       - '.github/workflows/build.yml'
-      - 'wazuh-cert-oauth2/**'
-      - 'wazuh-cert-oauth2-model/**'
+      - 'crates/wazuh-cert-oauth2-server/**'
+      - 'crates/wazuh-cert-oauth2-metrics/**'
+      - 'crates/wazuh-cert-oauth2-model/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
       - 'Dockerfile'
+      - '.dockerignore'
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,29 +23,52 @@ env:
 
 jobs:
   build:
-
+    name: Docker build for ${{ matrix.flavour }}
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        flavour:
+          - OAuth2
+          - Webhook
+        include:
+          - flavour: OAuth2
+            suffix: ""
+            docker_target: "oauth2"
+          - flavour: Webhook
+            suffix: "-webhook"
+            docker_target: "webhook"
     permissions:
       packages: write
       contents: read
       id-token: write # Required to sign SLSA provenance
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
         name: Checkout repository
         with:
           fetch-depth: "0"
+          persist-credentials: 'false'
+
+      - name: Dockerfile scan (Trivy)
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # aquasecurity/trivy-action@v0.28.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          trivy-config: 'trivy.yaml'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          hide-progress: true
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # docker/setup-buildx-action@v3
 
       - name: Login to the Docker registry
         id: login
-        uses: docker/login-action@v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -49,13 +76,13 @@ jobs:
 
       - id: lowercase
         name: Lowercase image name
-        uses: AsZc/change-string-case-action@v6
+        uses: AsZc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f # AsZc/change-string-case-action@v6
         with:
           string: ${{ env.IMAGE_NAME }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # docker/metadata-action@v5
         with:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
@@ -63,22 +90,21 @@ jobs:
             type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Europe/Berlin'}}
             type=sha,format=long
             type=sha,format=long,prefix={{branch}}
-          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}
+          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        if: always()
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+      # Note: omit Actions cache for Docker layers to avoid
+      #       cache-poisoning concerns flagged by Zizmor.
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        id: build
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # docker/build-push-action@v6
         if: github.event_name != 'pull_request'
         with:
+          pull: true
+          context: .
+          file: "Dockerfile"
           push: "true"
+          target: ${{ matrix.docker_target }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
@@ -87,3 +113,63 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache
           provenance: true
           sbom: true
+
+      - name: Set canonical image ref
+        id: img
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          REF: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}
+        run: |
+          {
+            printf 'image=%s\n' "$IMAGE"
+            printf 'digest=%s\n' "$DIGEST"
+            printf 'ref=%s\n' "$REF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@1aa8e0f2454b781fbf0fbf306a4c9533a0c57409 # sigstore/cosign-installer@v3.7.0
+
+      - name: Sign multi-arch image (keyless)
+        env:
+          REF: ${{ steps.img.outputs.ref }}
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign --yes "$REF"
+
+      # Optional: materialize an SBOM file in SPDX too (in addition to BuildKit’s)
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@da167eac915b4e86f08b264dbdbc867b61be6f0c # anchore/sbom-action@v0.20.5
+        with:
+          image: ${{ steps.img.outputs.ref }}
+          format: spdx-json
+          output-file: sbom-${{ matrix.flavour }}.spdx.json
+
+      - name: Attach SBOM as attestation
+        env:
+          REF: ${{ steps.img.outputs.ref }}
+        run: |
+          cosign attest --yes \
+            --predicate sbom-${{ matrix.flavour }}.spdx.json \
+            --type spdx \
+            "$REF"
+
+      - name: Vulnerability scan (Trivy)
+        id: trivy
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # aquasecurity/trivy-action@v0.28.0
+        with:
+          image-ref: ${{ steps.img.outputs.ref }}
+          format: 'table'
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      # Removed ClamAV malware scan to reduce pipeline flakiness and latency.
+
+      - name: Upload security artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
+        with:
+          name: security-${{ matrix.flavour }}
+          path: |
+            sbom-${{ matrix.flavour }}.spdx.json

@@ -1,41 +1,28 @@
-# Wazuh OAuth2 Proxy Server
+# Wazuh Certificate OAuth2
 
-[![Build Docker image](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/build.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/build.yml)
-[![Helm Publish](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/helm-publish.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/helm-publish.yml)
-[![Release Client](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/release.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/release.yml)
+Minimal overview for the workspace. Each crate has its own detailed README.
 
-This project demonstrate by example how to authenticate with Keycloak and 
-submit a certificate to the end use. The goal is for the user to send a 
-signed request after he go one from the server to the wazuh server, using
-the certificate that was signed by the server CA.
+## What is this?
 
-## Installation
-To install this, you need to have a Keycloak server running. You can use the
-docker-compose file in the `keycloak` folder to start a Keycloak server.
+Rust workspace providing certificate-based auth for Wazuh integrated with OAuth2/OIDC:
 
-```bash
-docker-compose -f keycloak/docker-compose.yml up -d
-```
+- Server: issues client certificates, keeps a ledger/CRL, and protects APIs with OIDC — see `crates/wazuh-cert-oauth2-server/README.md`.
+- Client CLI: obtains a token, generates key + CSR, and registers the agent — see `crates/wazuh-cert-oauth2-client/README.md`.
+- Webhook: consumes IdP events (e.g., Keycloak) and requests revocations — see `crates/wazuh-cert-oauth2-webhook/README.md`.
+- Shared model/telemetry helpers — see `crates/wazuh-cert-oauth2-model/README.md`.
 
-After that, you need to create a realm and a client in Keycloak. You can use
-the `keycloak/realm.json` file to import the realm configuration.
+Internal utilities: `wazuh-cert-oauth2-metrics`, `wazuh-cert-oauth2-healthcheck`.
 
-```bash
-curl -X POST -H "Content-Type: application/json" -d @keycloak/realm.json http://localhost:8080/auth/realms
-```
+## Quick start
 
-## Agent companion installation
-To install the agent companion, you need to run the script that will download
-it and install it for you:
+- Docker Compose (demo stack with Keycloak + Jaeger):
+  - `docker compose up -d --build`
+  - Server: `http://localhost:8000`, Webhook: `http://localhost:8100`
 
-```bash
-curl -sL https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/main/scripts/install.sh | bash
-```
+- Build from source:
+  - `cargo build --release`
+  - Example: `target/release/wazuh-cert-oauth2-server --oauth-issuer <url> --root-ca-path <pem> --root-ca-key-path <pem>`
 
-## Server companion installation
-The server companion is installed through a helm chart
+## License
 
-## Usage
-```bash
-wazuh-cert-oauth2-client -h
-```
+MIT — see `LICENSE`.

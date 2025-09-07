@@ -159,7 +159,7 @@ check_enrollment() {
             exit 1
         }
     fi
-    
+
     # Check and delete auth pass path if it exists
     if maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
         sed_alternative -i '/<authorization_pass_path>.*<\/authorization_pass_path>/d' "$OSSEC_CONF_PATH" || {

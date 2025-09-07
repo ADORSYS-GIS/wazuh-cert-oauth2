@@ -1,0 +1,188 @@
+global:
+  version: latest
+
+cert:
+  defaultPodOptions:
+    securityContext:
+      runAsUser: 1001
+      runAsGroup: 1001
+
+  controllers:
+    main:
+      type: deployment
+      replicas: 1
+      pod:
+        restartPolicy: OnFailure
+        labels:
+          main: wazuh-cert-oauth2-app
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - wazuh-cert-oauth2-app
+                topologyKey: "kubernetes.io/hostname"
+      labels:
+        main: main-app
+      initContainers:
+        permission-fix:
+          enabled: false
+          restartPolicy: Never
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          image:
+            repository: busybox
+            tag: latest
+            pullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -ex
+
+              # Ensure the directory exists
+              chown -R 1001:1001 /usr/share/wazuh-cert-oauth2/data
+              chmod -R 775 /usr/share/wazuh-cert-oauth2/data
+          resources:
+            requests:
+              cpu: 50m
+              memory: 10Mi
+            limits:
+              cpu: 100m
+              memory: 50Mi
+        ensure-ledger-csv:
+          enabled: true
+          image:
+            repository: busybox
+            tag: latest
+            pullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -ex
+              touch /usr/share/wazuh-cert-oauth2/data/ledger.csv
+          resources:
+            requests:
+              cpu: 50m
+              memory: 10Mi
+            limits:
+              cpu: 100m
+              memory: 50Mi
+      containers:
+        cert-app:
+          image:
+            repository: ghcr.io/adorsys-gis/wazuh-cert-oauth2
+            tag: '{{ .Values.global.version }}'
+            pullPolicy: IfNotPresent
+
+          resources:
+            requests:
+              cpu: 125m
+              memory: 256Mi
+            limits:
+              cpu: 400m
+              memory: 512Mi
+
+          env:
+            RUST_LOG: 'warn'
+            ROCKET_ADDRESS: '0.0.0.0'
+
+            OAUTH_ISSUER: 'http://host.docker.internal/realms/dev'
+
+            OTEL_EXPORTER_OTLP_ENDPOINT: 'http://alloy.collect:4317'
+            OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
+
+            ROOT_CA_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca.pem'
+            ROOT_CA_KEY_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem'
+            LEDGER_PATH: '/usr/share/wazuh-cert-oauth2/data/ledger.csv'
+
+            CRL_PATH: '/usr/share/wazuh-cert-oauth2/data/issuing.crl'
+            CRL_DIST_URL: 'https://this.server.ingress/crl/issuing.crl'
+
+          probes:
+            startup:
+              enabled: true
+              spec:
+                initialDelaySeconds: 0
+                periodSeconds: 5
+
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                exec:
+                  command:
+                    - /app/healthcheck
+                initialDelaySeconds: 0
+                periodSeconds: 5
+
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                exec:
+                  command:
+                    - /app/healthcheck
+                initialDelaySeconds: 0
+                periodSeconds: 5
+
+  service:
+    cert-app:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: main
+      ports:
+        http:
+          enabled: true
+          port: 8000
+          targetPort: 8000
+
+  ingress:
+    cert-app:
+      enabled: false
+      annotations: { }
+      className: 'nginx'
+      hosts:
+        - host: cert.example-wazuh.adorsys.com
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: cert-app
+                port: http
+      tls:
+        - secretName: example-wazuh-adorsys-com-secret
+          hosts:
+            - cert.example-wazuh.adorsys.com
+
+  persistence:
+    data:
+      enabled: true
+      type: emptyDir
+      advancedMounts:
+        main:
+          permission-fix:
+            - path: /usr/share/wazuh-cert-oauth2/data
+          ensure-ledger-csv:
+            - path: /usr/share/wazuh-cert-oauth2/data
+          cert-app:
+            - path: /usr/share/wazuh-cert-oauth2/data
+    certs:
+      enabled: true
+      type: secret
+      name: cert-secret
+      advancedMounts:
+        main:
+          cert-app:
+            - path: /usr/share/wazuh-cert-oauth2/certs/root-ca.pem
+              subPath: root-ca.pem
+              readOnly: true
+            - path: /usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem
+              subPath: root-ca-key.pem
+              readOnly: true

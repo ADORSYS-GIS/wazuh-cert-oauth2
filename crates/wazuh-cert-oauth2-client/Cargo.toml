@@ -1,0 +1,22 @@
+[package]
+name = "wazuh-cert-oauth2-client"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+tokio.workspace = true
+log.workspace = true
+env_logger.workspace = true
+clap.workspace = true
+oauth2.workspace = true
+mid.workspace = true
+rand.workspace = true
+diacritics.workspace = true
+openssl.workspace = true
+
+[dependencies.wazuh-cert-oauth2-model]
+features = ["openssl"]
+workspace = true

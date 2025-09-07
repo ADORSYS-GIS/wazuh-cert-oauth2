@@ -1,0 +1,12 @@
+cert:
+  controllers:
+    main:
+      initContainers:
+        permission-fix:
+          enabled: true
+  persistence:
+    data:
+      type: persistentVolumeClaim
+      accessMode: ReadWriteMany
+      size: 1Gi
+      storageClass: some-storage-class

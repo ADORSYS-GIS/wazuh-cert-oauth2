@@ -1,0 +1,168 @@
+global:
+  version: latest
+
+webhook:
+  defaultPodOptions:
+    securityContext:
+      runAsUser: 1001
+      runAsGroup: 1001
+
+  controllers:
+    main:
+      type: deployment
+      replicas: 1
+      pod:
+        labels:
+          main: wazuh-cert-oauth2-webhook-app
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              - labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - wazuh-cert-oauth2-webhook-app
+                topologyKey: "kubernetes.io/hostname"
+      labels:
+        main: main-app
+      initContainers:
+        permission-fix:
+          enabled: false
+          restartPolicy: Never
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          image:
+            repository: busybox
+            tag: latest
+            pullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -ex
+
+              # Ensure the directory exists
+              chown -R 1001:1001 /var/cache/wazuh-cert-oauth2-webhook/spool
+              chmod -R 775 /var/cache/wazuh-cert-oauth2-webhook/spool
+          resources:
+            requests:
+              cpu: 50m
+              memory: 10Mi
+            limits:
+              cpu: 100m
+              memory: 50Mi
+      containers:
+        app:
+          image:
+            repository: ghcr.io/adorsys-gis/wazuh-cert-oauth2-webhook
+            tag: '{{ .Values.global.version }}'
+            pullPolicy: IfNotPresent
+
+          resources:
+            requests:
+              cpu: 125m
+              memory: 256Mi
+            limits:
+              cpu: 400m
+              memory: 512Mi
+
+          env:
+            SERVER_BASE_URL: 'https://cert.adorsys'
+            SPOOL_DIR: '/var/cache/wazuh-cert-oauth2-webhook/spool'
+
+            RUST_LOG: 'warn'
+            ROCKET_ADDRESS: '0.0.0.0'
+
+            OTEL_EXPORTER_OTLP_ENDPOINT: 'http://alloy.collect:4317'
+            OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
+
+            OAUTH_ISSUER: https://keycloak.login/realms/adorsys
+            OAUTH_CLIENT_ID:
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-oauth2-client-credentials
+                  key: client-id
+            OAUTH_CLIENT_SECRET:
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-oauth2-client-credentials
+                  key: client-secret
+            WEBHOOK_BASIC_USER:
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-basic-credentials
+                  key: user
+            WEBHOOK_BASIC_PASSWORD:
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-basic-credentials
+                  key: password
+
+          probes:
+            startup:
+              enabled: true
+              spec:
+                initialDelaySeconds: 0
+                periodSeconds: 5
+
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                exec:
+                  command:
+                    - /app/healthcheck
+                initialDelaySeconds: 0
+                periodSeconds: 5
+
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                exec:
+                  command:
+                    - /app/healthcheck
+                initialDelaySeconds: 0
+                periodSeconds: 5
+  service:
+    app:
+      enabled: true
+      annotations: { }
+      type: ClusterIP
+      controller: main
+      ports:
+        http:
+          enabled: true
+          port: 8100
+          targetPort: 8100
+
+  ingress:
+    app:
+      enabled: false
+      annotations: { }
+      className: 'nginx'
+      hosts:
+        - host: webhook.example-wazuh.adorsys.com
+          paths:
+            - path: /
+              pathType: Prefix
+              service:
+                identifier: app
+                port: http
+      tls:
+        - secretName: webhook-example-wazuh-adorsys-com-secret
+          hosts:
+            - webhook.example-wazuh.adorsys.com
+
+  persistence:
+    data:
+      enabled: true
+      type: emptyDir
+      advancedMounts:
+        main:
+          permission-fix:
+            - path: /var/cache/wazuh-cert-oauth2-webhook/spool
+          app:
+            - path: /var/cache/wazuh-cert-oauth2-webhook/spool

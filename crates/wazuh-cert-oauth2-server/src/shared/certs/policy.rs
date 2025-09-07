@@ -1,0 +1,34 @@
+use openssl::nid::Nid;
+use openssl::pkey::Id as PKeyId;
+use openssl::pkey::PKey;
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
+
+pub(crate) fn enforce_key_policy(pkey: &PKey<openssl::pkey::Public>) -> AppResult<()> {
+    match pkey.id() {
+        PKeyId::RSA => {
+            let rsa = pkey.rsa()?;
+            let bits = (rsa.size() as usize) * 8;
+            if bits < 2048 {
+                return Err(AppError::KeyPolicyRsaTooSmall { bits });
+            }
+        }
+        PKeyId::EC => {
+            let ec = pkey.ec_key()?;
+            let nid = ec
+                .group()
+                .curve_name()
+                .ok_or(AppError::KeyPolicyUnknownEcCurve)?;
+            if nid != Nid::X9_62_PRIME256V1 {
+                return Err(AppError::KeyPolicyUnsupportedEcCurve {
+                    nid: format!("{:?}", nid),
+                });
+            }
+        }
+        other => {
+            return Err(AppError::KeyPolicyUnsupportedKeyType {
+                key_type: format!("{:?}", other),
+            });
+        }
+    }
+    Ok(())
+}

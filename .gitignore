@@ -2,4 +2,18 @@
 
 .idea
 *.pem
-charts
+*.cert
+*.key
+*/charts
+target
+.DS_Store
+
+*.csv
+*.crl
+
+tmp
+test.yaml
+*.tgz
+
+.trivycache
+spool

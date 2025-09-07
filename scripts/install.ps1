@@ -105,10 +105,10 @@ function ConfigureEnrollment {
     $agentName = "AGENT_NAME"
 
     if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
-    
+
         # Read the OSSEC configuration file
         $configContent = Get-Content -Path $OSSEC_CONF_PATH -Raw
-        
+
         $enrollmentBlock = @"
 <enrollment>
     <agent_name>$agentName</agent_name>
@@ -116,10 +116,10 @@ function ConfigureEnrollment {
     <agent_key_path>$keyPath</agent_key_path>
 </enrollment>
 "@
-        
+
         # Define the pattern to locate the server block
         $serverPattern = "<server>[\s\S]*?</server>"
-        
+
         # Find the end of the server block and insert the enrollment block afterward
         if ($configContent -match $serverPattern) {
             $updatedConfig = $configContent -replace "($serverPattern)", "`$1`n$enrollmentBlock"
@@ -218,7 +218,7 @@ New-Item -ItemType Directory -Path $BIN_DIR -Force
 
 # Check if the file already exists and remove it if so
 if (Test-Path $BIN_DIR\$APP_NAME.exe) {
-    WarnMessage "File $BIN_DIR\$APP_NAME.exe already exists. Replacing it..." 
+    WarnMessage "File $BIN_DIR\$APP_NAME.exe already exists. Replacing it..."
     Remove-Item -Path $BIN_DIR\$APP_NAME.exe -Force
 }
 
