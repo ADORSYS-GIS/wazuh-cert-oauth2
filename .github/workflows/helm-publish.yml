@@ -7,7 +7,7 @@ on:
     tags:
       - 'v*'
     paths:
-      - 'charts/*/Chart.yaml'
+      - 'charts/'
       - '.github/workflows/helm-publish.yml'
 
 jobs:

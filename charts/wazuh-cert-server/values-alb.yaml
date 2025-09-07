@@ -1,4 +1,14 @@
+global:
+  domain: cert.example-wazuh.adorsys.com
+  certArn: arn::other::stuffs
+
 cert:
+  controllers:
+    main:
+      containers:
+        cert-app:
+          env:
+            CRL_DIST_URL: 'https://{{ .Values.global.domain }}/crl/issuing.crl'
   ingress:
     app:
       enabled: true
@@ -28,7 +38,7 @@ cert:
               ]
             }
           }
-        alb.ingress.kubernetes.io/certificate-arn: '{{ .Values.global.eks.domain.wildcardCertArn }}'
+        alb.ingress.kubernetes.io/certificate-arn: '{{ .Values.global.certArn }}'
         alb.ingress.kubernetes.io/ssl-redirect: '443'
-        external-dns.alpha.kubernetes.io/hostname: 'cert.{{ .Values.global.domain }}'
+        external-dns.alpha.kubernetes.io/hostname: '{{ .Values.global.domain }}'
         alb.ingress.kubernetes.io/healthcheck-path: '/health'

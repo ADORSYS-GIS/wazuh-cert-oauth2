@@ -87,7 +87,7 @@ USER nonroot:nonroot
 
 EXPOSE $PORT
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD ["/app/healthcheck"]
+HEALTHCHECK --interval=10s --timeout=3s --start-period=2s --retries=5 CMD ["/app/healthcheck"]
 
 ENTRYPOINT ["/app/webhook"]
 
@@ -110,6 +110,6 @@ USER nonroot:nonroot
 
 EXPOSE $PORT
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD ["/app/healthcheck"]
+HEALTHCHECK --interval=10s --timeout=3s --start-period=2s --retries=5 CMD ["/app/healthcheck"]
 
 ENTRYPOINT ["/app/server"]

@@ -28,6 +28,8 @@ webhook:
         main: main-app
       initContainers:
         permission-fix:
+          enabled: false
+          restartPolicy: Never
           securityContext:
             runAsUser: 0
             runAsGroup: 0
@@ -42,8 +44,8 @@ webhook:
               set -ex
 
               # Ensure the directory exists
-              chown -R 1001:1001 /data/spool
-              chmod -R 775 /data/spool
+              chown -R 1001:1001 /var/cache/wazuh-cert-oauth2-webhook/spool
+              chmod -R 775 /var/cache/wazuh-cert-oauth2-webhook/spool
           resources:
             requests:
               cpu: 50m
@@ -66,19 +68,15 @@ webhook:
               cpu: 400m
               memory: 512Mi
 
-          # -- ConfigMap to be loaded as environment variables
-          envFrom:
-            - configMapRef:
-                identifier: config
-            - secretRef:
-                identifier: config
-
           env:
             SERVER_BASE_URL: 'https://cert.adorsys'
-            SPOOL_DIR: '/data/spool'
+            SPOOL_DIR: '/var/cache/wazuh-cert-oauth2-webhook/spool'
 
-            RUST_LOG: 'info'
+            RUST_LOG: 'warn'
             ROCKET_ADDRESS: '0.0.0.0'
+
+            OTEL_EXPORTER_OTLP_ENDPOINT: 'http://alloy.collect:4317'
+            OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
 
             OAUTH_ISSUER: https://keycloak.login/realms/adorsys
             OAUTH_CLIENT_ID:
@@ -91,12 +89,43 @@ webhook:
                 secretKeyRef:
                   name: webhook-oauth2-client-credentials
                   key: client-secret
+            WEBHOOK_BASIC_USER:
+              valueFrom:
+                secretKeyRef:
+                  name: webhook-basic-credentials
+                  key: user
             WEBHOOK_BASIC_PASSWORD:
               valueFrom:
                 secretKeyRef:
                   name: webhook-basic-credentials
                   key: password
 
+          probes:
+            startup:
+              enabled: true
+              spec:
+                initialDelaySeconds: 0
+                periodSeconds: 5
+
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                exec:
+                  command:
+                    - /app/healthcheck
+                initialDelaySeconds: 0
+                periodSeconds: 5
+
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                exec:
+                  command:
+                    - /app/healthcheck
+                initialDelaySeconds: 0
+                periodSeconds: 5
   service:
     app:
       enabled: true
@@ -113,7 +142,7 @@ webhook:
     app:
       enabled: false
       annotations: { }
-      #className: 'nginx'
+      className: 'nginx'
       hosts:
         - host: webhook.example-wazuh.adorsys.com
           paths:
@@ -127,30 +156,13 @@ webhook:
           hosts:
             - webhook.example-wazuh.adorsys.com
 
-  configMaps:
-    config:
-      enabled: true
-      annotations:
-        description: 'Common configuration for the webhook.'
-      data:
-        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://alloy.collect:4317'
-        OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
-
-  secrets:
-    config:
-      stringData:
-        WEBHOOK_BASIC_USER: 'user'
-
   persistence:
     data:
       enabled: true
-      type: persistentVolumeClaim
-      accessMode: ReadWriteMany
-      size: 1Gi
-      storageClass: some-storage-class
+      type: emptyDir
       advancedMounts:
         main:
           permission-fix:
-            - path: /data/spool
+            - path: /var/cache/wazuh-cert-oauth2-webhook/spool
           app:
-            - path: /data/spool
+            - path: /var/cache/wazuh-cert-oauth2-webhook/spool
