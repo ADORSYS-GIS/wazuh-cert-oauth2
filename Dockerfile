@@ -79,6 +79,8 @@ COPY --from=builder /app/webhook /app/webhook
 COPY --from=dep /deps /usr/lib/
 COPY --from=dep /deps/etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
+USER nonroot:nonroot
+
 EXPOSE $PORT
 
 ENTRYPOINT ["/app/webhook"]
@@ -96,6 +98,8 @@ WORKDIR /app
 COPY --from=builder /app/server /app/server
 COPY --from=dep /deps /usr/lib/
 COPY --from=dep /deps/etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+USER nonroot:nonroot
 
 EXPOSE $PORT
 

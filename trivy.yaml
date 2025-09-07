@@ -1,37 +1,34 @@
- # Basic Trivy configuration
+# Basic Trivy configuration
 
- # Output format
- format: table
+# Output format
+format: table
 
- # Only show high/critical issues
- severity:
-   - CRITICAL
-   - HIGH
+# Only show high/critical issues
+severity:
+  - CRITICAL
+  - HIGH
 
- # Local cache directory (useful for CI caching)
- cache:
-   dir: ./.trivycache
+# Local cache directory (useful for CI caching)
+cache:
+  dir: ./.trivycache
 
- # Timeout for DB downloads and scans
- timeout: 5m
+# Timeout for DB downloads and scans
+timeout: 5m
 
- # Restrict scanning to config (IaC) checks only
-  scan:
-    scanners:
-      - config
-    # Only consider files named 'Dockerfile'
-    file-patterns:
-      - dockerfile:Dockerfile
+# Only consider files named 'Dockerfile' when running config scans
+scan:
+  file-patterns:
+    - dockerfile:Dockerfile
 
- # Within config scans, only run Dockerfile checks
- misconfiguration:
-   scanners:
-     - dockerfile
+# Within config scans, only run Dockerfile checks
+misconfiguration:
+  scanners:
+    - dockerfile
 
- # Vulnerability options (kept for consistency when vuln scans are used)
- pkg:
-   types:
-     - os
-     - library
- vulnerability:
-   ignore-unfixed: true
+# Vulnerability options (compatible with image scans used in CI)
+pkg:
+  types:
+    - os
+    - library
+vulnerability:
+  ignore-unfixed: true
