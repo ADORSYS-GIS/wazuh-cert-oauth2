@@ -50,7 +50,7 @@ jobs:
           persist-credentials: 'false'
 
       - name: Dockerfile scan (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # aquasecurity/trivy-action@v0.28.0
         with:
           scan-type: 'config'
           scan-ref: '.'
@@ -94,7 +94,7 @@ jobs:
 
       - name: Cache Docker layers
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # actions/cache@v4
-        if: always()
+        if: github.event_name == 'pull_request'
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
@@ -134,7 +134,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.7.0
+        uses: sigstore/cosign-installer@1aa8e0f2454b781fbf0fbf306a4c9533a0c57409 # sigstore/cosign-installer@v3.7.0
 
       - name: Sign multi-arch image (keyless)
         env:
@@ -145,7 +145,7 @@ jobs:
 
       # Optional: materialize an SBOM file in SPDX too (in addition to BuildKit’s)
       - name: Generate SBOM (Syft)
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@da167eac915b4e86f08b264dbdbc867b61be6f0c # anchore/sbom-action@v0.20.5
         with:
           image: ${{ steps.img.outputs.ref }}
           format: spdx-json
@@ -162,7 +162,7 @@ jobs:
 
       - name: Vulnerability scan (Trivy)
         id: trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: ${{ steps.img.outputs.ref }}
           format: 'table'
@@ -184,7 +184,7 @@ jobs:
           clamscan -r rootfs || true
 
       - name: Upload security artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
         with:
           name: security-${{ matrix.flavour }}
           path: |
