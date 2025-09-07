@@ -1,0 +1,3 @@
+{
+    "pre-commit-helper.config": ".pre-commit-config.yaml"
+}

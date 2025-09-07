@@ -106,6 +106,7 @@ jobs:
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # docker/build-push-action@v6
         if: github.event_name != 'pull_request'
         with:
+          pull: true
           context: .
           file: "Dockerfile"
           push: "true"
@@ -121,19 +122,26 @@ jobs:
 
       - name: Set canonical image ref
         id: img
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          REF: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}
         run: |
-          printf "image=%s\n" "${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}" >> "$GITHUB_OUTPUT"
-          printf "digest=%s\n" "${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
-          printf "ref=%s\n" "${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          {
+            printf 'image=%s\n' "$IMAGE"
+            printf 'digest=%s\n' "$DIGEST"
+            printf 'ref=%s\n' "$REF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.7.0
 
       - name: Sign multi-arch image (keyless)
-        run: |
-          cosign sign --yes "${{ steps.img.outputs.ref }}"
         env:
+          REF: ${{ steps.img.outputs.ref }}
           COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign --yes "$REF"
 
       # Optional: materialize an SBOM file in SPDX too (in addition to BuildKit’s)
       - name: Generate SBOM (Syft)
@@ -144,11 +152,13 @@ jobs:
           output-file: sbom-${{ matrix.flavour }}.spdx.json
 
       - name: Attach SBOM as attestation
+        env:
+          REF: ${{ steps.img.outputs.ref }}
         run: |
           cosign attest --yes \
             --predicate sbom-${{ matrix.flavour }}.spdx.json \
             --type spdx \
-            "${{ steps.img.outputs.ref }}"
+            "$REF"
 
       - name: Vulnerability scan (Trivy)
         id: trivy
@@ -162,10 +172,12 @@ jobs:
           ignore-unfixed: true
 
       - name: Malware scan (ClamAV)
+        env:
+          REF: ${{ steps.img.outputs.ref }}
         run: |
           sudo apt-get update -y && sudo apt-get install -y clamav
           sudo freshclam
-          cid=$(docker create "${{ steps.img.outputs.ref }}")
+          cid=$(docker create "$REF")
           docker export "$cid" -o rootfs.tar
           mkdir rootfs && tar -xf rootfs.tar -C rootfs
           # ClamAV returns 1 on "found", 0 on clean, >1 on error.

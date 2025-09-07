@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "elagil.pre-commit-helper",
+        "ms-azuretools.vscode-containers",
+        "fill-labs.dependi",
+        "ms-azuretools.vscode-docker",
+        "docker.docker",
+        "fnando.linter",
+        "rooveterinaryinc.roo-cline"
+    ]
+}
