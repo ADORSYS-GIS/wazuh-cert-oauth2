@@ -94,7 +94,7 @@ jobs:
 
       - name: Cache Docker layers
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # actions/cache@v4
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-buildx-${{ github.sha }}
