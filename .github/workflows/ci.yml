@@ -63,7 +63,7 @@ jobs:
         with:
           cache: false
       - name: Run cargo-deny
-        uses: EmbarkStudios/cargo-deny-action@b0aeff9875d659325e3485c0093059582a2cd40b # EmbarkStudios/cargo-deny-action@v2
+        uses: EmbarkStudios/cargo-deny-action@f2ba7abc2abebaf185c833c3961145a3c275caad # EmbarkStudios/cargo-deny-action@v2
         with:
           command: check ${{ matrix.checks }}
 
