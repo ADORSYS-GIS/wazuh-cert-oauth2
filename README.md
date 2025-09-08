@@ -1,5 +1,11 @@
 # Wazuh Certificate OAuth2
 
+[![Code Linting and SAST](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/ci.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/ci.yml)
+[![Release Client](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/release.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/release.yml)
+[![Helm Publish](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/helm-publish.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/helm-publish.yml)
+[![Dependabot Updates](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/dependabot/dependabot-updates)
+[![Build Docker image](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/build.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/build.yml)
+
 Minimal overview for the workspace. Each crate has its own detailed README.
 
 ## What is this?
