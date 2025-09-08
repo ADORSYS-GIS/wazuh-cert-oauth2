@@ -43,14 +43,14 @@ jobs:
       id-token: write # Required to sign SLSA provenance
 
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         name: Checkout repository
         with:
           fetch-depth: "0"
           persist-credentials: 'false'
 
       - name: Dockerfile scan (Trivy)
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
           scan-type: 'config'
           scan-ref: '.'
@@ -61,14 +61,14 @@ jobs:
           hide-progress: true
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435
 
       - name: Login to the Docker registry
         id: login
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # docker/login-action@v3
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -76,13 +76,13 @@ jobs:
 
       - id: lowercase
         name: Lowercase image name
-        uses: AsZc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f # AsZc/change-string-case-action@v6
+        uses: AsZc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f
         with:
           string: ${{ env.IMAGE_NAME }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # docker/metadata-action@v5
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f
         with:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
@@ -92,12 +92,9 @@ jobs:
             type=sha,format=long,prefix={{branch}}
           images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}
 
-      # Note: omit Actions cache for Docker layers to avoid
-      #       cache-poisoning concerns flagged by Zizmor.
-
       - name: Build and push
         id: build
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # docker/build-push-action@v6
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         if: github.event_name != 'pull_request'
         with:
           pull: true
@@ -128,7 +125,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # sigstore/cosign-installer@v3.7.0
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da
 
       - name: Sign multi-arch image (keyless)
         env:
@@ -136,14 +133,6 @@ jobs:
           COSIGN_EXPERIMENTAL: "true"
         run: |
           cosign sign --yes "$REF"
-
-      # Optional: materialize an SBOM file in SPDX too (in addition to BuildKit’s)
-      - name: Generate SBOM (Syft)
-        uses: anchore/sbom-action@da167eac915b4e86f08b264dbdbc867b61be6f0c # anchore/sbom-action@v0.20.5
-        with:
-          image: ${{ steps.img.outputs.ref }}
-          format: spdx-json
-          output-file: sbom-${{ matrix.flavour }}.spdx.json
 
       - name: Attach SBOM as attestation
         env:
@@ -156,7 +145,7 @@ jobs:
 
       - name: Vulnerability scan (Trivy)
         id: trivy
-        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8 # aquasecurity/trivy-action@v0.33.1
+        uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
         with:
           image-ref: ${{ steps.img.outputs.ref }}
           format: 'table'
@@ -165,10 +154,8 @@ jobs:
           exit-code: '1'
           ignore-unfixed: true
 
-      # Removed ClamAV malware scan to reduce pipeline flakiness and latency.
-
       - name: Upload security artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: security-${{ matrix.flavour }}
           path: |
