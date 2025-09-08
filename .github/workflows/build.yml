@@ -127,22 +127,6 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da
 
-      - name: Sign multi-arch image (keyless)
-        env:
-          REF: ${{ steps.img.outputs.ref }}
-          COSIGN_EXPERIMENTAL: "true"
-        run: |
-          cosign sign --yes "$REF"
-
-      - name: Attach SBOM as attestation
-        env:
-          REF: ${{ steps.img.outputs.ref }}
-        run: |
-          cosign attest --yes \
-            --predicate sbom-${{ matrix.flavour }}.spdx.json \
-            --type spdx \
-            "$REF"
-
       - name: Vulnerability scan (Trivy)
         id: trivy
         uses: aquasecurity/trivy-action@b6643a29fecd7f34b3597bc6acb0a98b03d33ff8
@@ -153,10 +137,3 @@ jobs:
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
           ignore-unfixed: true
-
-      - name: Upload security artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: security-${{ matrix.flavour }}
-          path: |
-            sbom-${{ matrix.flavour }}.spdx.json
