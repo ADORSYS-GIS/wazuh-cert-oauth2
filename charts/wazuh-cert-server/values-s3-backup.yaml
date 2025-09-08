@@ -1,0 +1,56 @@
+cert:
+  controllers:
+    main:
+      initContainers:
+        s3-init:
+          enabled: true
+          env:
+            AWS_DEFAULT_REGION: eu-central-1
+            # Optional: set a custom S3 endpoint for S3-compatible storage (e.g., MinIO)
+            # AWS_ENDPOINT_URL: "https://minio.local:9000"
+            # Choose either S3_URI or S3_BUCKET (+ optional S3_PREFIX)
+            # S3_URI: "s3://wazuh-cert-crl-backups/wazuh-cert-server/issuing.crl"
+            S3_BUCKET: wazuh-cert-crl-backups
+            S3_PREFIX: wazuh-cert-server
+            # Optional: override if different from default
+            # CRL_PATH: "/usr/share/wazuh-cert-oauth2/data/issuing.crl"
+            AWS_ACCESS_KEY_ID:
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-credentials
+                  key: access_key_id
+            AWS_SECRET_ACCESS_KEY:
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-credentials
+                  key: secret_access_key
+      containers:
+        s3-backup:
+          enabled: true
+          env:
+            AWS_DEFAULT_REGION: eu-central-1
+            # Optional: set a custom S3 endpoint for S3-compatible storage (e.g., MinIO)
+            # AWS_ENDPOINT_URL: "https://minio.local:9000"
+            # Choose either S3_URI or S3_BUCKET (+ optional S3_PREFIX)
+            # S3_URI: "s3://wazuh-cert-crl-backups/wazuh-cert-server/issuing.crl"
+            S3_BUCKET: wazuh-cert-crl-backups
+            S3_PREFIX: wazuh-cert-server
+            # Optional: override if different from default
+            # CRL_PATH: "/usr/share/wazuh-cert-oauth2/data/issuing.crl"
+            S3_SYNC_INTERVAL: "30"
+            AWS_ACCESS_KEY_ID:
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-credentials
+                  key: access_key_id
+            AWS_SECRET_ACCESS_KEY:
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-credentials
+                  key: secret_access_key
+  configMaps:
+    scripts:
+      enabled: true
+  persistence:
+    scripts:
+      enabled: true
