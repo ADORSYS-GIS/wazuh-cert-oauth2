@@ -59,7 +59,7 @@ jobs:
           fetch-depth: "0"
           persist-credentials: 'false'
       - name: Install Rust
-        uses: actions-rust-lang/setup-rust-toolchain@2fcdc490d667999e01ddbbf0f2823181beef6b39 # actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@02be93da58aa71fb456aa9c43b301149248829d8 # actions-rust-lang/setup-rust-toolchain@v1
         with:
           cache: false
       - name: Run cargo-deny
@@ -79,7 +79,7 @@ jobs:
           fetch-depth: "0"
           persist-credentials: 'false'
       - name: Install Rust
-        uses: actions-rust-lang/setup-rust-toolchain@2fcdc490d667999e01ddbbf0f2823181beef6b39 # actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@02be93da58aa71fb456aa9c43b301149248829d8 # actions-rust-lang/setup-rust-toolchain@v1
         with:
           cache: false
           components: clippy, rustfmt
