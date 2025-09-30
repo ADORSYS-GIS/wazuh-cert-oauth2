@@ -223,7 +223,6 @@ if (Test-Path $BIN_DIR\$APP_NAME.exe) {
 }
 
 Move-Item -Path $TEMP_FILE -Destination "$BIN_DIR\$APP_NAME.exe"
-icacls "$BIN_DIR\$APP_NAME.exe" /grant Users:RX
 
 # Step 3: Configure agent certificates
 PrintStep 3 "Configuring Wazuh agent certificates..."
