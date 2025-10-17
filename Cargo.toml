@@ -39,7 +39,7 @@ openssl-sys = "0.9"
 foreign-types = "0"
 
 opentelemetry = { version = "0.30" }
-opentelemetry-otlp = { version = "0.30", features = ["tokio", "metrics", "trace", "grpc-tonic", "gzip-tonic", "tls", "serialize"] }
+opentelemetry-otlp = { version = "0.31", features = ["tokio", "metrics", "trace", "grpc-tonic", "gzip-tonic", "tls", "serialize"] }
 opentelemetry_sdk = { version = "0.30", features = ["tokio", "metrics", "rt-tokio", "trace"] }
 tracing-opentelemetry = { version = "0.31" }
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "serde", "serde_json", "json", "ansi", "chrono", "local-time", "time", "tracing"] }
