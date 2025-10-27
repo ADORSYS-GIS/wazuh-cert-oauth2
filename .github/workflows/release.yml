@@ -59,7 +59,7 @@ jobs:
         run: mv "target/$TARGET/prod/wazuh-cert-oauth2-client" "wazuh-cert-oauth2-client-$TARGET"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}
@@ -111,7 +111,7 @@ jobs:
         run: mv "target/$TARGET/prod/wazuh-cert-oauth2-client" "wazuh-cert-oauth2-client-$TARGET"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}
@@ -184,7 +184,7 @@ jobs:
         run: Move-Item -Path "target/$env:TARGET/prod/wazuh-cert-oauth2-client.exe" -Destination "wazuh-cert-oauth2-client-$env:TARGET.exe"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}.exe
