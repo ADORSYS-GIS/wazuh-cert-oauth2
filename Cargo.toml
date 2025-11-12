@@ -41,7 +41,7 @@ foreign-types = "0"
 opentelemetry = { version = "0.30" }
 opentelemetry-otlp = { version = "0.30", features = ["tokio", "metrics", "trace", "grpc-tonic", "gzip-tonic", "tls", "serialize"] }
 opentelemetry_sdk = { version = "0.30", features = ["tokio", "metrics", "rt-tokio", "trace"] }
-tracing-opentelemetry = { version = "0.31" }
+tracing-opentelemetry = { version = "0.32" }
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "serde", "serde_json", "json", "ansi", "chrono", "local-time", "time", "tracing"] }
 tracing = { version = "0", features = ["attributes", "async-await", "std"] }
 prometheus = { version = "0" }
