@@ -3240,7 +3240,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-client"
-version = "0.2.20-rc.3"
+version = "0.2.22-rc.1"
 dependencies = [
  "clap",
  "diacritics",
@@ -3256,7 +3256,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-healthcheck"
-version = "0.2.20-rc.3"
+version = "0.2.22-rc.1"
 dependencies = [
  "clap",
  "env_logger",
@@ -3267,7 +3267,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-metrics"
-version = "0.2.20-rc.3"
+version = "0.2.22-rc.1"
 dependencies = [
  "once_cell",
  "opentelemetry",
@@ -3275,7 +3275,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-model"
-version = "0.2.20-rc.3"
+version = "0.2.22-rc.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3300,7 +3300,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-server"
-version = "0.2.20-rc.3"
+version = "0.2.22-rc.1"
 dependencies = [
  "clap",
  "foreign-types",
@@ -3320,7 +3320,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-webhook"
-version = "0.2.20-rc.3"
+version = "0.2.22-rc.1"
 dependencies = [
  "base64 0.22.1",
  "clap",

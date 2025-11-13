@@ -20,7 +20,7 @@ Standard OpenTelemetry variables are honored by the OTLP exporters:
 - `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` (optional): override metrics endpoint.
 - `OTEL_EXPORTER_OTLP_PROTOCOL` (default: `grpc`): Protocol for OTLP export. Only `grpc` is supported; HTTP/JSON or HTTP/Protobuf exporters are not supported.
 - `OTEL_EXPORTER_OTLP_HEADERS` (optional): Additional headers (e.g., auth) for the exporter.
-- `OTEL_RESOURCE_ATTRIBUTES` (optional): comma‑separated resource attributes (e.g., `service.version=0.2.20,deployment.environment=prod`).
+- `OTEL_RESOURCE_ATTRIBUTES` (optional): comma‑separated resource attributes (e.g., `service.version=0.2.22,deployment.environment=prod`).
 
 Implementation defaults (code-controlled)
 
