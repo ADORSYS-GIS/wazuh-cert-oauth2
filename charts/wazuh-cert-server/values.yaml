@@ -1,4 +1,5 @@
 global:
+  domain: cert.example-wazuh.adorsys.com
   version: latest
 
 cert:
@@ -268,17 +269,18 @@ cert:
       annotations: { }
       className: 'nginx'
       hosts:
-        - host: cert.example-wazuh.adorsys.com
+        - host: '{{ .Values.global.domain }}'
           paths:
             - path: /
               pathType: Prefix
               service:
                 identifier: main
                 port: http
-      tls:
-        - secretName: example-wazuh-adorsys-com-secret
-          hosts:
-            - cert.example-wazuh.adorsys.com
+      tls: []
+#      tls:
+#        - secretName: 'tls-{{ .Values.global.domain }}-secret'
+#          hosts:
+#            - '{{ .Values.global.domain }}'
 
   persistence:
     data:
