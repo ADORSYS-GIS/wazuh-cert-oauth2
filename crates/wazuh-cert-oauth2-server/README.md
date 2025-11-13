@@ -63,7 +63,7 @@ Telemetry env vars (gRPC only)
 - `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` (optional): override metrics endpoint.
 - `OTEL_EXPORTER_OTLP_PROTOCOL` (default `grpc`): protocol used. Only `grpc` is supported; HTTP/JSON or HTTP/Protobuf exporters are not supported.
 - `OTEL_EXPORTER_OTLP_HEADERS` (optional): additional headers (e.g., auth) to the collector.
-- `OTEL_RESOURCE_ATTRIBUTES` (optional): comma‑separated resource attributes (e.g., `service.version=0.2.22,deployment.environment=prod`).
+- `OTEL_RESOURCE_ATTRIBUTES` (optional): comma‑separated resource attributes (e.g., `service.version=0.2.23,deployment.environment=prod`).
 
 Metrics endpoint examples (gRPC)
 
