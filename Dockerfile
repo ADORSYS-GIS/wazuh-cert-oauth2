@@ -74,7 +74,7 @@ LABEL maintainer="Stephane Segning <selastlambou@gmail.com>"
 LABEL org.opencontainers.image.description="adorsys GIS Cameroon"
 
 ENV RUST_LOG=warn
-ENV PORT=8100
+ENV PORT=8000
 
 WORKDIR /app
 

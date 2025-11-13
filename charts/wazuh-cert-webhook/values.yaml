@@ -134,8 +134,8 @@ webhook:
       ports:
         http:
           enabled: true
-          port: 8100
-          targetPort: 8100
+          port: 8000
+          targetPort: 8000
 
   ingress:
     app:

@@ -45,7 +45,7 @@ services:
       OAUTH_CLIENT_ID: 'test-client-secret'
       OAUTH_CLIENT_SECRET: 'some-secret'
 
-      SERVER_BASE_URL: 'http://localhost:8100'
+      SERVER_BASE_URL: 'http://localhost:8000'
       SPOOL_DIR: '/data/spool'
 
       WEBHOOK_BASIC_USER: 'user'
