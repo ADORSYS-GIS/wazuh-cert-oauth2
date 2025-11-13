@@ -123,7 +123,7 @@ cert:
             LEDGER_PATH: '/usr/share/wazuh-cert-oauth2/data/ledger.csv'
 
             CRL_PATH: '/usr/share/wazuh-cert-oauth2/data/issuing.crl'
-            CRL_DIST_URL: 'https://this.server.ingress/crl/issuing.crl'
+            CRL_DIST_URL: 'https://{{ .Values.global.version }}/crl/issuing.crl'
 
           probes:
             startup:
