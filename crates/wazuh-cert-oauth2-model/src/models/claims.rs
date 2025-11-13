@@ -14,6 +14,8 @@ pub struct Claims {
 
 impl Claims {
     pub fn get_name(&self) -> Option<String> {
-        self.name.clone().or_else(|| self.preferred_username.clone())
+        self.name
+            .clone()
+            .or_else(|| self.preferred_username.clone())
     }
 }
