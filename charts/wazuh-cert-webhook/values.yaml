@@ -68,6 +68,7 @@ webhook:
               memory: 512Mi
 
           env:
+            PORT: 8000
             SERVER_BASE_URL: 'https://cert.adorsys'
             SPOOL_DIR: '/var/cache/wazuh-cert-oauth2-webhook/spool'
 
