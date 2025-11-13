@@ -1,6 +1,6 @@
 webhook:
   controllers:
-    main:
+    app:
       initContainers:
         permission-fix:
           enabled: true
