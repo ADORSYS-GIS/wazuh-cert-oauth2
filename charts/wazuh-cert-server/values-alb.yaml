@@ -6,11 +6,11 @@ cert:
   controllers:
     main:
       containers:
-        cert-app:
+        main:
           env:
             CRL_DIST_URL: 'https://{{ .Values.global.domain }}/crl/issuing.crl'
   ingress:
-    app:
+    main:
       enabled: true
       className: alb
       annotations:

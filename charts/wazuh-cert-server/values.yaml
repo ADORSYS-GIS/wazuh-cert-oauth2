@@ -12,7 +12,6 @@ cert:
       type: deployment
       replicas: 1
       pod:
-        restartPolicy: OnFailure
         labels:
           main: wazuh-cert-oauth2-app
         affinity:
@@ -30,7 +29,6 @@ cert:
       initContainers:
         permission-fix:
           enabled: false
-          restartPolicy: Never
           securityContext:
             runAsUser: 0
             runAsGroup: 0
@@ -96,7 +94,7 @@ cert:
             - /bin/sh
             - /opt/scripts/s3-init.sh
       containers:
-        cert-app:
+        main:
           image:
             repository: ghcr.io/adorsys-gis/wazuh-cert-oauth2
             tag: '{{ .Values.global.version }}'
@@ -183,7 +181,7 @@ cert:
             - /bin/sh
             - /opt/scripts/s3-backup.sh
   service:
-    cert-app:
+    main:
       enabled: true
       annotations: { }
       type: ClusterIP
@@ -265,7 +263,7 @@ cert:
           fi
 
   ingress:
-    cert-app:
+    main:
       enabled: false
       annotations: { }
       className: 'nginx'
@@ -275,7 +273,7 @@ cert:
             - path: /
               pathType: Prefix
               service:
-                identifier: cert-app
+                identifier: main
                 port: http
       tls:
         - secretName: example-wazuh-adorsys-com-secret
@@ -294,7 +292,7 @@ cert:
             - path: /usr/share/wazuh-cert-oauth2/data
           s3-init:
             - path: /usr/share/wazuh-cert-oauth2/data
-          cert-app:
+          main:
             - path: /usr/share/wazuh-cert-oauth2/data
           s3-backup:
             - path: /usr/share/wazuh-cert-oauth2/data
@@ -314,7 +312,7 @@ cert:
       name: cert-secret
       advancedMounts:
         main:
-          cert-app:
+          main:
             - path: /usr/share/wazuh-cert-oauth2/certs/root-ca.pem
               subPath: root-ca.pem
               readOnly: true

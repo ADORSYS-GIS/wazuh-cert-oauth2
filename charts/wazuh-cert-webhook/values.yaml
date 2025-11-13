@@ -8,7 +8,7 @@ webhook:
       runAsGroup: 1001
 
   controllers:
-    main:
+    app:
       type: deployment
       replicas: 1
       pod:
@@ -131,7 +131,7 @@ webhook:
       enabled: true
       annotations: { }
       type: ClusterIP
-      controller: main
+      controller: app
       ports:
         http:
           enabled: true
@@ -161,7 +161,7 @@ webhook:
       enabled: true
       type: emptyDir
       advancedMounts:
-        main:
+        app:
           permission-fix:
             - path: /var/cache/wazuh-cert-oauth2-webhook/spool
           app:

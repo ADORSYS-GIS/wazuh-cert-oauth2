@@ -1,4 +1,3 @@
-use wazuh_cert_oauth2_model::models::claims::Claims;
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
@@ -58,7 +57,8 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
     .await?;
 
     debug!("Validating token & getting the name claim");
-    let Claims { name, sub, .. } = validate_token(&token, &jwks, &Some(kc_audiences)).await?;
+    let claims = validate_token(&token, &jwks, &Some(kc_audiences)).await?;
+    let sub = claims.sub.clone();
 
     debug!("Generating keypair and CSR");
     let (csr_pem, private_key_pem) = generate_key_and_csr(&sub)?;
@@ -77,7 +77,7 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
     .await?;
 
     if params.agent_control {
-        if let Some(name) = name {
+        if let Some(name) = claims.get_name() {
             debug!("Setting name");
             set_name(&name).await?;
         } else {
