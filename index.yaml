@@ -166,6 +166,38 @@ entries:
       category: Application
     apiVersion: v2
     appVersion: 0.2.23
+    created: "2025-11-13T19:37:33.588525962Z"
+    dependencies:
+    - name: common
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - common
+      - bitnami-common
+      version: 2.x.x
+    - alias: webhook
+      name: app-template
+      repository: https://bjw-s-labs.github.io/helm-charts
+      tags:
+      - bjw
+      - app
+      version: 4.0.1
+    description: A Helm chart for Kubernetes
+    digest: bbf537e779e156809811cceff3f215a1eb5369d85394be04ad0182c4f22b84bc
+    home: https://github.com/ADORSYS-GIS/wazuh-cert-oauth2
+    maintainers:
+    - email: selastlambou@gmail.com
+      name: Stephane Segning Lambou
+    name: wazuh-cert-webhook
+    sources:
+    - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2
+    type: application
+    urls:
+    - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/wazuh-cert-webhook-0.2.24/wazuh-cert-webhook-0.2.24.tgz
+    version: 0.2.24
+  - annotations:
+      category: Application
+    apiVersion: v2
+    appVersion: 0.2.23
     created: "2025-11-13T19:09:27.65636985Z"
     dependencies:
     - name: common
@@ -290,4 +322,4 @@ entries:
     urls:
     - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/wazuh-cert-webhook-0.2.20/wazuh-cert-webhook-0.2.20.tgz
     version: 0.2.20
-generated: "2025-11-13T19:30:27.621529921Z"
+generated: "2025-11-13T19:37:33.58855172Z"
