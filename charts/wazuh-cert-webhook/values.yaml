@@ -29,7 +29,6 @@ webhook:
       initContainers:
         permission-fix:
           enabled: false
-          restartPolicy: Never
           securityContext:
             runAsUser: 0
             runAsGroup: 0
