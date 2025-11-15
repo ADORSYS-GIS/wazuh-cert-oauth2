@@ -158,17 +158,12 @@ jobs:
             echo "X86_64_PC_WINDOWS_MSVC_OPENSSL_INCLUDE_DIR=$OPENSSL_DIR\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           }
 
-      - name: Install Windows target
-        shell: pwsh
-        env:
-          TARGET: ${{ matrix.target }}
-        run: rustup target add $env:TARGET
-
-      - name: Build with cargo
-        shell: pwsh
-        env:
-          TARGET: ${{ matrix.target }}
-        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target $env:TARGET
+      - name: Build with cross
+        uses: houseabsolute/actions-rust-cross@v1
+        with:
+          command: "build"
+          target: ${{ matrix.target }}
+          args: "-p wazuh-cert-oauth2-client --profile prod"
 
       - name: Rename resource
         shell: pwsh
