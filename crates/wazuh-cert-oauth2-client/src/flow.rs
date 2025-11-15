@@ -20,6 +20,7 @@ pub struct FlowParams {
     pub endpoint: String,
     pub is_service_account: bool,
     pub cert_path: String,
+    pub ca_cert_path: String,
     pub key_path: String,
     pub agent_control: bool,
 }
@@ -72,6 +73,7 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
         &params.key_path,
         &signed.certificate_pem,
         &private_key_pem,
+        &params.ca_cert_path,
         Some(&signed.ca_cert_pem),
     )
     .await?;

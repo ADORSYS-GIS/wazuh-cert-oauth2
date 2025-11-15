@@ -40,6 +40,7 @@ async fn app() -> AppResult<()> {
             endpoint,
             is_service_account,
             cert_path,
+            ca_cert_path,
             key_path,
             agent_control,
         } => {
@@ -53,6 +54,7 @@ async fn app() -> AppResult<()> {
                 cert_path,
                 key_path,
                 agent_control,
+                ca_cert_path,
             };
             run_oauth2_flow(&params).await
         }

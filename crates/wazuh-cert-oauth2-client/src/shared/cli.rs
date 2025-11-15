@@ -1,11 +1,11 @@
-use crate::shared::path::{default_cert_path, default_key_path};
+use crate::shared::path::{default_cert_path, default_key_path, default_server_ca_cert_path};
 use clap::ArgAction;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "Wazuh Configurer",
-    about = "Installs and configures Wazuh, YARA, and Snort"
+    name = "Wazuh Cert Auth CLI",
+    about = "Installs and configures Wazuh Certificate Authority"
 )]
 pub enum Opt {
     #[command(about = "Configure OAuth2 for Wazuh")]
@@ -36,6 +36,9 @@ pub enum Opt {
 
         #[arg(env, long, default_value_t = false, action = ArgAction::Set)]
         is_service_account: bool,
+
+        #[arg(env, long, default_value_t = default_server_ca_cert_path(), short = 'r')]
+        ca_cert_path: String,
 
         #[arg(env, long, default_value_t = default_cert_path(), short = 'c')]
         cert_path: String,

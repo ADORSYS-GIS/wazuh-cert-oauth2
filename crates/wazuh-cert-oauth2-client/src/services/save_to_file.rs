@@ -9,22 +9,20 @@ pub async fn save_cert_and_key(
     key_file: &str,
     certificate_pem: &str,
     private_key_pem: &str,
+    ca_cert_path: &str,
     ca_chain_pem: Option<&str>,
 ) -> AppResult<()> {
-    create_parent_dir_if_not_exists(cert_file).await?;
-    create_parent_dir_if_not_exists(key_file).await?;
-
-    let mut full_cert = String::from(certificate_pem);
-    if let Some(chain) = ca_chain_pem {
-        full_cert.push('\n');
-        full_cert.push_str(chain);
-    }
-
+    let cert = String::from(certificate_pem);
     log::info!("Writing certificate to file: {:?}", cert_file);
-    write_with_permissions(cert_file, full_cert).await?;
+    write_with_permissions(cert_file, cert).await?;
 
     log::info!("Writing private key to file: {:?}", key_file);
     write_with_permissions(key_file, private_key_pem).await?;
+
+    if let Some(chain) = ca_chain_pem {
+        log::info!("Writing private key to file: {:?}", ca_cert_path);
+        write_with_permissions(ca_cert_path, chain).await?;
+    }
 
     Ok(())
 }
@@ -33,6 +31,8 @@ async fn write_with_permissions(
     file_path: impl AsRef<Path>,
     contents: impl AsRef<[u8]>,
 ) -> AppResult<()> {
+    create_parent_dir_if_not_exists(file_path.as_ref()).await?;
+
     let mut std_opts = OpenOptions::new();
     std_opts.write(true).create(true).truncate(true);
     #[cfg(unix)]
@@ -47,8 +47,8 @@ async fn write_with_permissions(
 }
 
 /// Ensure the directory for the given file path exists.
-async fn create_parent_dir_if_not_exists(file_path: &str) -> AppResult<()> {
-    let parent_dir = Path::new(file_path).parent().unwrap();
+async fn create_parent_dir_if_not_exists(file_path: impl AsRef<Path>) -> AppResult<()> {
+    let parent_dir = Path::new(file_path.as_ref()).parent().unwrap();
     log::info!("Creating parent directory: {:?}", parent_dir);
     create_dir_all(parent_dir).await?;
     Ok(())

@@ -1,6 +1,13 @@
 use std::path::{Path, PathBuf};
 
 /// Define a function to handle the default cert path
+pub fn default_server_ca_cert_path() -> String {
+    let cert_path = default_path_to_ossec();
+    let path_buf = cert_path.join("etc").join("ca_cert.pem");
+    path_buf.display().to_string()
+}
+
+/// Define a function to handle the default cert path
 pub fn default_cert_path() -> String {
     let cert_path = default_path_to_ossec();
     let path_buf = cert_path.join("etc").join("sslagent.cert");
