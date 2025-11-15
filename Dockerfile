@@ -30,7 +30,6 @@ RUN \
   --mount=type=bind,source=./Cargo.toml,target=/app/Cargo.toml \
   --mount=type=bind,source=./Cargo.lock,target=/app/Cargo.lock \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-server/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-server/Cargo.toml \
-  --mount=type=bind,source=./crates/wazuh-cert-oauth2-server/Rocket.toml,target=/app/crates/wazuh-cert-oauth2-server/Rocket.toml \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-server/src,target=/app/crates/wazuh-cert-oauth2-server/src \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-model/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-model/Cargo.toml \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-model/src,target=/app/crates/wazuh-cert-oauth2-model/src \
@@ -42,7 +41,6 @@ RUN \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-metrics/src,target=/app/crates/wazuh-cert-oauth2-metrics/src \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-healthcheck/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-healthcheck/Cargo.toml \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-healthcheck/src,target=/app/crates/wazuh-cert-oauth2-healthcheck/src \
-  --mount=type=bind,source=./crates/wazuh-cert-oauth2-webhook/Rocket.toml,target=/app/crates/wazuh-cert-oauth2-webhook/Rocket.toml \
   --mount=type=cache,target=/app/target \
   --mount=type=cache,target=/usr/local/cargo/registry/cache \
   --mount=type=cache,target=/usr/local/cargo/registry/index \

@@ -36,7 +36,7 @@ services:
       dockerfile: ./Dockerfile
       target: webhook
     ports:
-      - "8100:8100"
+      - "8100:8000"
     environment:
       RUST_LOG: "info"
       ROCKET_ADDRESS: "0.0.0.0"
