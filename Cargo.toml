@@ -24,18 +24,18 @@ once_cell = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2", "gzip", "brotli", "deflate"] }
 log = { version = "0.4", features = ["std"] }
 env_logger = "0"
-openssl = { version = "0" }
+openssl = { version = "0", features = ["vendored"] }
 rand = "0.9"
 rand_core = "0.9"
 rocket = { version = "0", features = ["tls", "json", "mtls", "serde_json"] }
 diacritics = "0"
-mid = "3"
+mid = "4"
 oauth2 = { version = "5", features = ["reqwest"] }
 clap = { version = "4", features = ["derive", "env"] }
 base64 = "0.22"
 url = "2"
 
-openssl-sys = "0.9"
+openssl-sys = "0"
 foreign-types = "0"
 
 opentelemetry = { version = "0.30" }

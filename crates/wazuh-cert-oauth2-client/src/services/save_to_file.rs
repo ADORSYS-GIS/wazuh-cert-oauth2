@@ -1,5 +1,5 @@
 use std::path::Path;
-use tokio::fs::{OpenOptions, create_dir_all, write};
+use tokio::fs::{OpenOptions, create_dir_all};
 use tokio::io::AsyncWriteExt;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
@@ -21,18 +21,27 @@ pub async fn save_cert_and_key(
     }
 
     log::info!("Writing certificate to file: {:?}", cert_file);
-    write(cert_file, full_cert).await?;
+    write_with_permissions(cert_file, full_cert).await?;
 
     log::info!("Writing private key to file: {:?}", key_file);
-    // Create with 0600 on Unix; best-effort on other platforms
+    write_with_permissions(key_file, private_key_pem).await?;
+
+    Ok(())
+}
+
+async fn write_with_permissions(
+    file_path: impl AsRef<Path>,
+    contents: impl AsRef<[u8]>,
+) -> AppResult<()> {
     let mut std_opts = OpenOptions::new();
     std_opts.write(true).create(true).truncate(true);
     #[cfg(unix)]
     {
-        std_opts.mode(0o600);
+        // Create with 0640 on Unix; best-effort on other platforms
+        std_opts.mode(0o640);
     }
-    let mut file = std_opts.open(key_file).await?;
-    file.write_all(private_key_pem.as_bytes()).await?;
+    let mut file = std_opts.open(file_path).await?;
+    file.write_all(contents.as_ref()).await?;
 
     Ok(())
 }
