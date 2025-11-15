@@ -23,9 +23,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -37,21 +37,13 @@ jobs:
 
       # Note: intentionally avoid caches in release build to prevent cache poisoning
 
-      - name: Install build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends pkg-config libssl-dev musl-tools
-
-      - name: Install Rust target
-        env:
-          TARGET: ${{ matrix.target }}
-        run: rustup target add "$TARGET"
-
-      - name: Build with cargo
-        env:
-          OPENSSL_NO_VENDOR: "1"
-          TARGET: ${{ matrix.target }}
-        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target "$TARGET"
+      - name: Build with cross
+        uses: houseabsolute/actions-rust-cross@v0
+        with:
+          command: "build"
+          target: ${{ matrix.target }}
+          args: "-p wazuh-cert-oauth2-client --profile prod"
+          strip: true
 
       - name: Rename resource
         env:
