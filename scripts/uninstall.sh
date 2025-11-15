@@ -16,7 +16,7 @@ GROUP="wazuh"
 
 # Determine the OS and architecture
 case "$(uname)" in
-    "Linux") OS="unknown-linux-gnu"; BIN_DIR="/var/ossec/bin"; OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf" ;;
+    "Linux") OS="unknown-linux-musl"; BIN_DIR="/var/ossec/bin"; OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf" ;;
     "Darwin") OS="apple-darwin"; BIN_DIR="/Library/Ossec/bin"; OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf" ;;
     *) error_exit "Unsupported operating system: $(uname)" ;;
 esac
