@@ -42,12 +42,11 @@ jobs:
         # from source and link it statically. This avoids the need to install
         # OpenSSL separately in the build environment, which is complex for
         # cross-compilation.
-        uses: houseabsolute/actions-rust-cross@v0
+        uses: houseabsolute/actions-rust-cross@v1
         with:
           command: "build"
           target: ${{ matrix.target }}
           args: "-p wazuh-cert-oauth2-client --profile prod --features openssl/vendored"
-#          strip: true
 
       - name: Rename resource
         env:
@@ -89,17 +88,15 @@ jobs:
           brew update
           brew install pkg-config openssl@3
 
-      - name: Install macOS target
-        env:
-          TARGET: ${{ matrix.target }}
-        run: rustup target add "$TARGET"
-
-      - name: Build with cargo
+      - name: Build with cross
+        uses: houseabsolute/actions-rust-cross@v1
+        with:
+          command: "build"
+          target: ${{ matrix.target }}
+          args: "-p wazuh-cert-oauth2-client --profile prod"
         env:
           PKG_CONFIG_PATH: ${{ matrix.brew_prefix }}/lib/pkgconfig
           OPENSSL_NO_VENDOR: "1"
-          TARGET: ${{ matrix.target }}
-        run: cargo build -p wazuh-cert-oauth2-client --profile prod --target "$TARGET"
 
       - name: Rename resource
         env:
