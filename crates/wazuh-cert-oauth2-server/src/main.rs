@@ -12,8 +12,6 @@ use crate::models::oidc_state::OidcState;
 mod handlers;
 mod models;
 mod shared;
-mod tracing_fairing;
-
 use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
@@ -23,14 +21,14 @@ use mimalloc::MiMalloc;
 use tracing::info;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
-use wazuh_cert_oauth2_model::services::otel::setup_telemetry;
+use wazuh_cert_oauth2_model::services::logging::setup_logging;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
 #[rocket::main]
 async fn main() -> AppResult<()> {
-    setup_telemetry("wazuh-cert-oauth2-server")?;
+    setup_logging("wazuh-cert-oauth2-server")?;
 
     info!("starting up");
 
@@ -52,7 +50,6 @@ async fn main() -> AppResult<()> {
     let http_client = HttpClient::new_with_defaults()?;
 
     rocket::build()
-        .attach(tracing_fairing::telemetry_fairing())
         .manage(http_client.clone())
         .manage(OidcState::new(
             oauth_issuer,

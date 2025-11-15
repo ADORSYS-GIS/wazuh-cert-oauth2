@@ -97,13 +97,6 @@ pub enum AppError {
     RandOsError(#[from] rand_core::OsError),
 
     #[cfg(feature = "rocket")]
-    #[error("ExporterBuildError error: {source}")]
-    ExporterBuildError {
-        #[from]
-        source: opentelemetry_otlp::ExporterBuildError,
-    },
-
-    #[cfg(feature = "rocket")]
     #[error("SetGlobalDefaultError error: {source}")]
     SetGlobalDefaultError {
         #[from]

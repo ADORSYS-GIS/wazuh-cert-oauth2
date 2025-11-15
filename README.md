@@ -15,13 +15,13 @@ Rust workspace providing certificate-based auth for Wazuh integrated with OAuth2
 - Server: issues client certificates, keeps a ledger/CRL, and protects APIs with OIDC — see `crates/wazuh-cert-oauth2-server/README.md`.
 - Client CLI: obtains a token, generates key + CSR, and registers the agent — see `crates/wazuh-cert-oauth2-client/README.md`.
 - Webhook: consumes IdP events (e.g., Keycloak) and requests revocations — see `crates/wazuh-cert-oauth2-webhook/README.md`.
-- Shared model/telemetry helpers — see `crates/wazuh-cert-oauth2-model/README.md`.
+- Shared model helpers — see `crates/wazuh-cert-oauth2-model/README.md`.
 
-Internal utilities: `wazuh-cert-oauth2-metrics`, `wazuh-cert-oauth2-healthcheck`.
+Internal utilities: `wazuh-cert-oauth2-healthcheck`.
 
 ## Quick start
 
-- Docker Compose (demo stack with Keycloak + Jaeger):
+- Docker Compose (demo stack with Keycloak):
   - `docker compose up -d --build`
   - Server: `http://localhost:8000`, Webhook: `http://localhost:8100`
 

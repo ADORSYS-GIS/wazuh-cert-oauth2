@@ -11,18 +11,17 @@ mod handlers;
 mod models;
 mod opts;
 mod state;
-mod tracing_fairing;
 
 use crate::bootstrap::{build_state, launch_rocket, spawn_spool_bg};
 use crate::opts::Opt;
-use wazuh_cert_oauth2_model::services::otel::setup_telemetry;
+use wazuh_cert_oauth2_model::services::logging::setup_logging;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
 #[rocket::main]
 async fn main() -> AppResult<()> {
-    setup_telemetry("wazuh-cert-oauth2-webhook")?;
+    setup_logging("wazuh-cert-oauth2-webhook")?;
 
     info!("starting webhook");
     let opt = Opt::try_parse()?;

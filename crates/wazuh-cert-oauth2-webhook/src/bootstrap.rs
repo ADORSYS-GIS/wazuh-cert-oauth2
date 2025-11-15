@@ -7,7 +7,6 @@ use crate::handlers::health::health;
 use crate::handlers::webhook::send_webhook;
 use crate::opts::Opt;
 use crate::state::{ProxyState, spawn_spool_processor};
-use wazuh_cert_oauth2_metrics::update_spool_gauges;
 
 pub fn build_state(opt: &Opt) -> AppResult<ProxyState> {
     let http_client = HttpClient::new_with_defaults()?;
@@ -31,8 +30,6 @@ pub fn build_state(opt: &Opt) -> AppResult<ProxyState> {
         opt.webhook_api_key.clone(),
         opt.webhook_bearer_token.clone(),
     )?;
-    // Initialize spool gauges once; they are updated each cycle
-    update_spool_gauges(&state.spool_dir);
     Ok(state)
 }
 
@@ -47,7 +44,6 @@ pub fn spawn_spool_bg(state: ProxyState) {
 
 pub async fn launch_rocket(state: ProxyState) -> AppResult<()> {
     rocket::build()
-        .attach(crate::tracing_fairing::telemetry_fairing())
         .manage(state)
         .mount("/", routes![health])
         .mount("/api", routes![send_webhook])

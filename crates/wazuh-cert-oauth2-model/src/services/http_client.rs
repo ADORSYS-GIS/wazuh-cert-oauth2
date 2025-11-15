@@ -1,27 +1,10 @@
 use std::time::Duration;
 
-#[cfg(feature = "rocket")]
-use opentelemetry::global;
-#[cfg(feature = "rocket")]
-use opentelemetry::propagation::Injector;
-
 use crate::models::errors::AppResult;
-#[cfg(feature = "rocket")]
-use opentelemetry::Context;
 use reqwest::Client;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use tracing::instrument;
-
-#[cfg(feature = "rocket")]
-struct VecInjector<'a>(&'a mut Vec<(String, String)>);
-
-#[cfg(feature = "rocket")]
-impl<'a> Injector for VecInjector<'a> {
-    fn set(&mut self, key: &str, value: String) {
-        self.0.push((key.to_string(), value));
-    }
-}
 
 #[derive(Clone)]
 pub struct HttpClient {
@@ -51,16 +34,7 @@ impl HttpClient {
 
     #[instrument(level = "debug", skip(self))]
     pub async fn fetch_json<R: DeserializeOwned>(&self, url: &str) -> AppResult<R> {
-        let mut pairs = Vec::<(String, String)>::new();
-        #[cfg(feature = "rocket")]
-        global::get_text_map_propagator(|p| {
-            p.inject_context(&Context::current(), &mut VecInjector(&mut pairs))
-        });
-        let mut builder = self.client.get(url);
-        for (k, v) in pairs {
-            builder = builder.header(k.as_str(), v);
-        }
-        let resp = builder.send().await?.error_for_status()?;
+        let resp = self.client.get(url).send().await?.error_for_status()?;
         Ok(resp.json().await?)
     }
 
@@ -70,16 +44,13 @@ impl HttpClient {
         url: &str,
         body: &B,
     ) -> AppResult<R> {
-        let mut pairs = Vec::<(String, String)>::new();
-        #[cfg(feature = "rocket")]
-        global::get_text_map_propagator(|p| {
-            p.inject_context(&Context::current(), &mut VecInjector(&mut pairs))
-        });
-        let mut builder = self.client.post(url).json(body);
-        for (k, v) in pairs {
-            builder = builder.header(k.as_str(), v);
-        }
-        let resp = builder.send().await?.error_for_status()?;
+        let resp = self
+            .client
+            .post(url)
+            .json(body)
+            .send()
+            .await?
+            .error_for_status()?;
         Ok(resp.json().await?)
     }
 
@@ -90,16 +61,14 @@ impl HttpClient {
         token: &str,
         body: &B,
     ) -> AppResult<R> {
-        let mut pairs = Vec::<(String, String)>::new();
-        #[cfg(feature = "rocket")]
-        global::get_text_map_propagator(|p| {
-            p.inject_context(&Context::current(), &mut VecInjector(&mut pairs))
-        });
-        let mut builder = self.client.post(url).bearer_auth(token).json(body);
-        for (k, v) in pairs {
-            builder = builder.header(k.as_str(), v);
-        }
-        let resp = builder.send().await?.error_for_status()?;
+        let resp = self
+            .client
+            .post(url)
+            .bearer_auth(token)
+            .json(body)
+            .send()
+            .await?
+            .error_for_status()?;
         Ok(resp.json().await?)
     }
 }

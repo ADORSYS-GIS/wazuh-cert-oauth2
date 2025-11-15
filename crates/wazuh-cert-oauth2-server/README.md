@@ -14,7 +14,6 @@ Endpoints
 - `GET /api/revocations`: JSON view of revoked entries (auth required).
 - `POST /api/revoke`: revoke by serial or subject; triggers CRL rebuild (auth required).
 - `POST /api/register-agent`: sign CSR and return signed cert + CA (auth required).
-  (All metrics are exported via OTLP; no Prometheus endpoint.)
 
 Certificate contents
 
@@ -47,43 +46,15 @@ Ledger fields
 - CSV columns: `subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm`.
 - `issuer` and `realm` are optional; older rows may omit them and are handled gracefully.
 
-Telemetry (OTel + tracing)
+Logging
 
-- Tracing: OTLP/gRPC exporter (gzip, 3s timeout).
-- Metrics: OTLP metrics export (3s interval). No `/metrics` endpoint.
-- HTTP request spans via Rocket fairing, logs start/end with method/path/status/bytes.
-- Outbound propagation: W3C trace context headers injected into `reqwest` calls.
-- Service name: `wazuh-cert-oauth2-server`.
-
-Telemetry env vars (gRPC only)
-
-- `RUST_LOG`: e.g. `info,rocket=warn,reqwest=warn`.
-- `OTEL_EXPORTER_OTLP_ENDPOINT` (default `http://localhost:4317`): base OTLP endpoint for traces and metrics.
-- `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (optional): override traces endpoint.
-- `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` (optional): override metrics endpoint.
-- `OTEL_EXPORTER_OTLP_PROTOCOL` (default `grpc`): protocol used. Only `grpc` is supported; HTTP/JSON or HTTP/Protobuf exporters are not supported.
-- `OTEL_EXPORTER_OTLP_HEADERS` (optional): additional headers (e.g., auth) to the collector.
-- `OTEL_RESOURCE_ATTRIBUTES` (optional): comma‑separated resource attributes (e.g., `service.version=0.2.23,deployment.environment=prod`).
-
-Metrics endpoint examples (gRPC)
-
-```bash
-# Same collector for traces + metrics (default OTLP/gRPC port 4317)
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-
-# Or split per signal (still gRPC)
-export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://otel-collector:4317
-export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=http://otel-collector:4317
-
-# Optional auth header to collector
-export OTEL_EXPORTER_OTLP_HEADERS="authorization=Bearer <token>"
-```
+- `tracing_subscriber` is initialized automatically; logs are emitted to stdout.
+- Control verbosity with `RUST_LOG` (e.g., `info,rocket=warn,reqwest=warn`). Defaults to `info` if unset.
 
 Quick start
 
 ```bash
 export RUST_LOG=info,rocket=warn,reqwest=warn
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 
 wazuh-cert-oauth2-server \
   --oauth-issuer https://issuer.example.com/realms/xyz \

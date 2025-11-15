@@ -75,9 +75,6 @@ webhook:
             RUST_LOG: 'warn'
             ROCKET_ADDRESS: '0.0.0.0'
 
-            OTEL_EXPORTER_OTLP_ENDPOINT: 'http://alloy.collect:4317'
-            OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
-
             OAUTH_ISSUER: https://keycloak.login/realms/adorsys
             OAUTH_CLIENT_ID:
               valueFrom:

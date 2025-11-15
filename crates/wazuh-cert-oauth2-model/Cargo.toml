@@ -20,26 +20,6 @@ clap.workspace = true
 url.workspace = true
 rand_core.workspace = true
 
-[dependencies.prometheus]
-workspace = true
-optional = true
-
-[dependencies.opentelemetry]
-workspace = true
-optional = true
-
-[dependencies.opentelemetry_sdk]
-workspace = true
-optional = true
-
-[dependencies.opentelemetry-otlp]
-workspace = true
-optional = true
-
-[dependencies.tracing-opentelemetry]
-workspace = true
-optional = true
-
 [dependencies.tracing-subscriber]
 workspace = true
 optional = true
@@ -50,10 +30,5 @@ optional = true
 
 [features]
 rocket = [
-    "prometheus",
-    "opentelemetry",
-    "opentelemetry_sdk",
-    "opentelemetry-otlp",
-    "tracing-opentelemetry",
     "tracing-subscriber"
 ]

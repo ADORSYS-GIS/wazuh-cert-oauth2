@@ -37,8 +37,6 @@ RUN \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-client/src,target=/app/crates/wazuh-cert-oauth2-client/src \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-webhook/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-webhook/Cargo.toml \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-webhook/src,target=/app/crates/wazuh-cert-oauth2-webhook/src \
-  --mount=type=bind,source=./crates/wazuh-cert-oauth2-metrics/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-metrics/Cargo.toml \
-  --mount=type=bind,source=./crates/wazuh-cert-oauth2-metrics/src,target=/app/crates/wazuh-cert-oauth2-metrics/src \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-healthcheck/Cargo.toml,target=/app/crates/wazuh-cert-oauth2-healthcheck/Cargo.toml \
   --mount=type=bind,source=./crates/wazuh-cert-oauth2-healthcheck/src,target=/app/crates/wazuh-cert-oauth2-healthcheck/src \
   --mount=type=cache,target=/app/target \

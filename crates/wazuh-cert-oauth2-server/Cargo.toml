@@ -23,6 +23,3 @@ url.workspace = true
 [dependencies.wazuh-cert-oauth2-model]
 features = ["rocket", "openssl"]
 workspace = true
-
-[dependencies.wazuh-cert-oauth2-metrics]
-workspace = true

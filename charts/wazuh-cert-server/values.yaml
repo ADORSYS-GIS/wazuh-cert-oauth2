@@ -115,9 +115,6 @@ cert:
 
             OAUTH_ISSUER: 'http://host.docker.internal/realms/dev'
 
-            OTEL_EXPORTER_OTLP_ENDPOINT: 'http://alloy.collect:4317'
-            OTEL_EXPORTER_OTLP_PROTOCOL: 'grpc'
-
             ROOT_CA_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca.pem'
             ROOT_CA_KEY_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem'
             LEDGER_PATH: '/usr/share/wazuh-cert-oauth2/data/ledger.csv'

@@ -2,7 +2,6 @@ use rocket::State;
 use rocket::http::Status;
 use rocket::serde::json::Json;
 
-use wazuh_cert_oauth2_metrics::record_http_params;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 use crate::handlers::middle::JwtToken;
@@ -27,12 +26,6 @@ pub async fn revoke(
         subject,
         reason,
     } = dto.into_inner();
-    record_http_params(
-        "/api/revoke",
-        "POST",
-        subject.as_ref().map(|s| !s.is_empty()).unwrap_or(false),
-        serial_hex.as_ref().map(|s| !s.is_empty()).unwrap_or(false),
-    );
     debug!(
         "revoke request params: serial_hex_present={} subject_present={} reason={:?}",
         serial_hex.as_ref().map(|s| !s.is_empty()).unwrap_or(false),
