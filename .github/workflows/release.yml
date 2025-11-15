@@ -67,10 +67,10 @@ jobs:
       matrix:
         include:
           - target: x86_64-apple-darwin
-            runner: macos-14
+            runner: macos-15-intel
             brew_prefix: /usr/local/opt/openssl@3
           - target: aarch64-apple-darwin
-            runner: macos-14
+            runner: macos-latest
             brew_prefix: /opt/homebrew/opt/openssl@3
     runs-on: ${{ matrix.runner }}
 
