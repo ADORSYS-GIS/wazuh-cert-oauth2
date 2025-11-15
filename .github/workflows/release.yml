@@ -66,9 +66,9 @@ jobs:
     strategy:
       matrix:
         include:
-#          - target: x86_64-apple-darwin
-#            runner: macos-13
-#            brew_prefix: /usr/local/opt/openssl@3
+          - target: x86_64-apple-darwin
+            runner: macos-14
+            brew_prefix: /usr/local/opt/openssl@3
           - target: aarch64-apple-darwin
             runner: macos-14
             brew_prefix: /opt/homebrew/opt/openssl@3
