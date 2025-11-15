@@ -38,12 +38,16 @@ jobs:
       # Note: intentionally avoid caches in release build to prevent cache poisoning
 
       - name: Build with cross
+        # The `openssl/vendored` feature flag instructs cargo to compile OpenSSL
+        # from source and link it statically. This avoids the need to install
+        # OpenSSL separately in the build environment, which is complex for
+        # cross-compilation.
         uses: houseabsolute/actions-rust-cross@v0
         with:
           command: "build"
           target: ${{ matrix.target }}
           args: "-p wazuh-cert-oauth2-client --profile prod --features openssl/vendored"
-          strip: true
+#          strip: true
 
       - name: Rename resource
         env:
