@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           fetch-depth: "0"
           persist-credentials: 'false'
@@ -54,7 +54,7 @@ jobs:
         run: mv "target/$TARGET/prod/wazuh-cert-oauth2-client" "wazuh-cert-oauth2-client-$TARGET"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}
@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           fetch-depth: "0"
           persist-credentials: 'false'
@@ -104,7 +104,7 @@ jobs:
         run: mv "target/$TARGET/prod/wazuh-cert-oauth2-client" "wazuh-cert-oauth2-client-$TARGET"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}
@@ -122,7 +122,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           fetch-depth: "0"
           persist-credentials: 'false'
@@ -177,7 +177,7 @@ jobs:
         run: Move-Item -Path "target/$env:TARGET/prod/wazuh-cert-oauth2-client.exe" -Destination "wazuh-cert-oauth2-client-$env:TARGET.exe"
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # actions/upload-artifact@v4
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}.exe
@@ -201,7 +201,7 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e # actions/create-release@v1
+        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -212,12 +212,12 @@ jobs:
           prerelease: false
 
       - name: Download Artifacts
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # actions/download-artifact@v4
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
           path: .
 
       - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: '**'
