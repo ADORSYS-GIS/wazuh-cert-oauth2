@@ -1,16 +1,17 @@
 # syntax=docker/dockerfile:1.5
 
-FROM --platform=linux/amd64 rust:1 as base
+FROM rust:1 as base
 
 LABEL maintainer="adorsys Cameroon"
 
 ENV CARGO_TERM_COLOR=always
 ENV OPENSSL_STATIC=1
-ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc
 
 WORKDIR /app
 
 FROM base as builder
+
+ARG TARGETARCH
 
 # Install toolchain and dependencies for static musl builds with vendored OpenSSL
 RUN \
@@ -22,7 +23,7 @@ RUN \
     build-essential \
     pkg-config \
     perl \
-  && rustup target add x86_64-unknown-linux-musl
+  && rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
 
 RUN \
   # Mount workspace files and only the necessary crates
@@ -46,17 +47,31 @@ RUN \
   --mount=type=cache,target=/usr/local/cargo/registry/cache \
   --mount=type=cache,target=/usr/local/cargo/registry/index \
   --mount=type=cache,target=/usr/local/cargo/git/db \
+  case "$TARGETARCH" in \
+    "amd64") \
+      export RUST_TARGET=x86_64-unknown-linux-musl; \
+      export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc; \
+      ;; \
+    "arm64") \
+      export RUST_TARGET=aarch64-unknown-linux-musl; \
+      export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc; \
+      ;; \
+    *) \
+      echo "Unsupported TARGETARCH: $TARGETARCH"; \
+      exit 1; \
+      ;; \
+  esac; \
   cargo build --profile prod --locked \
-    --target x86_64-unknown-linux-musl \
+    --target "${RUST_TARGET}" \
     -p wazuh-cert-oauth2-server \
     -p wazuh-cert-oauth2-webhook \
     -p wazuh-cert-oauth2-healthcheck \
     --features openssl/vendored \
-  && cp ./target/x86_64-unknown-linux-musl/prod/wazuh-cert-oauth2-server server \
-  && cp ./target/x86_64-unknown-linux-musl/prod/wazuh-cert-oauth2-webhook webhook \
-  && cp ./target/x86_64-unknown-linux-musl/prod/wazuh-cert-oauth2-healthcheck healthcheck
+  && cp ./target/"${RUST_TARGET}"/prod/wazuh-cert-oauth2-server server \
+  && cp ./target/"${RUST_TARGET}"/prod/wazuh-cert-oauth2-webhook webhook \
+  && cp ./target/"${RUST_TARGET}"/prod/wazuh-cert-oauth2-healthcheck healthcheck
 
-FROM --platform=linux/amd64 gcr.io/distroless/static-debian12:nonroot as webhook
+FROM gcr.io/distroless/static-debian12:nonroot as webhook
 
 LABEL maintainer="Stephane Segning <selastlambou@gmail.com>"
 LABEL org.opencontainers.image.description="adorsys GIS Cameroon"
@@ -77,7 +92,7 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=2s --retries=5 CMD ["/app
 
 ENTRYPOINT ["/app/webhook"]
 
-FROM --platform=linux/amd64 gcr.io/distroless/static-debian12:nonroot as oauth2
+FROM gcr.io/distroless/static-debian12:nonroot as oauth2
 
 LABEL maintainer="Stephane Segning <selastlambou@gmail.com>"
 LABEL org.opencontainers.image.description="adorsys GIS Cameroon"
