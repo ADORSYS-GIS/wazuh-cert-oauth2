@@ -4,8 +4,10 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(
+    version,
     name = "Wazuh Cert Auth CLI",
-    about = "Installs and configures Wazuh Certificate Authority"
+    about = "Wazuh Certificate Authority",
+    long_about = "Installs and configures Wazuh Certificate Authority"
 )]
 pub enum Opt {
     #[command(about = "Configure OAuth2 for Wazuh")]

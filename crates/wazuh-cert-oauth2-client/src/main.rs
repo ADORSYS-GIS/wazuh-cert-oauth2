@@ -31,33 +31,14 @@ async fn main() {
 /// Orchestrates the CSR flow: stop agent, obtain token, validate claims,
 /// generate CSR and key, submit CSR, save cert+key, set agent name, restart agent.
 async fn app() -> AppResult<()> {
-    match Opt::try_parse()? {
-        Opt::OAuth2 {
-            issuer,
-            audience,
-            client_id,
-            client_secret,
-            endpoint,
-            is_service_account,
-            cert_path,
-            ca_cert_path,
-            key_path,
-            agent_control,
-        } => {
-            let params = FlowParams {
-                issuer,
-                audience_csv: audience,
-                client_id,
-                client_secret,
-                endpoint,
-                is_service_account,
-                cert_path,
-                key_path,
-                agent_control,
-                ca_cert_path,
-            };
-            run_oauth2_flow(&params).await
+    match Opt::try_parse() {
+        Ok(opt) => {
+            let params = FlowParams::from(opt);
+            run_oauth2_flow(&params).await?;
+
+            Ok(())
         }
+        _ => Ok(()),
     }
 }
 

@@ -65,41 +65,27 @@ pub(crate) fn append_client_eku(builder: &mut openssl::x509::X509Builder) -> App
     Ok(())
 }
 
-pub(crate) fn append_san_cn(
+pub(crate) fn append_san_cn_and_identity_uri(
     builder: &mut openssl::x509::X509Builder,
     ca_cert: &X509Ref,
     subject_cn: &str,
-) -> AppResult<()> {
-    let san = SubjectAlternativeName::new()
-        .dns(subject_cn)
-        .build(&builder.x509v3_context(Some(ca_cert), None))?;
-    builder.append_extension(san)?;
-    Ok(())
-}
-
-/// Add a SAN URI that binds the Keycloak issuer (realm) and subject together.
-/// Uses the form: "{iss}#sub={sub}", which remains a valid absolute URI while
-/// clearly associating the realm (from iss) with the subject identifier.
-pub(crate) fn append_san_identity_uri(
-    builder: &mut openssl::x509::X509Builder,
-    ca_cert: &X509Ref,
     issuer: &str,
     subject_sub: &str,
 ) -> AppResult<()> {
-    // Best-effort: ensure issuer parses as a URL; if not, still include a URN form
     let value = match Url::parse(issuer) {
         Ok(url) => {
-            // Reconstruct without params to avoid accidental leakage; keep path/host which include realm
             let mut base = String::new();
             base.push_str(url.as_str());
-            // Append the subject in a fragment to keep it within the URI
             format!("{}#sub={}", base.trim_end_matches('#'), subject_sub)
         }
         Err(_) => format!("urn:keycloak:sub:{}", subject_sub),
     };
+
     let san = SubjectAlternativeName::new()
+        .dns(subject_cn)
         .uri(&value)
         .build(&builder.x509v3_context(Some(ca_cert), None))?;
+
     builder.append_extension(san)?;
     Ok(())
 }

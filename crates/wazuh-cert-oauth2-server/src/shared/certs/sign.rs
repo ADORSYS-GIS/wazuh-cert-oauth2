@@ -9,8 +9,8 @@ use crate::models::ca_config::CaProvider;
 use crate::shared::ledger::Ledger;
 
 use super::{
-    append_client_eku, append_core_extensions, append_crl_dp, append_key_usage, append_san_cn,
-    append_san_identity_uri, enforce_key_policy, set_serial_number, set_subject_and_pubkey,
+    append_client_eku, append_core_extensions, append_crl_dp, append_key_usage,
+    append_san_cn_and_identity_uri, enforce_key_policy, set_serial_number, set_subject_and_pubkey,
     set_validity_1y, sign_builder,
 };
 
@@ -95,8 +95,7 @@ fn sign_csr_with_ca(
     append_crl_dp(&mut builder, ca_cert, crl_dist_url)?;
     append_key_usage(&mut builder, is_rsa)?;
     append_client_eku(&mut builder)?;
-    append_san_cn(&mut builder, ca_cert, subject_cn)?;
-    append_san_identity_uri(&mut builder, ca_cert, issuer, subject_cn)?;
+    append_san_cn_and_identity_uri(&mut builder, ca_cert, subject_cn, issuer, subject_cn)?;
     sign_builder(&mut builder, ca_key)?;
     Ok(builder.build())
 }

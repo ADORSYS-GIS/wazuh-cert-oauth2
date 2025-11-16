@@ -10,19 +10,50 @@ use crate::services::save_to_file::save_cert_and_key;
 use crate::services::set_name::set_name;
 use crate::services::stop_agent::stop_agent;
 use crate::services::submit_csr::submit_csr;
+use crate::shared::cli::Opt;
 
 #[derive(Debug, Clone)]
 pub struct FlowParams {
-    pub issuer: String,
-    pub audience_csv: String,
-    pub client_id: String,
-    pub client_secret: Option<String>,
-    pub endpoint: String,
-    pub is_service_account: bool,
-    pub cert_path: String,
-    pub ca_cert_path: String,
-    pub key_path: String,
-    pub agent_control: bool,
+    issuer: String,
+    audience_csv: String,
+    client_id: String,
+    client_secret: Option<String>,
+    endpoint: String,
+    is_service_account: bool,
+    cert_path: String,
+    ca_cert_path: String,
+    key_path: String,
+    agent_control: bool,
+}
+
+impl From<Opt> for FlowParams {
+    fn from(value: Opt) -> Self {
+        match value {
+            Opt::OAuth2 {
+                issuer,
+                audience,
+                client_id,
+                client_secret,
+                endpoint,
+                is_service_account,
+                cert_path,
+                ca_cert_path,
+                key_path,
+                agent_control,
+            } => Self {
+                issuer,
+                audience_csv: audience,
+                client_id,
+                client_secret,
+                endpoint,
+                is_service_account,
+                cert_path,
+                key_path,
+                agent_control,
+                ca_cert_path,
+            },
+        }
+    }
 }
 
 pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {

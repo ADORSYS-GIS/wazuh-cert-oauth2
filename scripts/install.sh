@@ -10,14 +10,14 @@ fi
 # Default log level and application details
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.2.23-rc.3"}
+WOPS_VERSION=${WOPS_VERSION:-"0.2.23-rc.4"}
 USER="root"
 GROUP="wazuh"
 
 # Determine the OS and architecture
 case "$(uname)" in
-    "Linux") OS="unknown-linux-musl"; BIN_DIR="/var/ossec/bin"; OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf" ;;
-    "Darwin") OS="apple-darwin"; BIN_DIR="/Library/Ossec/bin"; OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf" ;;
+    "Linux") OS="unknown-linux-musl"; BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}; OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf" ;;
+    "Darwin") OS="apple-darwin"; BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}; OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf" ;;
     *) error_exit "Unsupported operating system: $(uname)" ;;
 esac
 
