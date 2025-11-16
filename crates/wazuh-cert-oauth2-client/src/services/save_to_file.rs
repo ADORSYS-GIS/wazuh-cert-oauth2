@@ -38,7 +38,7 @@ async fn write_with_permissions(
     #[cfg(unix)]
     {
         // Create with 0640 on Unix; best-effort on other platforms
-        std_opts.mode(0o640);
+        std_opts.mode(0o644);
     }
     let mut file = std_opts.open(file_path).await?;
     file.write_all(contents.as_ref()).await?;
