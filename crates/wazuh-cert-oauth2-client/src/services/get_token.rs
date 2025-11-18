@@ -72,11 +72,11 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> AppResult<S
 /// Attempt to open a URL in the user's default browser.
 /// Returns true on success, false if launching failed.
 fn open_in_browser(url: &str) -> bool {
-    // Windows: use `start` via cmd.exe. The empty string is a window title placeholder.
+    // Windows: use explorer. The empty string is a window title placeholder.
     #[cfg(target_os = "windows")]
     {
-        return Command::new("cmd")
-            .args(["/C", "start", "", url])
+        return Command::new("explorer")
+            .arg(url)
             .spawn()
             .map(|_| true)
             .unwrap_or(false);
