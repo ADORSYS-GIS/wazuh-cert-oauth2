@@ -75,11 +75,15 @@ fn open_in_browser(url: &str) -> bool {
     // Windows: use `start` via cmd.exe. The empty string is a window title placeholder.
     #[cfg(target_os = "windows")]
     {
-        return Command::new("cmd")
-            .args(["/C", "start", "", url])
+        if Command::new("rundll32")
+            .arg("url.dll,FileProtocolHandler")
+            .arg(url)
             .spawn()
             .map(|_| true)
-            .unwrap_or(false);
+            .unwrap_or(false)
+        {
+            return true;
+        }
     }
 
     // macOS: use `open`.
