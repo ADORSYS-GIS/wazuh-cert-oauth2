@@ -29,7 +29,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends pkg-config libssl-dev
 
       - name: Run ESLint and post results
-        uses: super-linter/super-linter@47984f49b4e87383eed97890fe2dca6063bbd9c3 # super-linter/super-linter@v8
+        uses: super-linter/super-linter@d5b0a2ab116623730dd094f15ddc1b6b25bf7b99 # super-linter/super-linter@v8
         env:
           OPENSSL_NO_VENDOR: "1"
 
