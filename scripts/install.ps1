@@ -174,7 +174,45 @@ function ConfigureEnrollment {
     }
 }
 
+function ValidateInstallation {
+    # Check if the binary exists
+    if (Test-Path "$BIN_DIR\$APP_NAME.exe") {
+        InfoMessage "Binary exists at $BIN_DIR\$APP_NAME.exe."
+    } else {
+        WarnMessage "Binary is missing at $BIN_DIR\$APP_NAME.exe."
+    }
 
+    # Verify the configuration file contains the required updates
+    if (Test-Path $OSSEC_CONF_PATH) {
+        if (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet) {
+            InfoMessage "Enrollment block is present in the configuration file."
+        } else {
+            WarnMessage "Enrollment block is missing in the configuration file."
+        }
+
+        if (Select-String -Path $OSSEC_CONF_PATH -Pattern "<agent_certificate_path>etc\sslagent.cert</agent_certificate_path>" -SimpleMatch -Quiet) {
+            InfoMessage "Agent certificate path is configured correctly."
+        } else {
+            WarnMessage "Agent certificate path is missing in the configuration file."
+        }
+
+        if (Select-String -Path $OSSEC_CONF_PATH -Pattern "<agent_key_path>etc\sslagent.key</agent_key_path>" -SimpleMatch -Quiet) {
+            InfoMessage "Agent key path is configured correctly."
+        } else {
+            WarnMessage "Agent key path is missing in the configuration file."
+        }
+
+        if (-not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<authorization_pass_path>etc\authd.pass</authorization_pass_path>" -SimpleMatch -Quiet)) {
+            InfoMessage "Authorization pass path has been correctly removed."
+        } else {
+            WarnMessage "Authorization pass path is still present in the configuration file."
+        }
+    } else {
+        WarnMessage "Configuration file not found at $OSSEC_CONF_PATH."
+    }
+
+    SuccessMessage "Validation of installation and configuration completed successfully."
+}
 
 # Determine architecture and operating system
 $OS = if ($PSVersionTable.PSEdition -eq "Core") { "linux" } else { "windows" }
@@ -232,6 +270,10 @@ if (Test-Path $OSSEC_CONF_PATH) {
 } else {
     WarnMessage "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 }
+
+# Step 4: Validate installation and configuration
+PrintStep 4 "Validating installation and configuration..."
+ValidateInstallation
 
 SuccessMessage "Installation and configuration complete! You can now use '$BIN_DIR\$APP_NAME.exe' from your terminal."
 InfoMessage "Run ``& '$BIN_DIR\$APP_NAME.exe' o-auth2`` to start configuring."
