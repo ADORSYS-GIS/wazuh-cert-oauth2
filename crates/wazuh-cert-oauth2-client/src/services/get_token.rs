@@ -3,7 +3,7 @@ use oauth2::{
     AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     RedirectUrl, TokenResponse, TokenUrl,
 };
-use std::process::Command;
+use std::{env, process::Command};
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
@@ -105,12 +105,20 @@ fn open_in_browser(url: &str) -> bool {
         target_os = "openbsd"
     ))]
     {
-        // Try xdg-open; if unavailable, fall back to printing.
-        return Command::new("xdg-open")
-            .arg(url)
-            .spawn()
-            .map(|_| true)
-            .unwrap_or(false);
+        if let Ok(user) = env::var("SUDO_USER") {
+            return Command::new("runuser")
+                .arg("-u")
+                .arg(&user)
+                .arg("--")
+                .arg("xdg-open")
+                .arg(url)
+                .spawn()
+                .map(|_| true)
+                .unwrap_or(false);
+        } else {
+            // Likely running as root without sudo
+            return false;
+        }
     }
 
     // Fallback for any other targets: do nothing.
