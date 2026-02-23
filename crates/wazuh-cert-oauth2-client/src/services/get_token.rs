@@ -105,19 +105,26 @@ fn open_in_browser(url: &str) -> bool {
         target_os = "openbsd"
     ))]
     {
+        use std::env;
         if let Ok(user) = env::var("SUDO_USER") {
-            return Command::new("runuser")
-                .arg("-u")
-                .arg(&user)
-                .arg("--")
-                .arg("xdg-open")
-                .arg(url)
-                .spawn()
-                .map(|_| true)
-                .unwrap_or(false);
-        } else {
-            // Likely running as root without sudo
-            return false;
+            let mut cmd = Command::new("runuser");
+            cmd.arg("-u").arg(&user).arg("--").arg("xdg-open").arg(url);
+
+            // Forward display and dbus session so xdg-open works cleanly
+            if let Ok(display) = env::var("DISPLAY") {
+                cmd.env("DISPLAY", display);
+            }
+            if let Ok(wayland) = env::var("WAYLAND_DISPLAY") {
+                cmd.env("WAYLAND_DISPLAY", wayland);
+            }
+            if let Ok(dbus) = env::var("DBUS_SESSION_BUS_ADDRESS") {
+                cmd.env("DBUS_SESSION_BUS_ADDRESS", dbus);
+            }
+
+            // Suppress GTK noise when using firefox as the default browser, which is common on Linux.
+            cmd.stderr(std::fs::File::open("/dev/null").unwrap());
+
+            return cmd.spawn().map(|_| true).unwrap_or(false);
         }
     }
 
