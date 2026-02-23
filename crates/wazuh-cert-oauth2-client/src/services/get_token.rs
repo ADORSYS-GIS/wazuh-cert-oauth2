@@ -3,7 +3,7 @@ use oauth2::{
     AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
     RedirectUrl, TokenResponse, TokenUrl,
 };
-use std::process::Command;
+use std::{env, process::Command};
 use wazuh_cert_oauth2_model::models::document::DiscoveryDocument;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
