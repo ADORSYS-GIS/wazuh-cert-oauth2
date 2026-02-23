@@ -50,7 +50,7 @@ jobs:
           persist-credentials: 'false'
 
       - name: Dockerfile scan (Trivy)
-        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518
         with:
           scan-type: 'config'
           scan-ref: '.'
@@ -129,7 +129,7 @@ jobs:
 
       - name: Vulnerability scan (Trivy)
         id: trivy
-        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518
         with:
           image-ref: ${{ steps.img.outputs.ref }}
           format: 'table'
