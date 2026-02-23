@@ -23,7 +23,7 @@ log = { version = "0.4", features = ["std"] }
 env_logger = "0"
 openssl = { version = "0"}
 rand = "0.9"
-rand_core = "0.10"
+rand_core = "0.9.5"
 rocket = { version = "0", features = ["tls", "json", "mtls", "serde_json"] }
 diacritics = "0"
 mid = "4"
