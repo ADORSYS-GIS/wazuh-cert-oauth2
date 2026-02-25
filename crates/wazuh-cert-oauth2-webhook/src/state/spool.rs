@@ -1,9 +1,10 @@
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rand::Rng;
+use rand::TryRng;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
+use unwrap_infallible::UnwrapInfallible;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
@@ -71,7 +72,7 @@ pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -
         .unwrap_or_default()
         .as_millis();
     let mut buf = [0u8; 8];
-    rand::rng().fill(&mut buf);
+    rand::rng().try_fill_bytes(&mut buf).unwrap_infallible();
     let mut rid = String::with_capacity(buf.len() * 2);
     for b in buf {
         rid.push_str(&format!("{:02x}", b));

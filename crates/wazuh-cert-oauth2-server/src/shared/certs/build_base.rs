@@ -6,8 +6,8 @@ use openssl::nid::Nid;
 use openssl::pkey::Id as PKeyId;
 use openssl::pkey::PKey;
 use openssl::x509::{X509NameBuilder, X509Ref, X509Req};
-use rand::TryRngCore;
-use rand::rngs::OsRng;
+use rand::TryRng;
+use rand::rngs::SysRng;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 pub(crate) fn set_subject_cn(name_builder: &mut X509NameBuilder, cn: &str) -> AppResult<()> {
@@ -33,7 +33,7 @@ pub(crate) fn set_subject_and_pubkey(
 
 pub(crate) fn set_serial_number(builder: &mut openssl::x509::X509Builder) -> AppResult<()> {
     let mut serial = [0u8; 16];
-    OsRng.try_fill_bytes(&mut serial)?;
+    SysRng.try_fill_bytes(&mut serial)?;
     serial[0] &= 0x7F;
     if serial.iter().all(|&b| b == 0) {
         serial[0] = 1;

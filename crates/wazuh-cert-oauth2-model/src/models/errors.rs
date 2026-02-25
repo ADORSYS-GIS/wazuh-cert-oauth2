@@ -94,7 +94,7 @@ pub enum AppError {
     //#[error("Random generation error: {0}")]
     //RandOsError(#[from] rand_core::Error),
     #[error("Rand OS generation error: {0}")]
-    RandOsError(#[from] rand_core::OsError),
+    RandOsError(#[from] rand::rngs::SysError),
 
     #[cfg(feature = "rocket")]
     #[error("SetGlobalDefaultError error: {source}")]
