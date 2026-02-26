@@ -26,7 +26,7 @@ rand = "0.10.0"
 rand_core = "0.10.0"
 rocket = { version = "0", features = ["tls", "json", "mtls", "serde_json"] }
 diacritics = "0"
-mid = "4"
+mid = "5"
 oauth2 = { version = "5", features = ["reqwest"] }
 clap = { version = "4", features = ["derive", "env"] }
 base64 = "0.22"
