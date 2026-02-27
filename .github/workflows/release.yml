@@ -152,12 +152,21 @@ jobs:
     name: Release
     permissions:
       contents: write
+      pull-requests: write
     needs:
       - build-linux
       - build-macos
       - build-windows
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
     steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: "0"
+          ref: main
+          persist-credentials: 'false'
+
       - name: Get the version
         id: get_version
         shell: bash
@@ -168,7 +177,6 @@ jobs:
       - name: Create Release
         id: create_release
         uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -180,12 +188,53 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
-          path: .
+          path: ./target
+
+      - name: Generate release notes (latest only)
+        id: git_cliff
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: /tmp/release-notes.md 
+
+      - name: Generate full CHANGELOG.md
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --output CHANGELOG.md
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
-        if: startsWith(github.ref, 'refs/tags/v')
         with:
-          files: '**'
+          files: ./target/**/*
+          body: ${{ steps.git_cliff.outputs.content }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - run: |
+          git add CHANGELOG.md
+          git commit -m "chore: update CHANGELOG.md"
+
+      - name: Create Pull Request to update CHANGELOG.md
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Update Changelog"
+          body: |
+            This PR updates the CHANGELOG.md to include all releases.
+            - Generated using git-cliff
+            - Triggered by: ${{ github.event_name }}
+          branch: update-changelog-${{ github.run_id }}
+          base: main
+          delete-branch: true
+          labels: documentation, automated-pr
