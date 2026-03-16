@@ -85,20 +85,6 @@ function EnsureAdmin {
     }
 }
 
-# Ensure user and group (Windows equivalent is ensuring local user or group exists)
-function EnsureUserGroup {
-    InfoMessage "Ensuring that the ${USER}:${GROUP} user and group exist..."
-
-    if (-Not (Get-LocalUser -Name $USER -ErrorAction SilentlyContinue)) {
-        InfoMessage "Creating user $USER..."
-        New-LocalUser -Name $USER -NoPassword
-    }
-
-    if (-Not (Get-LocalGroup -Name $GROUP -ErrorAction SilentlyContinue)) {
-        InfoMessage "Creating group $GROUP..."
-        New-LocalGroup -Name $GROUP
-    }
-}
 function ConfigureEnrollment {
     $certPath = "etc\sslagent.cert"  # Updated path to etc folder
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
