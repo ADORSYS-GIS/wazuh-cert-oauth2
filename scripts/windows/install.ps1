@@ -8,97 +8,35 @@ $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oa
 $DEFAULT_WOPS_VERSION = "0.4.2"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files (x86)\ossec-agent\ossec.conf" }
-$USER = "root"
-$GROUP = "wazuh"
 
+# Download and source common helper functions
+$commonUrl = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/refs/heads/refactor/split-linux-macos-scripts/scripts/shared/common.ps1"
+$commonPath = "C:\Temp\common.ps1"
 
-# Function for logging with timestamp
-function Log {
-    param (
-        [string]$Level,
-        [string]$Message,
-        [string]$Color = "White"  # Default color
-    )
-    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Write-Host "$Timestamp $Level $Message" -ForegroundColor $Color
+if (-not (Test-Path $commonPath)) {
+    try {
+        if (-not (Test-Path "C:\Temp")) {
+            New-Item -ItemType Directory -Path "C:\Temp" -Force | Out-Null
+            Write-Host "Created directory: C:\Temp"
+        }
+        Invoke-WebRequest -Uri $commonUrl -OutFile $commonPath -Headers @{"User-Agent"="Mozilla/5.0"} -ErrorAction Stop
+        Write-Host "Downloaded common helper functions"
+    }
+    catch {
+        Write-Host "Failed to download common helper functions: $_" -ForegroundColor Red
+        exit 1
+    }
 }
 
-# Logging helpers with colors
-function InfoMessage {
-    param ([string]$Message)
-    Log "[INFO]" $Message "White"
+try {
+    . "$commonPath"
+    InfoMessage "Loaded common helper functions"
 }
-
-function WarnMessage {
-    param ([string]$Message)
-    Log "[WARNING]" $Message "Yellow"
-}
-
-function ErrorMessage {
-    param ([string]$Message)
-    Log "[ERROR]" $Message "Red"
-}
-
-function SuccessMessage {
-    param ([string]$Message)
-    Log "[SUCCESS]" $Message "Green"
-}
-
-function PrintStep {
-    param (
-        [int]$StepNumber,
-        [string]$Message
-    )
-    Log "[STEP]" "Step ${StepNumber}: $Message" "White"
-}
-
-# Section Separator
-function SectionSeparator {
-    param (
-        [string]$SectionName
-    )
-    Write-Host ""
-    Write-Host "==================================================" -ForegroundColor Magenta
-    Write-Host "  $SectionName" -ForegroundColor Magenta
-    Write-Host "==================================================" -ForegroundColor Magenta
-    Write-Host ""
-}
-
-
-# Exit script with an error message
-function ErrorExit {
-    param ([string]$Message)
-    ErrorMessage $Message
+catch {
+    Write-Host "Failed to load common helper functions: $_" -ForegroundColor Red
     exit 1
 }
-
-# Check if a command exists (in PowerShell, we check if a command is available in PATH)
-function CommandExists {
-    param ([string]$Command)
-    return Get-Command $Command -ErrorAction SilentlyContinue
-}
-
-# Ensure the script is running with administrator privileges
-function EnsureAdmin {
-    if (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-        ErrorExit "This script requires administrative privileges. Please run it as Administrator."
-    }
-}
-
-# Ensure user and group (Windows equivalent is ensuring local user or group exists)
-function EnsureUserGroup {
-    InfoMessage "Ensuring that the ${USER}:${GROUP} user and group exist..."
-
-    if (-Not (Get-LocalUser -Name $USER -ErrorAction SilentlyContinue)) {
-        InfoMessage "Creating user $USER..."
-        New-LocalUser -Name $USER -NoPassword
-    }
-
-    if (-Not (Get-LocalGroup -Name $GROUP -ErrorAction SilentlyContinue)) {
-        InfoMessage "Creating group $GROUP..."
-        New-LocalGroup -Name $GROUP
-    }
-}
+ 
 function ConfigureEnrollment {
     $certPath = "etc\sslagent.cert"  # Updated path to etc folder
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
