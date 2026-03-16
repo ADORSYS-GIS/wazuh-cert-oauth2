@@ -2,12 +2,13 @@
 # Shared shell helper functions for install/uninstall/update scripts
 
 # Colors (ANSI)
-RED=$(printf '\033[0;31m')
-GREEN=$(printf '\033[0;32m')
-YELLOW=$(printf '\033[1;33m')
-BLUE=$(printf '\033[1;34m')
-BOLD=$(printf '\033[1m')
-NORMAL=$(printf '\033[0m')
+# Colors (ANSI)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+BOLD='\033[1m'
+NORMAL='\033[0m'
 
 # Logging with timestamp
 log() {
