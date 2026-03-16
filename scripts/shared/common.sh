@@ -2,19 +2,20 @@
 # Shared shell helper functions for install/uninstall/update scripts
 
 # Colors (ANSI)
-RED=$'\033[0;31m'
-GREEN=$'\033[0;32m'
-YELLOW=$'\033[1;33m'
-BLUE=$'\033[1;34m'
-BOLD=$'\033[1m'
-NORMAL=$'\033[0m'
+# Colors (ANSI)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+BOLD='\033[1m'
+NORMAL='\033[0m'
 
 # Logging with timestamp
 log() {
     LEVEL="$1"
     shift
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    printf "%s %s %s\n" "$TIMESTAMP" "$LEVEL" "$*"
+    printf "%s %b %s\n" "$TIMESTAMP" "$LEVEL" "$*"
 }
 
 info_message() {
