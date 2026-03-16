@@ -1,7 +1,6 @@
-#!/bin/sh
+#!/bin/bash
 # Shared shell helper functions for install/uninstall/update scripts
 
-# Colors (ANSI)
 # Colors (ANSI)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
