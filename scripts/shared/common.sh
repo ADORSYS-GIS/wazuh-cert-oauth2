@@ -15,7 +15,7 @@ log() {
     LEVEL="$1"
     shift
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    printf "%s %s %s\n" "$TIMESTAMP" "$LEVEL" "$*"
+    echo -e "$TIMESTAMP $LEVEL $*"
 }
 
 info_message() {
