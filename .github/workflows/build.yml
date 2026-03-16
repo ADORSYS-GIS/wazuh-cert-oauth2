@@ -76,7 +76,7 @@ jobs:
 
       - id: lowercase
         name: Lowercase image name
-        uses: AsZc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f
+        uses: AsZc/change-string-case-action@ecd1412d078f2e06e9eedcbaa6fcd988151c3f82
         with:
           string: ${{ env.IMAGE_NAME }}
 
