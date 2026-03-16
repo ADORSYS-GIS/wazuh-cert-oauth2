@@ -101,6 +101,10 @@ cleanup_configuration() {
     fi
 }
 
+if [[ $(uname -s) != "Linux" ]]; then
+    error_exit "This uninstallation script is intended for Linux systems. Please use the appropriate script for your operating system."
+fi
+
 # Main script execution
 uninstall_binary
 cleanup_configuration

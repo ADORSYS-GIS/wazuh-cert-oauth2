@@ -174,6 +174,10 @@ validate_installation() {
     success_message "Validation of installation and configuration completed successfully."
 }
 
+if [[ $(uname -s) != "Linux" ]]; then
+    error_exit "This uninstallation script is intended for Linux systems. Please use the appropriate script for your operating system."
+fi
+
 # Construct binary name and URL for download
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
 BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
