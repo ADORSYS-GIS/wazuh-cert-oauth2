@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Set shell options based on shell type
 if [ -n "$BASH_VERSION" ]; then
