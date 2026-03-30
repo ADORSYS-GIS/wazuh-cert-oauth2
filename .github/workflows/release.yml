@@ -244,11 +244,6 @@ jobs:
             This PR updates the CHANGELOG.md and checksums.
             - Generated using git-cliff
             - Triggered by: ${{ github.event_name }}
-
-            ### Script Checksums (SHA256)
-            ```
-            ${{ steps.calc_checksums.outputs.script_checksums }}
-            ```
           branch: update-changelog-${{ github.run_id }}
           base: main
           delete-branch: true
