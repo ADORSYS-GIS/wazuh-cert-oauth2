@@ -214,7 +214,7 @@ jobs:
           args: --output CHANGELOG.md
 
       - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
         with:
           files: |
             ./target/**/*
