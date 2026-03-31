@@ -190,6 +190,14 @@ jobs:
         with:
           path: ./target
 
+      - name: Generate checksums
+        run: |
+          # Calculate binary checksums and strip directory prefix
+          find target -type f -exec sha256sum {} + | sed 's|  target/[^/]*/|  |' > checksums.sha256
+          # Calculate script checksums and keep paths
+          find scripts -type f -exec sha256sum {} + >> checksums.sha256
+          cat checksums.sha256
+
       - name: Generate release notes (latest only)
         id: git_cliff
         uses: orhun/git-cliff-action@v4
@@ -208,7 +216,9 @@ jobs:
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
         with:
-          files: ./target/**/*
+          files: |
+            ./target/**/*
+            ./checksums.sha256
           body: ${{ steps.git_cliff.outputs.content }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -225,13 +235,13 @@ jobs:
           git add CHANGELOG.md
           git commit -m "chore: update CHANGELOG.md"
 
-      - name: Create Pull Request to update CHANGELOG.md
+      - name: Create Pull Request to update CHANGELOG.md and checksums
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Update Changelog"
+          title: "Update Changelog and checksums"
           body: |
-            This PR updates the CHANGELOG.md to include all releases.
+            This PR updates the CHANGELOG.md and checksums.
             - Generated using git-cliff
             - Triggered by: ${{ github.event_name }}
           branch: update-changelog-${{ github.run_id }}
