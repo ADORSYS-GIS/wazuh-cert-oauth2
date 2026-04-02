@@ -80,7 +80,7 @@ WOPS_VERSION=${WOPS_VERSION:-"0.4.2"}
 # macOS-specific configuration
 OS="apple-darwin"
 BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}
-OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf"
+OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/Library/Ossec/etc/ossec.conf"}
 
 # Determine architecture
 ARCH=$(uname -m)

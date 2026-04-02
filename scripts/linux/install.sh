@@ -80,7 +80,7 @@ WOPS_VERSION=${WOPS_VERSION:-"0.4.2"}
 # Linux-specific configuration
 OS="unknown-linux-musl"
 BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}
-OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf"
+OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 
 # Determine architecture
 ARCH=$(uname -m)

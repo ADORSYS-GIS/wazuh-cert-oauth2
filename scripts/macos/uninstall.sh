@@ -76,8 +76,8 @@ sed_alternative() {
 
 # Default application details
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-BIN_DIR="/Library/Ossec/bin"
-OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf"
+BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}
+OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/Library/Ossec/etc/ossec.conf"}
 
 # Uninstall binary
 uninstall_binary() {
