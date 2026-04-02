@@ -3,14 +3,12 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # Default log level and application details
-$LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
 $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
 $DEFAULT_WOPS_VERSION = "0.4.2"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files (x86)\ossec-agent\ossec.conf" }
 $USER = "root"
 $GROUP = "wazuh"
-
 
 # Function for logging with timestamp
 function Log {
@@ -85,20 +83,6 @@ function EnsureAdmin {
     }
 }
 
-# Ensure user and group (Windows equivalent is ensuring local user or group exists)
-function EnsureUserGroup {
-    InfoMessage "Ensuring that the ${USER}:${GROUP} user and group exist..."
-
-    if (-Not (Get-LocalUser -Name $USER -ErrorAction SilentlyContinue)) {
-        InfoMessage "Creating user $USER..."
-        New-LocalUser -Name $USER -NoPassword
-    }
-
-    if (-Not (Get-LocalGroup -Name $GROUP -ErrorAction SilentlyContinue)) {
-        InfoMessage "Creating group $GROUP..."
-        New-LocalGroup -Name $GROUP
-    }
-}
 function ConfigureEnrollment {
     $certPath = "etc\sslagent.cert"  # Updated path to etc folder
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
