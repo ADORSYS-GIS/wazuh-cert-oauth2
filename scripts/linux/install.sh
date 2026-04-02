@@ -7,6 +7,12 @@ else
     set -eu
 fi
 
+# OS guard early in the script
+if [ "$(uname -s)" != "Linux" ]; then
+    printf "%s\n" "[ERROR] This installation script is intended for Linux systems. Please use the appropriate script for your operating system." >&2
+    exit 1
+fi
+
 # Colors (ANSI)
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -17,6 +23,13 @@ NORMAL='\033[0m'
 
 # Logging with timestamp
 log() {
+    if [ -n "$BASH_VERSION" ]; then
+        local LEVEL TIMESTAMP
+    else
+        LEVEL=""
+        TIMESTAMP=""
+    fi
+
     LEVEL="$1"
     shift
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
@@ -173,10 +186,6 @@ validate_installation() {
 
     success_message "Validation of installation and configuration completed successfully."
 }
-
-if [[ $(uname -s) != "Linux" ]]; then
-    error_exit "This uninstallation script is intended for Linux systems. Please use the appropriate script for your operating system."
-fi
 
 # Construct binary name and URL for download
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"

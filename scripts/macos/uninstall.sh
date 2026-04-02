@@ -7,6 +7,12 @@ else
     set -eu
 fi
 
+# OS guard early in the script
+if [ "$(uname -s)" != "Darwin" ]; then
+    printf "%s\n" "[ERROR] This uninstallation script is intended for macOS systems. Please use the appropriate script for your operating system." >&2
+    exit 1
+fi
+
 
 # Colors (ANSI)
 RED='\033[0;31m'
@@ -18,6 +24,13 @@ NORMAL='\033[0m'
 
 # Logging with timestamp
 log() {
+    if [ -n "$BASH_VERSION" ]; then
+        local LEVEL TIMESTAMP
+    else
+        LEVEL=""
+        TIMESTAMP=""
+    fi
+
     LEVEL="$1"
     shift
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
@@ -101,10 +114,6 @@ cleanup_configuration() {
         warn_message "Configuration file not found at $OSSEC_CONF_PATH. Skipping configuration cleanup."
     fi
 }
-
-if [[ $(uname -s) != "Darwin" ]]; then
-    error_exit "This uninstallation script is intended for MacOs systems. Please use the appropriate script for your operating system."
-fi
 
 # Main script execution
 uninstall_binary
