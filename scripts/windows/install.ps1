@@ -10,78 +10,114 @@ $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } 
 $USER = "root"
 $GROUP = "wazuh"
 
-# Function for logging with timestamp
-function Log {
-    param (
-        [string]$Level,
-        [string]$Message,
-        [string]$Color = "White"  # Default color
+# Variables
+if (-not $env:WAZUH_CERT_OAUTH2_REPO_REF) { 
+    $env:WAZUH_CERT_OAUTH2_REPO_REF = "refs/tags/v$WOPS_VERSION"
+}
+$WAZUH_CERT_OAUTH2_REPO_REF = $env:WAZUH_CERT_OAUTH2_REPO_REF
+
+# Create a secure temporary directory for utilities
+$UtilsTmp = Join-Path $env:TEMP "wazuh-cert-oauth2-utils-$(Get-Random)"
+New-Item -ItemType Directory -Path $UtilsTmp -Force | Out-Null
+
+# Bootstrap download functions (minimal versions)
+function Download-File-Bootstrap {
+    param(
+        [string]$Url,
+        [string]$Destination
     )
-    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Write-Host "$Timestamp $Level $Message" -ForegroundColor $Color
+    try {
+        Invoke-WebRequest -Uri $Url -OutFile $Destination -ErrorAction Stop
+        return $true
+    }
+    catch {
+        return $false
+    }
 }
 
-# Logging helpers with colors
-function InfoMessage {
-    param ([string]$Message)
-    Log "[INFO]" $Message "White"
+function Get-FileChecksum-Bootstrap {
+    param([string]$FilePath)
+    return (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
 }
 
-function WarnMessage {
-    param ([string]$Message)
-    Log "[WARNING]" $Message "Yellow"
-}
-
-function ErrorMessage {
-    param ([string]$Message)
-    Log "[ERROR]" $Message "Red"
-}
-
-function SuccessMessage {
-    param ([string]$Message)
-    Log "[SUCCESS]" $Message "Green"
-}
-
-function PrintStep {
-    param (
-        [int]$StepNumber,
-        [string]$Message
+function Test-Checksum-Bootstrap {
+    param(
+        [string]$FilePath,
+        [string]$ExpectedHash
     )
-    Log "[STEP]" "Step ${StepNumber}: $Message" "White"
+    $actualHash = Get-FileChecksum-Bootstrap -FilePath $FilePath
+    return $actualHash -eq $ExpectedHash.ToLower()
 }
 
-# Section Separator
-function SectionSeparator {
-    param (
-        [string]$SectionName
+function Download-And-VerifyFile-Bootstrap {
+    param(
+        [string]$Url,
+        [string]$Destination,
+        [string]$ChecksumPattern,
+        [string]$FileName = "Unknown file",
+        [string]$ChecksumUrl = $null
     )
-    Write-Host ""
-    Write-Host "==================================================" -ForegroundColor Magenta
-    Write-Host "  $SectionName" -ForegroundColor Magenta
-    Write-Host "==================================================" -ForegroundColor Magenta
-    Write-Host ""
+    
+    if (-not (Download-File-Bootstrap -Url $Url -Destination $Destination)) {
+        Write-Error "Failed to download $FileName"
+        return $false
+    }
+    
+    $checksumFile = $null
+    if ($ChecksumUrl) {
+        $tempChecksumFile = Join-Path ([System.IO.Path]::GetTempPath()) "checksums-$([System.Guid]::NewGuid().ToString()).sha256"
+        if (-not (Download-File-Bootstrap -Url $ChecksumUrl -Destination $tempChecksumFile)) {
+            Write-Error "Failed to download checksum file"
+            return $false
+        }
+        $checksumFile = $tempChecksumFile
+    }
+    
+    if ($checksumFile -and (Test-Path -Path $checksumFile)) {
+        $expectedHash = (Select-String -Path $checksumFile -Pattern $ChecksumPattern).Line.Split(" ")[0]
+        if ($expectedHash -and (Test-Checksum-Bootstrap -FilePath $Destination -ExpectedHash $expectedHash)) {
+            Write-Host "$FileName verification passed"
+        } else {
+            Write-Error "$FileName checksum verification failed"
+            return $false
+        }
+        
+        if ($ChecksumUrl -and (Test-Path -Path $checksumFile)) {
+            Remove-Item -Path $checksumFile -Force -ErrorAction SilentlyContinue
+        }
+    } else {
+        Write-Error "Checksum file not found"
+        return $false
+    }
+    
+    return $true
 }
 
+# Source shared utilities
+try {
+    $UtilsURL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF/scripts/shared/utils.ps1"
+    $ChecksumsURL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF/checksums.sha256"
+    $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
+    $global:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
+    
+    if (-not (Download-And-VerifyFile-Bootstrap -Url $UtilsURL -Destination $UtilsPath -ChecksumPattern "scripts/shared/utils.ps1" -FileName "utils.ps1" -ChecksumUrl $ChecksumsURL)) {
+        Write-Error "Failed to download and verify utils.ps1"
+        exit 1
+    }
+    
+    # Also download the checksums file for later use
+    if (-not (Download-File-Bootstrap -Url $ChecksumsURL -Destination $global:ChecksumsPath)) {
+        Write-Error "Failed to download checksums file"
+        exit 1
+    }
 
-# Exit script with an error message
-function ErrorExit {
-    param ([string]$Message)
-    ErrorMessage $Message
+    . $UtilsPath
+}
+catch {
+    Write-Error "Failed to initialize utilities: $($_.Exception.Message)"
     exit 1
 }
 
-# Check if a command exists (in PowerShell, we check if a command is available in PATH)
-function CommandExists {
-    param ([string]$Command)
-    return Get-Command $Command -ErrorAction SilentlyContinue
-}
-
-# Ensure the script is running with administrator privileges
-function EnsureAdmin {
-    if (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-        ErrorExit "This script requires administrative privileges. Please run it as Administrator."
-    }
-}
 
 function ConfigureEnrollment {
     $certPath = "etc\sslagent.cert"  # Updated path to etc folder
@@ -199,8 +235,8 @@ function ValidateInstallation {
 }
 
 # Determine architecture and operating system
-$OS = if ($PSVersionTable.PSEdition -eq "Core") { "linux" } else { "windows" }
-$ARCH = if ([Environment]::Is64BitOperatingSystem) { "x86_64" } else { "x86" }
+$OS = Get-OS
+$ARCH = Get-Architecture
 
 if ($OS -ne "windows") {
     ErrorExit "Unsupported operating system: $OS"
@@ -218,22 +254,19 @@ $URL = "$BASE_URL/$BIN_NAME"
 # Fallback URL if the constructed URL fails
 $FALLBACK_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$DEFAULT_WOPS_VERSION/wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
 
-# Step 1: Download the binary file
+# Step 1: Download the binary file with checksum verification
 $TEMP_FILE = New-TemporaryFile
 PrintStep 1 "Downloading $BIN_NAME from $URL..."
 try {
-    Invoke-WebRequest -Uri $URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
+    Download-And-VerifyFile -Url $URL -Destination $TEMP_FILE -ChecksumPattern $BIN_NAME -FileName $BIN_NAME -ChecksumUrl "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
 } catch {
     WarnMessage "Failed to download from $URL. Trying fallback URL..."
-    Invoke-WebRequest -Uri $FALLBACK_URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
+    $fallbackBinName = "wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
+    Download-And-VerifyFile -Url $FALLBACK_URL -Destination $TEMP_FILE -ChecksumPattern $fallbackBinName -FileName $fallbackBinName -ChecksumUrl "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
 }
 
 # Step 2: Install the binary based on architecture
-if ($ARCH -eq "x86_64") {
-    $BIN_DIR = "C:\Program Files (x86)\ossec-agent"
-} else {
-    $BIN_DIR = "C:\Program Files\ossec-agent"
-}
+$BIN_DIR = Get-BinDirectory
 
 PrintStep 2 "Installing binary to $BIN_DIR..."
 New-Item -ItemType Directory -Path $BIN_DIR -Force

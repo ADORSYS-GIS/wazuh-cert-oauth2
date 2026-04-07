@@ -7,90 +7,55 @@ else
     set -eu
 fi
 
+# Global variables with defaults
+APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
+WOPS_VERSION=${WOPS_VERSION:-"0.4.2"}
+WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERSION}"}
+WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
+
+# Create a secure temporary directory for utilities
+UTILS_TMP=$(mktemp -d)
+trap 'rm -rf "$UTILS_TMP"' EXIT
+if ! curl "${WAZUH_CERT_OAUTH2_REPO_URL}/scripts/shared/utils.sh" -o "$UTILS_TMP/utils.sh"; then
+    echo "Failed to download utils.sh"
+    exit 1
+fi
+
+# Function to calculate SHA256 (cross-platform bootstrap)
+calculate_sha256_bootstrap() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+
+# Download checksums and verify utils.sh integrity BEFORE sourcing it
+if ! curl "${WAZUH_CERT_OAUTH2_REPO_URL}/checksums.sha256" -o "$UTILS_TMP/checksums.sha256"; then
+    echo "Failed to download checksums.sha256"
+    exit 1
+fi
+
+
+EXPECTED_HASH=$(grep "scripts/shared/utils.sh" "$UTILS_TMP/checksums.sha256" | awk '{print $1}')
+ACTUAL_HASH=$(calculate_sha256_bootstrap "$UTILS_TMP/utils.sh")
+
+if [ -z "$EXPECTED_HASH" ] || [ "$EXPECTED_HASH" != "$ACTUAL_HASH" ]; then
+    echo "Error: Checksum verification failed for utils.sh" >&2
+    echo "Expected hash: $EXPECTED_HASH" >&2
+    echo "Actual hash: $ACTUAL_HASH" >&2
+    exit 1
+fi
+
+# Source utils.sh only after verification
+. "$UTILS_TMP/utils.sh"
+
 # OS guard early in the script
 if [ "$(uname -s)" != "Darwin" ]; then
     printf "%s\n" "[ERROR] This uninstallation script is intended for macOS systems. Please use the appropriate script for your operating system." >&2
     exit 1
 fi
 
-
-# Colors (ANSI)
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
-BOLD='\033[1m'
-NORMAL='\033[0m'
-
-# Logging with timestamp
-log() {
-    if [ -n "$BASH_VERSION" ]; then
-        local LEVEL TIMESTAMP
-    else
-        LEVEL=""
-        TIMESTAMP=""
-    fi
-
-    LEVEL="$1"
-    shift
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    printf "%s %b %s\n" "$TIMESTAMP" "$LEVEL" "$*"
-}
-
-info_message() {
-    log "${BLUE}${BOLD}[INFO]${NORMAL}" "$*"
-}
-
-warn_message() {
-    log "${YELLOW}${BOLD}[WARNING]${NORMAL}" "$*"
-}
-
-error_message() {
-    log "${RED}${BOLD}[ERROR]${NORMAL}" "$*"
-}
-
-success_message() {
-    log "${GREEN}${BOLD}[SUCCESS]${NORMAL}" "$*"
-}
-
-print_step() {
-    log "${BLUE}${BOLD}[STEP]${NORMAL}" "$1: $2"
-}
-
-error_exit() {
-    error_message "$1"
-    exit 1
-}
-
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-maybe_sudo() {
-    if [ "$(id -u)" -ne 0 ]; then
-        if command_exists sudo; then
-            sudo "$@"
-        else
-            error_message "This script requires root privileges. Please run with sudo or as root."
-            exit 1
-        fi
-    else
-        "$@"
-    fi
-}
-
-sed_alternative() {
-    if command_exists gsed; then
-        maybe_sudo gsed "$@"
-    else
-        maybe_sudo sed "$@"
-    fi
-}
-
-# Default application details
-APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}
-OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/Library/Ossec/etc/ossec.conf"}
 
 # Uninstall binary
 uninstall_binary() {
