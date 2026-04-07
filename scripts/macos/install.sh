@@ -65,9 +65,6 @@ OS="apple-darwin"
 BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}
 OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/Library/Ossec/etc/ossec.conf"}
 
-# Determine architecture
-ARCH=$(detect_arch)
-
 check_enrollment() {
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
         ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n </enrollment>\n"
@@ -152,6 +149,7 @@ validate_installation() {
 }
 
 # Construct binary name and URL for download
+ARCH=$(detect_arch)
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
 BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 URL="$BASE_URL/$BIN_NAME"

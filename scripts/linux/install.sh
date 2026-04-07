@@ -24,9 +24,6 @@ OS="unknown-linux-musl"
 BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}
 OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 
-# Determine architecture
-ARCH=$(detect_arch)
-
 # Create a secure temporary directory for utilities
 UTILS_TMP=$(mktemp -d)
 trap 'rm -rf "$UTILS_TMP"' EXIT
@@ -149,6 +146,7 @@ validate_installation() {
 }
 
 # Construct binary name and URL for download
+ARCH=$(detect_arch)
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
 BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 URL="$BASE_URL/$BIN_NAME"
