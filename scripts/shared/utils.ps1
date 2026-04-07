@@ -126,13 +126,13 @@ function Download-File {
             if ((Get-Item $Destination).Length -gt 0) {
                 $success = $true
             } else {
-                WarningMessage "Downloaded file is empty, retrying... (attempt $retryCount/$MaxRetries)"
+                WarnMessage "Downloaded file is empty, retrying... (attempt $retryCount/$MaxRetries)"
                 Remove-Item -Path $Destination -Force
             }
         }
         catch {
             if ($retryCount -lt $MaxRetries) {
-                WarningMessage "Failed to download $Url, retrying... (attempt $retryCount/$MaxRetries): $($_.Exception.Message)"
+                WarnMessage "Failed to download $Url, retrying... (attempt $retryCount/$MaxRetries): $($_.Exception.Message)"
                 Start-Sleep -Seconds 2
             } else {
                 ErrorMessage "Failed to download $Url after $MaxRetries attempts: $($_.Exception.Message)"
