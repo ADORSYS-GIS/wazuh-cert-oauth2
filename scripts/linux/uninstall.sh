@@ -17,6 +17,8 @@ fi
 # Default application details
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
 WOPS_VERSION=${WOPS_VERSION:-"0.4.2"}
+BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}
+OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERSION}"}
 WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
 
@@ -71,8 +73,8 @@ uninstall_binary() {
 cleanup_configuration() {
     if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
         info_message "Removing agent certificate and key configurations from $OSSEC_CONF_PATH..."
-        sed_alternative -i '/<agent_certificate_path>.*<\/agent_certificate_path>/d' "$OSSEC_CONF_PATH"
-        sed_alternative -i '/<agent_key_path>.*<\/agent_key_path>/d' "$OSSEC_CONF_PATH"
+        sed_inplace -i '/<agent_certificate_path>.*<\/agent_certificate_path>/d' "$OSSEC_CONF_PATH"
+        sed_inplace -i '/<agent_key_path>.*<\/agent_key_path>/d' "$OSSEC_CONF_PATH"
         info_message "Configuration cleaned successfully."
     else
         warn_message "Configuration file not found at $OSSEC_CONF_PATH. Skipping configuration cleanup."
