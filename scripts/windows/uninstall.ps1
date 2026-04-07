@@ -18,87 +18,27 @@ $WAZUH_CERT_OAUTH2_REPO_REF = $env:WAZUH_CERT_OAUTH2_REPO_REF
 $UtilsTmp = Join-Path $env:TEMP "wazuh-cert-oauth2-utils-$(Get-Random)"
 New-Item -ItemType Directory -Path $UtilsTmp -Force | Out-Null
 
-# Bootstrap download functions (minimal versions)
-function Download-File-Bootstrap {
-    param(
-        [string]$Url,
-        [string]$Destination
-    )
-    try {
-        Invoke-WebRequest -Uri $Url -OutFile $Destination -ErrorAction Stop
-        return $true
-    }
-    catch {
-        return $false
-    }
-}
-
-function Get-FileChecksum-Bootstrap {
-    param([string]$FilePath)
-    return (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
-}
-
-function Test-Checksum-Bootstrap {
-    param(
-        [string]$FilePath,
-        [string]$ExpectedHash
-    )
-    $actualHash = Get-FileChecksum-Bootstrap -FilePath $FilePath
-    return $actualHash -eq $ExpectedHash.ToLower()
-}
-
-function Download-And-VerifyFile-Bootstrap {
-    param(
-        [string]$Url,
-        [string]$Destination,
-        [string]$ChecksumPattern,
-        [string]$FileName = "Unknown file",
-        [string]$ChecksumUrl = $null
-    )
-    
-    if (-not (Download-File-Bootstrap -Url $Url -Destination $Destination)) {
-        Write-Error "Failed to download $FileName"
-        return $false
-    }
-    
-    $checksumFile = $null
-    if ($ChecksumUrl) {
-        $tempChecksumFile = Join-Path ([System.IO.Path]::GetTempPath()) "checksums-$([System.Guid]::NewGuid().ToString()).sha256"
-        if (-not (Download-File-Bootstrap -Url $ChecksumUrl -Destination $tempChecksumFile)) {
-            Write-Error "Failed to download checksum file"
-            return $false
-        }
-        $checksumFile = $tempChecksumFile
-    }
-    
-    if ($checksumFile -and (Test-Path -Path $checksumFile)) {
-        $expectedHash = (Select-String -Path $checksumFile -Pattern $ChecksumPattern).Line.Split(" ")[0]
-        if ($expectedHash -and (Test-Checksum-Bootstrap -FilePath $Destination -ExpectedHash $expectedHash)) {
-            Write-Host "$FileName verification passed"
-        } else {
-            Write-Error "$FileName checksum verification failed"
-            return $false
-        }
-        
-        if ($ChecksumUrl -and (Test-Path -Path $checksumFile)) {
-            Remove-Item -Path $checksumFile -Force -ErrorAction SilentlyContinue
-        }
-    } else {
-        Write-Error "Checksum file not found"
-        return $false
-    }
-    
-    return $true
-}
-
-# Source shared utilities
 try {
-    $UtilsURL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF/scripts/shared/utils.ps1"
     $ChecksumsURL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF/checksums.sha256"
-    $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
+    $UtilsURL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF/scripts/shared/utils.ps1"
     
-    if (-not (Download-And-VerifyFile-Bootstrap -Url $UtilsURL -Destination $UtilsPath -ChecksumPattern "scripts/shared/utils.ps1" -FileName "utils.ps1" -ChecksumUrl $ChecksumsURL)) {
-        Write-Error "Failed to download and verify utils.ps1"
+    $global:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
+    $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
+
+    Invoke-WebRequest -Uri $ChecksumsURL -OutFile $ChecksumsPath -ErrorAction Stop
+    Invoke-WebRequest -Uri $UtilsURL -OutFile $UtilsPath -ErrorAction Stop
+
+    # Verification function (bootstrap)
+    function Get-FileChecksum-Bootstrap {
+        param([string]$FilePath)
+        return (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
+    }
+
+    $ExpectedHash = (Select-String -Path $ChecksumsPath -Pattern "scripts/shared/utils.ps1").Line.Split(" ")[0]
+    $ActualHash = Get-FileChecksum-Bootstrap -FilePath $UtilsPath
+
+    if ([string]::IsNullOrWhiteSpace($ExpectedHash) -or ($ActualHash -ne $ExpectedHash.ToLower())) {
+        Write-Error "Checksum verification failed for utils.ps1"
         exit 1
     }
 
