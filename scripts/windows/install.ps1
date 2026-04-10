@@ -3,7 +3,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # Default log level and application details
-$LOG_LEVEL = if ($env:LOG_LEVEL -ne $null) { $env:LOG_LEVEL } else { "INFO" }
 $APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
 $DEFAULT_WOPS_VERSION = "0.4.2"
 $WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
@@ -11,94 +10,48 @@ $OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } 
 $USER = "root"
 $GROUP = "wazuh"
 
-
-# Function for logging with timestamp
-function Log {
-    param (
-        [string]$Level,
-        [string]$Message,
-        [string]$Color = "White"  # Default color
-    )
-    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    Write-Host "$Timestamp $Level $Message" -ForegroundColor $Color
+# Variables
+if (-not $env:WAZUH_CERT_OAUTH2_REPO_REF) { 
+    $env:WAZUH_CERT_OAUTH2_REPO_REF = "refs/tags/v$WOPS_VERSION"
 }
+$WAZUH_CERT_OAUTH2_REPO_REF = $env:WAZUH_CERT_OAUTH2_REPO_REF
+$WAZUH_CERT_OAUTH2_REPO_URL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF"
 
-# Logging helpers with colors
-function InfoMessage {
-    param ([string]$Message)
-    Log "[INFO]" $Message "White"
+# Create a secure temporary directory for utilities
+$UtilsTmp = Join-Path $env:TEMP "wazuh-cert-oauth2-utils-$(Get-Random)"
+New-Item -ItemType Directory -Path $UtilsTmp -Force | Out-Null
+
+try {
+    $ChecksumsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
+    $UtilsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/shared/utils.ps1"
+    
+    $global:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
+    $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
+
+    Invoke-WebRequest -Uri $ChecksumsURL -OutFile $ChecksumsPath -ErrorAction Stop
+    Invoke-WebRequest -Uri $UtilsURL -OutFile $UtilsPath -ErrorAction Stop
+
+    # Verification function (bootstrap)
+    function Get-FileChecksum-Bootstrap {
+        param([string]$FilePath)
+        return (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
+    }
+
+    $ExpectedHash = (Select-String -Path $ChecksumsPath -Pattern "scripts/shared/utils.ps1").Line.Split(" ")[0]
+    $ActualHash = Get-FileChecksum-Bootstrap -FilePath $UtilsPath
+
+    if ([string]::IsNullOrWhiteSpace($ExpectedHash) -or ($ActualHash -ne $ExpectedHash.ToLower())) {
+        Write-Error "Checksum verification failed for utils.ps1"
+        exit 1
+    }
+
+    . $UtilsPath
 }
-
-function WarnMessage {
-    param ([string]$Message)
-    Log "[WARNING]" $Message "Yellow"
-}
-
-function ErrorMessage {
-    param ([string]$Message)
-    Log "[ERROR]" $Message "Red"
-}
-
-function SuccessMessage {
-    param ([string]$Message)
-    Log "[SUCCESS]" $Message "Green"
-}
-
-function PrintStep {
-    param (
-        [int]$StepNumber,
-        [string]$Message
-    )
-    Log "[STEP]" "Step ${StepNumber}: $Message" "White"
-}
-
-# Section Separator
-function SectionSeparator {
-    param (
-        [string]$SectionName
-    )
-    Write-Host ""
-    Write-Host "==================================================" -ForegroundColor Magenta
-    Write-Host "  $SectionName" -ForegroundColor Magenta
-    Write-Host "==================================================" -ForegroundColor Magenta
-    Write-Host ""
-}
-
-
-# Exit script with an error message
-function ErrorExit {
-    param ([string]$Message)
-    ErrorMessage $Message
+catch {
+    Write-Error "Failed to initialize utilities: $($_.Exception.Message)"
     exit 1
 }
 
-# Check if a command exists (in PowerShell, we check if a command is available in PATH)
-function CommandExists {
-    param ([string]$Command)
-    return Get-Command $Command -ErrorAction SilentlyContinue
-}
-
-# Ensure the script is running with administrator privileges
-function EnsureAdmin {
-    if (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-        ErrorExit "This script requires administrative privileges. Please run it as Administrator."
-    }
-}
-
-# Ensure user and group (Windows equivalent is ensuring local user or group exists)
-function EnsureUserGroup {
-    InfoMessage "Ensuring that the ${USER}:${GROUP} user and group exist..."
-
-    if (-Not (Get-LocalUser -Name $USER -ErrorAction SilentlyContinue)) {
-        InfoMessage "Creating user $USER..."
-        New-LocalUser -Name $USER -NoPassword
-    }
-
-    if (-Not (Get-LocalGroup -Name $GROUP -ErrorAction SilentlyContinue)) {
-        InfoMessage "Creating group $GROUP..."
-        New-LocalGroup -Name $GROUP
-    }
-}
 function ConfigureEnrollment {
     $certPath = "etc\sslagent.cert"  # Updated path to etc folder
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
@@ -234,22 +187,19 @@ $URL = "$BASE_URL/$BIN_NAME"
 # Fallback URL if the constructed URL fails
 $FALLBACK_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$DEFAULT_WOPS_VERSION/wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
 
-# Step 1: Download the binary file
+# Step 1: Download the binary file with checksum verification
 $TEMP_FILE = New-TemporaryFile
 PrintStep 1 "Downloading $BIN_NAME from $URL..."
 try {
-    Invoke-WebRequest -Uri $URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
+    Download-And-VerifyFile -Url $URL -Destination $TEMP_FILE -ChecksumPattern $BIN_NAME -FileName $BIN_NAME -ChecksumUrl "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
 } catch {
     WarnMessage "Failed to download from $URL. Trying fallback URL..."
-    Invoke-WebRequest -Uri $FALLBACK_URL -OutFile $TEMP_FILE -UseBasicParsing -ErrorAction Stop
+    $fallbackBinName = "wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
+    Download-And-VerifyFile -Url $FALLBACK_URL -Destination $TEMP_FILE -ChecksumPattern $fallbackBinName -FileName $fallbackBinName -ChecksumUrl "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
 }
 
 # Step 2: Install the binary based on architecture
-if ($ARCH -eq "x86_64") {
-    $BIN_DIR = "C:\Program Files (x86)\ossec-agent"
-} else {
-    $BIN_DIR = "C:\Program Files\ossec-agent"
-}
+$BIN_DIR = Get-BinDirectory
 
 PrintStep 2 "Installing binary to $BIN_DIR..."
 New-Item -ItemType Directory -Path $BIN_DIR -Force
