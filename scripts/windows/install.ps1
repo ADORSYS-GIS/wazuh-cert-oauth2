@@ -168,19 +168,18 @@ function ValidateInstallation {
 }
 
 # Determine architecture and operating system
-$OS = if ($PSVersionTable.PSEdition -eq "Core") { "linux" } else { "windows" }
-$ARCH = if ([Environment]::Is64BitOperatingSystem) { "x86_64" } else { "x86" }
-
-if ($OS -ne "windows") {
-    ErrorExit "Unsupported operating system: $OS"
+if (-not $IsWindows) {
+    ErrorExit "Unsupported operating system. This script is intended for Windows only."
 }
+
+$ARCH = if ([Environment]::Is64BitOperatingSystem) { "x86_64" } else { "x86" }
 
 if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
     ErrorExit "Unsupported architecture: $ARCH"
 }
 
 # Construct binary name and URL for download
-$BIN_NAME = "$APP_NAME-$ARCH-pc-$OS-msvc.exe"
+$BIN_NAME = "$APP_NAME-$ARCH-pc-windows-msvc.exe"
 $BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $URL = "$BASE_URL/$BIN_NAME"
 
