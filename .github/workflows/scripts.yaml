@@ -10,7 +10,7 @@ on:
 env:
   WAZUH_MANAGER: "127.0.0.1"
   WAZUH_CERT_OAUTH2_REPO_REF: "refactor/split-linux-macos-scripts"
-  WOPS_VERSION: "v0.4.2-rc.1"
+  WOPS_VERSION: "0.4.2-rc.1"
 
 jobs:
   lint-scripts:

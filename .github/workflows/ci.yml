@@ -3,8 +3,26 @@ name: Code Linting and SAST
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - '.github/workflows/**'
+      - 'crates/wazuh-cert-oauth2-server/**'
+      - 'crates/wazuh-cert-oauth2-metrics/**'
+      - 'crates/wazuh-cert-oauth2-model/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Dockerfile'
+      - '.dockerignore'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - '.github/workflows/**'
+      - 'crates/wazuh-cert-oauth2-server/**'
+      - 'crates/wazuh-cert-oauth2-metrics/**'
+      - 'crates/wazuh-cert-oauth2-model/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'Dockerfile'
+      - '.dockerignore'
 
 jobs:
   lint:
@@ -28,7 +46,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends pkg-config libssl-dev
 
-      - name: Run ESLint and post results
+      - name: Run Super-Linter
         uses: super-linter/super-linter@61abc07d755095a68f4987d1c2c3d1d64408f1f9 # super-linter/super-linter@v8
         env:
           OPENSSL_NO_VENDOR: "1"
