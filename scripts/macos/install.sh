@@ -153,6 +153,7 @@ ARCH=$(detect_arch)
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
 BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 URL="$BASE_URL/$BIN_NAME"
+BIN_CHECKSUM_URL="$BASE_URL/checksums.sha256"
 
 # Create a temporary directory and ensure it is cleaned up
 TEMP_DIR=$(mktemp -d) || error_exit "Failed to create temporary directory"
@@ -160,7 +161,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 
 # Step 1: Download the binary file with checksum verification
 print_step 1 "Downloading $BIN_NAME from $URL..."
-download_and_verify_file "$URL" "$TEMP_DIR/$BIN_NAME" "$BIN_NAME" "$BIN_NAME" "${WAZUH_CERT_OAUTH2_REPO_URL}/checksums.sha256" "$UTILS_TMP/checksums.sha256"
+download_and_verify_file "$URL" "$TEMP_DIR/$BIN_NAME" "$BIN_NAME" "$BIN_NAME" "$BIN_CHECKSUM_URL" "$UTILS_TMP/checksums.sha256"
 
 # Step 2: Install the binary
 print_step 2 "Installing binary to $BIN_DIR..."

@@ -201,7 +201,7 @@ download_and_verify_file() {
     
     if [ -f "$checksum_file" ]; then
         local expected
-        expected=$(grep "$pattern" "$checksum_file" | awk '{print $1}')
+        expected=$(grep "$pattern" "$checksum_file" | awk '{print $1}' || error_exit "Failed to extract expected checksum for $name using pattern $pattern from $checksum_file")
         
         if [ -n "$expected" ]; then
             if ! verify_checksum "$dest" "$expected"; then
