@@ -1,0 +1,121 @@
+name: Lint and test scripts
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'scripts/**'
+  workflow_dispatch:
+
+env:
+  WAZUH_MANAGER: "127.0.0.1"
+  WAZUH_CERT_OAUTH2_REPO_REF: "refactor/split-linux-macos-scripts"
+
+jobs:
+  lint-scripts:
+    name: Lint Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck on bash scripts
+        run: |
+          find scripts -name "*.sh" -type f | xargs shellcheck --severity=warning || true
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer on PowerShell scripts
+        shell: pwsh
+        run: |
+          $results = Get-ChildItem -Path scripts/windows -Filter "*.ps1" -Recurse | ForEach-Object {
+            Invoke-ScriptAnalyzer -Path $_.FullName -Severity Warning,Error
+          }
+          if ($results) {
+            $results | Format-Table -AutoSize
+            Write-Warning "PSScriptAnalyzer found issues"
+          }
+
+  update-checksums:
+    name: Update checksums.sha256
+    needs: lint-scripts
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate checksums
+        run: |
+          find scripts -type f -exec sha256sum {} + > checksums.sha256
+          cat checksums.sha256
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Commit updated checksums
+        run: |
+          git add checksums.sha256
+          git diff --cached --quiet || git commit -m "chore: update checksums.sha256"
+          git push
+
+  test-scripts:
+    name: Test Scripts
+    needs: update-checksums
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Create Wazuh active-response directory (Linux CI)
+        if: runner.os == 'Linux'
+        run: sudo mkdir -p /var/ossec/active-response/bin
+
+      - name: Create Wazuh active-response directory (MacOS CI)
+        if: runner.os == 'macOS'
+        run: sudo mkdir -p /Library/Ossec/active-response/bin
+
+      - name: Test scripts (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            sudo env \
+              WAZUH_MANAGER="${{ env.WAZUH_MANAGER }}" \
+              WAZUH_CERT_OAUTH2_REPO_REF="${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}" \
+              bash ./scripts/linux/install.sh
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            sudo env \
+              WAZUH_MANAGER="${{ env.WAZUH_MANAGER }}" \
+              WAZUH_CERT_OAUTH2_REPO_REF="${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}" \
+              bash ./scripts/macos/install.sh
+          fi
+
+      - name: Test scripts (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:WAZUH_MANAGER = "${{ env.WAZUH_MANAGER }}"
+          $env:WAZUH_CERT_OAUTH2_REPO_REF = "${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}"
+          .\scripts\windows\install.ps1
