@@ -182,6 +182,7 @@ if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
 $BIN_NAME = "$APP_NAME-$ARCH-pc-windows-msvc.exe"
 $BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 $URL = "$BASE_URL/$BIN_NAME"
+$BIN_CHECKSUM_URL = "$BASE_URL/checksums.sha256"
 
 # Fallback URL if the constructed URL fails
 $FALLBACK_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$DEFAULT_WOPS_VERSION/wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
@@ -190,11 +191,11 @@ $FALLBACK_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/downl
 $TEMP_FILE = New-TemporaryFile
 PrintStep 1 "Downloading $BIN_NAME from $URL..."
 try {
-    Download-And-VerifyFile -Url $URL -Destination $TEMP_FILE -ChecksumPattern $BIN_NAME -FileName $BIN_NAME -ChecksumUrl "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
+    Download-And-VerifyFile -Url $URL -Destination $TEMP_FILE -ChecksumPattern $BIN_NAME -FileName $BIN_NAME -ChecksumUrl "$BIN_CHECKSUM_URL"
 } catch {
     WarnMessage "Failed to download from $URL. Trying fallback URL..."
     $fallbackBinName = "wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
-    Download-And-VerifyFile -Url $FALLBACK_URL -Destination $TEMP_FILE -ChecksumPattern $fallbackBinName -FileName $fallbackBinName -ChecksumUrl "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
+    Download-And-VerifyFile -Url $FALLBACK_URL -Destination $TEMP_FILE -ChecksumPattern $fallbackBinName -FileName $fallbackBinName -ChecksumUrl "$BIN_CHECKSUM_URL"
 }
 
 # Step 2: Install the binary based on architecture
