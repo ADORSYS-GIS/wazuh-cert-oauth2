@@ -42,7 +42,7 @@ jobs:
         # from source and link it statically. This avoids the need to install
         # OpenSSL separately in the build environment, which is complex for
         # cross-compilation.
-        uses: houseabsolute/actions-rust-cross@d5793ed10782223794bfb721b2a0810f88385f8e
+        uses: houseabsolute/actions-rust-cross@576730dbfbb705690d43bd285987a3094fd84874
         with:
           command: "build"
           target: ${{ matrix.target }}
@@ -89,7 +89,7 @@ jobs:
           brew install pkg-config openssl@3
 
       - name: Build with cross
-        uses: houseabsolute/actions-rust-cross@d5793ed10782223794bfb721b2a0810f88385f8e
+        uses: houseabsolute/actions-rust-cross@576730dbfbb705690d43bd285987a3094fd84874
         with:
           command: "build"
           target: ${{ matrix.target }}
@@ -130,7 +130,7 @@ jobs:
       # Note: intentionally avoid caches in release build to prevent cache poisoning
 
       - name: Build with cross
-        uses: houseabsolute/actions-rust-cross@d5793ed10782223794bfb721b2a0810f88385f8e
+        uses: houseabsolute/actions-rust-cross@576730dbfbb705690d43bd285987a3094fd84874
         with:
           command: "build"
           target: ${{ matrix.target }}
@@ -237,9 +237,17 @@ jobs:
           echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Download Artifacts
-        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           path: ./target
+
+      - name: Generate checksums
+        run: |
+          # Calculate binary checksums and strip directory prefix
+          find target -type f -exec sha256sum {} + | sed 's|  target/[^/]*/|  |' > checksums.sha256
+          # Calculate script checksums and keep paths
+          find scripts -type f -exec sha256sum {} + >> checksums.sha256
+          cat checksums.sha256
 
       - name: Generate release notes (latest only)
         id: git_cliff
@@ -260,9 +268,11 @@ jobs:
           fi
 
       - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
         with:
-          files: ./target/**/*
+          files: |
+            ./target/**/*
+            ./checksums.sha256
           body: ${{ steps.git_cliff.outputs.content }}
           prerelease: ${{ steps.prerelease.outputs.PRERELEASE }}
           tag_name: ${{ steps.get_version.outputs.VERSION }}

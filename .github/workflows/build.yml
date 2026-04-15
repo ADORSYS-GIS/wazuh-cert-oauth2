@@ -76,7 +76,7 @@ jobs:
 
       - id: lowercase
         name: Lowercase image name
-        uses: AsZc/change-string-case-action@d0603cd0a7dd490be678164909f65c7737470a7f
+        uses: AsZc/change-string-case-action@ecd1412d078f2e06e9eedcbaa6fcd988151c3f82
         with:
           string: ${{ env.IMAGE_NAME }}
 
@@ -125,7 +125,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003
 
       - name: Vulnerability scan (Trivy)
         id: trivy
