@@ -44,24 +44,34 @@ jobs:
             Write-Warning "PSScriptAnalyzer found issues"
           }
 
-  update-checksums:
-    name: Update checksums.sha256
+  update-changelog-and-checksums:
     needs: lint-scripts
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     permissions:
       contents: write
     steps:
-      - name: Checkout PR branch
+      - name: Checkout code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          ref: ${{ github.head_ref }}
+          fetch-depth: "0"
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
 
-      - name: Generate checksums
+      - name: Configure git user
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Generate script checksums
         run: |
           find scripts -type f -exec sha256sum {} + > checksums.sha256
           cat checksums.sha256
+          
+      - name: Generate full CHANGELOG.md
+        uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72
+        with:
+          config: cliff.toml
+          args: --output CHANGELOG.md
 
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
@@ -71,15 +81,19 @@ jobs:
           git_user_signingkey: true
           git_commit_gpgsign: true
 
-      - name: Commit updated checksums
+      - name: Commit and push changes
         run: |
-          git add checksums.sha256
-          git diff --cached --quiet || git commit -m "chore: update checksums.sha256"
-          git push
+          if [[ -n $(git status --porcelain) ]]; then
+            git add CHANGELOG.md checksums.sha256
+            git commit -S -m "docs: update CHANGELOG.md and checksums [skip ci]"
+            git push origin ${{ github.head_ref || github.ref_name }}
+          else
+            echo "No changes to commit"
+          fi
 
   test-scripts:
     name: Test Scripts
-    needs: update-checksums
+    needs: update-changelog-and-checksums
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
