@@ -168,7 +168,7 @@ function ValidateInstallation {
 }
 
 # Determine architecture and operating system
-if (-not $IsWindows) {
+if (-not $env:OS -eq "Windows_NT") {
     ErrorExit "Unsupported operating system. This script is intended for Windows only."
 }
 
