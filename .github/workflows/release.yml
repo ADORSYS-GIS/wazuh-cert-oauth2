@@ -148,8 +148,8 @@ jobs:
           name: wazuh-cert-oauth2-client-${{ matrix.target }}
           path: wazuh-cert-oauth2-client-${{ matrix.target }}.exe
 
-  release:
-    name: Release
+  update-changelog-and-checksums:
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
@@ -157,6 +157,69 @@ jobs:
       - build-linux
       - build-macos
       - build-windows
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: "0"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          path: ./target
+
+      - name: Configure git user
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Generate checksums
+        run: |
+          # Calculate binary checksums and strip directory prefix
+          find target -type f -exec sha256sum {} + | sed 's|  target/[^/]*/|  |' > checksums.sha256
+          # Calculate script checksums and keep paths
+          find scripts -type f -exec sha256sum {} + >> checksums.sha256
+          cat checksums.sha256
+
+      - name: Generate full CHANGELOG.md
+        uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72
+        with:
+          config: cliff.toml
+          args: --output CHANGELOG.md
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+          git_user_signingkey: true
+          git_commit_gpgsign: true
+
+      - name: Commit and push changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            git add CHANGELOG.md checksums.sha256
+            git commit -m "docs: update CHANGELOG.md and checksums [skip ci]"
+            git push origin ${{ github.head_ref || github.ref_name }}
+          else
+            echo "No changes to commit"
+          fi
+      
+      - name: Upload Checksums
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: checksums.sha256
+          path: checksums.sha256
+
+  release:
+    name: Release
+    permissions:
+      contents: write
+    needs:
+      - update-changelog-and-checksums
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -174,17 +237,6 @@ jobs:
           VERSION="${GITHUB_REF#refs/tags/}"
           echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@0cb9c9b65d5d1901c1f53e5e66eaf4afd303e70e
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.get_version.outputs.VERSION }}
-          release_name: Release ${{ steps.get_version.outputs.VERSION }}
-          draft: false
-          prerelease: false
-
       - name: Download Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
@@ -200,18 +252,21 @@ jobs:
 
       - name: Generate release notes (latest only)
         id: git_cliff
-        uses: orhun/git-cliff-action@v4
+        uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72
         with:
           config: cliff.toml
           args: --latest --strip header
         env:
-          OUTPUT: /tmp/release-notes.md 
+          OUTPUT: /tmp/release-notes.md
 
-      - name: Generate full CHANGELOG.md
-        uses: orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --output CHANGELOG.md
+      - name: Determine prerelease
+        id: prerelease
+        run: |
+          if [[ "${GITHUB_REF#refs/tags/}" == *"rc"* ]]; then
+            echo "PRERELEASE=true" >> $GITHUB_OUTPUT
+          else
+            echo "PRERELEASE=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
@@ -220,34 +275,8 @@ jobs:
             ./target/**/*
             ./checksums.sha256
           body: ${{ steps.git_cliff.outputs.content }}
+          prerelease: ${{ steps.prerelease.outputs.PRERELEASE }}
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v7
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-          git_user_signingkey: true
-          git_commit_gpgsign: true
-
-      - run: |
-          git add CHANGELOG.md checksums.sha256
-          git commit -m "chore: update CHANGELOG.md and checksums"
-
-      - name: Create Pull Request to update CHANGELOG.md and checksums
-        uses: peter-evans/create-pull-request@v8
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Update Changelog and checksums"
-          add-paths: |
-            CHANGELOG.md
-            checksums.sha256
-          body: |
-            This PR updates the CHANGELOG.md and checksums.
-            - Generated using git-cliff
-            - Triggered by: ${{ github.event_name }}
-          branch: update-changelog-${{ github.run_id }}
-          base: main
-          delete-branch: true
-          labels: documentation, automated-pr
