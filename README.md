@@ -21,7 +21,7 @@ Internal utilities: `wazuh-cert-oauth2-healthcheck`.
 
 ## Quick start
 
-For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/getting-started/getting-started.md).
+For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/getting-started.md).
 
 - **Docker Compose Stack**:
   - `docker compose up -d --build`
