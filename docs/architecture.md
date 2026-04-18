@@ -38,7 +38,7 @@ sequenceDiagram
 
     AgentClient->>AgentClient: Construct Authorization URL
     AgentClient->>User: Display auth URL in terminal
-    User->>Keycloak: Open browser, login and authorize
+    User->>Keycloak: Open browser (if not automatically opened by client), login and authorize
     Keycloak-->>User: Show authorization code (manual copy)
     User->>AgentClient: Paste authorization code
 
