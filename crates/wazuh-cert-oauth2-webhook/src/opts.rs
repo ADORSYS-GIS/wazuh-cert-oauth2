@@ -4,6 +4,7 @@ use std::path::PathBuf;
 #[derive(Parser, Debug, Clone)]
 #[command(
     name = "wazuh-cert-oauth2-webhook",
+    version,
     about = "Webhook proxy that forwards revocations with retry and failsafe"
 )]
 pub struct Opt {

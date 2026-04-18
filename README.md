@@ -21,13 +21,16 @@ Internal utilities: `wazuh-cert-oauth2-healthcheck`.
 
 ## Quick start
 
-- Docker Compose (demo stack with Keycloak):
-  - `docker compose up -d --build`
-  - Server: `http://localhost:8000`, Webhook: `http://localhost:8100`
+For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/getting-started/getting-started.md).
 
-- Build from source:
-  - `cargo build --release`
-  - Example: `target/release/wazuh-cert-oauth2-server --oauth-issuer <url> --root-ca-path <pem> --root-ca-key-path <pem>`
+- **Docker Compose Stack**:
+  - `docker compose up -d --build`
+  - Server: `http://localhost:8000`
+  - Webhook: `http://localhost:8100`
+  - Keycloak: `http://localhost:9100`
+
+- **Roadmap**: See [Roadmaps](docs/roadmaps/) for future plans.
+
 
 ## License
 
