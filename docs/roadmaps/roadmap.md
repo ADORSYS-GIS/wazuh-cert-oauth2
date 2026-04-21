@@ -12,6 +12,13 @@ This document outlines the future plans and development goals for the Wazuh Cert
     - Ensure each user can only have one active certificate.
     - Restrict enrollment and authentication to verified company devices.
 
+### CLI/Native App OAuth Flow
+- **OOB → PKCE + Localhost Migration**: Replace the deprecated OOB (`urn:ietf:wg:oauth:2.0:oob`) OAuth flow with PKCE + localhost redirect (per RFC 8252).
+    - **Replace redirect URI**: Swap `urn:ietf:wg:oauth:2.0:oob` with `http://localhost:{port}/callback`. Register a loopback redirect in the OAuth app's allowed URIs (RFC 8252 §7.3 permits any port on loopback).
+    - **Add PKCE**: Generate `code_verifier` (32 random bytes, base64url-encoded), derive `code_challenge = BASE64URL(SHA256(verifier))`, send `code_challenge` + `code_challenge_method=S256` in the authorization request, and include `code_verifier` in the token exchange.
+    - **Spin up a local HTTP server**: Use a random port (port `0`) to avoid conflicts, start in a separate thread before opening the browser, capture the `code` query parameter from the callback, then shut down.
+    - **Provider registration**: Add `http://localhost` (or `http://127.0.0.1`) as a loopback URI in the developer console. Some providers (Google, GitHub) require at least one registered loopback URI.
+
 ---
 
 ## Future Initiatives
