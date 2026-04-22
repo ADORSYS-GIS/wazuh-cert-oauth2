@@ -125,3 +125,110 @@ pub enum EventAction {
     Enabled,
     Ignore,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{EventAction, ProxyState};
+    use crate::models::WebhookRequest;
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use wazuh_cert_oauth2_model::services::http_client::HttpClient;
+
+    fn unique_spool_dir() -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time should be monotonic")
+            .as_nanos();
+        std::env::temp_dir().join(format!("wazuh-webhook-state-core-{}", nanos))
+    }
+
+    fn build_state(
+        webhook_api_key: Option<String>,
+        webhook_bearer_token: Option<String>,
+        webhook_basic_user: Option<String>,
+        webhook_basic_password: Option<String>,
+    ) -> ProxyState {
+        ProxyState::new(
+            "https://server.example".to_string(),
+            unique_spool_dir(),
+            HttpClient::new_with_defaults().expect("http client"),
+            2,
+            Duration::from_millis(5),
+            Duration::from_millis(20),
+            Duration::from_secs(1),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            "test reason".to_string(),
+            webhook_basic_user,
+            webhook_basic_password,
+            webhook_api_key,
+            webhook_bearer_token,
+        )
+        .expect("state should build")
+    }
+
+    fn webhook_request(
+        event_type: &str,
+        resource_path: Option<&str>,
+        representation: Option<&str>,
+    ) -> WebhookRequest {
+        WebhookRequest {
+            event_type: event_type.to_string(),
+            realm_id: "realm".to_string(),
+            id: None,
+            time: None,
+            client_id: None,
+            ip_address: None,
+            error: None,
+            details: Some(HashMap::new()),
+            resource_path: resource_path.map(|s| s.to_string()),
+            representation: representation.map(|s| s.to_string()),
+        }
+    }
+
+    #[test]
+    fn user_delete_event_with_user_path_is_revoked() {
+        let state = build_state(None, None, None, None);
+        let req = webhook_request("user-delete", Some("admin/realms/x/users/u1"), None);
+
+        let action = state.is_allowed_event("user-delete", &req);
+        assert_eq!(action, EventAction::Revoke);
+    }
+
+    #[test]
+    fn user_update_for_enabled_user_maps_to_enabled_action() {
+        let state = build_state(None, None, None, None);
+        let req = webhook_request(
+            "user-update",
+            Some("admin/realms/x/users/u1"),
+            Some(r#"{"id":"u1","enabled":true,"username":"alice","email":"a@example.com"}"#),
+        );
+
+        let action = state.is_allowed_event("user-update", &req);
+        assert_eq!(action, EventAction::Enabled);
+    }
+
+    #[test]
+    fn non_user_resource_paths_are_ignored() {
+        let state = build_state(None, None, None, None);
+        let req = webhook_request("user-update", Some("admin/realms/x/groups/g1"), None);
+
+        let action = state.is_allowed_event("user-update", &req);
+        assert_eq!(action, EventAction::Ignore);
+    }
+
+    #[test]
+    fn webhook_allows_anonymous_only_when_no_credentials_are_configured() {
+        let anonymous = build_state(None, None, None, None);
+        assert!(anonymous.webhook_allows_anonymous());
+
+        let with_api_key = build_state(Some("secret-key".to_string()), None, None, None);
+        assert!(!with_api_key.webhook_allows_anonymous());
+        assert_eq!(with_api_key.webhook_api_key(), Some("secret-key"));
+    }
+}

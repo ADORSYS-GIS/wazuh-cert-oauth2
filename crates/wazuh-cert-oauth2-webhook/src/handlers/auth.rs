@@ -23,6 +23,26 @@ fn constant_time_eq(a: &str, b: &str) -> bool {
     diff == 0
 }
 
+#[cfg(test)]
+mod tests {
+    use super::constant_time_eq;
+
+    #[test]
+    fn returns_true_for_identical_values() {
+        assert!(constant_time_eq("same-token", "same-token"));
+    }
+
+    #[test]
+    fn returns_false_for_different_values() {
+        assert!(!constant_time_eq("same-token", "different-token"));
+    }
+
+    #[test]
+    fn returns_false_for_different_lengths() {
+        assert!(!constant_time_eq("abc", "abcd"));
+    }
+}
+
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for WebhookAuth {
     type Error = ();

@@ -125,3 +125,38 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::FlowParams;
+    use crate::shared::cli::Opt;
+
+    #[test]
+    fn flow_params_are_mapped_from_oauth2_opt() {
+        let opt = Opt::OAuth2 {
+            issuer: "https://issuer.example/realms/demo".to_string(),
+            audience: "account,api".to_string(),
+            client_id: "client-id".to_string(),
+            client_secret: Some("client-secret".to_string()),
+            endpoint: "https://cert.example/api/register-agent".to_string(),
+            is_service_account: true,
+            cert_path: "/tmp/client.cert".to_string(),
+            ca_cert_path: "/tmp/ca.pem".to_string(),
+            key_path: "/tmp/client.key".to_string(),
+            agent_control: false,
+        };
+
+        let params = FlowParams::from(opt);
+
+        assert_eq!(params.issuer, "https://issuer.example/realms/demo");
+        assert_eq!(params.audience_csv, "account,api");
+        assert_eq!(params.client_id, "client-id");
+        assert_eq!(params.client_secret.as_deref(), Some("client-secret"));
+        assert_eq!(params.endpoint, "https://cert.example/api/register-agent");
+        assert!(params.is_service_account);
+        assert_eq!(params.cert_path, "/tmp/client.cert");
+        assert_eq!(params.ca_cert_path, "/tmp/ca.pem");
+        assert_eq!(params.key_path, "/tmp/client.key");
+        assert!(!params.agent_control);
+    }
+}
