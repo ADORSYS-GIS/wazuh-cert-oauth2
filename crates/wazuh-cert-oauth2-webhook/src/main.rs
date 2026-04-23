@@ -24,7 +24,10 @@ async fn main() -> AppResult<()> {
     setup_logging("wazuh-cert-oauth2-webhook")?;
 
     info!("starting webhook");
-    let opt = Opt::try_parse()?;
+    let opt = match Opt::try_parse() {
+        Ok(opt) => opt,
+        Err(e) => e.exit(),
+    };
     let state = build_state(&opt)?;
     spawn_spool_bg(state.clone());
     launch_rocket(state).await

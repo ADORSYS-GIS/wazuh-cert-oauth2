@@ -3,6 +3,7 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(
     name = "wazuh-cert-oauth2-server",
+    version,
     about = "OAuth2-backed certificate issuance server for Wazuh agents"
 )]
 pub struct Opt {

@@ -32,6 +32,10 @@ async fn main() -> AppResult<()> {
 
     info!("starting up");
 
+    let opt = match Opt::try_parse() {
+        Ok(opt) => opt,
+        Err(e) => e.exit(),
+    };
     let Opt {
         oauth_issuer,
         kc_audiences,
@@ -43,7 +47,7 @@ async fn main() -> AppResult<()> {
         crl_dist_url,
         crl_path,
         ledger_path,
-    } = Opt::try_parse()?;
+    } = opt;
     let kc_audiences = kc_audiences.map(|a| a.split(",").map(|s| s.to_string()).collect());
 
     // Shared HTTP client service with connection pooling

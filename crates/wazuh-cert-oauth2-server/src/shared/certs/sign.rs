@@ -99,3 +99,29 @@ fn sign_csr_with_ca(
     sign_builder(&mut builder, ca_key)?;
     Ok(builder.build())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::extract_realm_from_issuer;
+
+    #[test]
+    fn extracts_realm_when_realms_segment_exists() {
+        let iss = "https://auth.example/realms/my-realm/protocol/openid-connect/token";
+        assert_eq!(extract_realm_from_issuer(iss).as_deref(), Some("my-realm"));
+    }
+
+    #[test]
+    fn extraction_is_case_insensitive_for_realms_segment() {
+        let iss = "https://auth.example/REALMS/CaseRealm";
+        assert_eq!(extract_realm_from_issuer(iss).as_deref(), Some("CaseRealm"));
+    }
+
+    #[test]
+    fn returns_none_for_invalid_or_non_realm_urls() {
+        assert_eq!(extract_realm_from_issuer("not-a-url"), None);
+        assert_eq!(
+            extract_realm_from_issuer("https://auth.example/protocol/openid-connect"),
+            None
+        );
+    }
+}

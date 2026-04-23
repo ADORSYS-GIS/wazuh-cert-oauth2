@@ -107,3 +107,85 @@ impl Ledger {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Ledger;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use tokio::fs;
+
+    fn unique_ledger_path() -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time should be monotonic")
+            .as_nanos();
+        std::env::temp_dir()
+            .join(format!("wazuh-ledger-test-{}", nanos))
+            .join("ledger.csv")
+    }
+
+    #[tokio::test]
+    async fn ledger_records_and_revokes_entries() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
+
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
+        ledger
+            .record_issued(
+                "subject-a".to_string(),
+                "ABCD01".to_string(),
+                Some("https://issuer/realms/dev".to_string()),
+                Some("dev".to_string()),
+            )
+            .await
+            .expect("record_issued should succeed");
+
+        let by_subject = ledger.find_by_subject("subject-a").await;
+        assert_eq!(by_subject.len(), 1);
+        assert_eq!(by_subject[0].serial_hex, "ABCD01");
+        assert!(!by_subject[0].revoked);
+
+        ledger
+            .mark_revoked("ABCD01".to_string(), Some("manual".to_string()))
+            .await
+            .expect("mark_revoked should succeed");
+
+        let revocations = ledger.revoked_as_revocations().await;
+        assert_eq!(revocations.len(), 1);
+        assert_eq!(revocations[0].serial_hex, "ABCD01");
+        assert_eq!(revocations[0].reason.as_deref(), Some("manual"));
+        assert!(revocations[0].revoked_at_unix > 0);
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn ledger_revoke_unknown_serial_creates_revoked_stub() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
+
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
+        ledger
+            .mark_revoked("UNKNOWN01".to_string(), Some("preemptive".to_string()))
+            .await
+            .expect("mark_revoked should succeed");
+
+        let revocations = ledger.revoked_as_revocations().await;
+        assert_eq!(revocations.len(), 1);
+        assert_eq!(revocations[0].serial_hex, "UNKNOWN01");
+        assert_eq!(revocations[0].reason.as_deref(), Some("preemptive"));
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+}

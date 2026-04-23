@@ -52,3 +52,48 @@ pub enum Opt {
         agent_control: bool,
     },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Opt;
+    use crate::shared::path::{default_cert_path, default_key_path, default_server_ca_cert_path};
+    use clap::Parser;
+
+    #[test]
+    fn oauth2_cli_uses_expected_defaults() {
+        let parsed = Opt::parse_from(["client", "o-auth2"]);
+        match parsed {
+            Opt::OAuth2 {
+                issuer,
+                audience,
+                client_id,
+                endpoint,
+                cert_path,
+                ca_cert_path,
+                key_path,
+                agent_control,
+                ..
+            } => {
+                assert_eq!(issuer, "https://login.wazuh.adorsys.team/realms/adorsys");
+                assert_eq!(audience, "account");
+                assert_eq!(client_id, "adorsys-machine-client");
+                assert_eq!(
+                    endpoint,
+                    "https://cert.wazuh.adorsys.team/api/register-agent"
+                );
+                assert_eq!(cert_path, default_cert_path());
+                assert_eq!(ca_cert_path, default_server_ca_cert_path());
+                assert_eq!(key_path, default_key_path());
+                assert!(agent_control);
+            }
+        }
+    }
+
+    #[test]
+    fn oauth2_cli_allows_disabling_agent_control() {
+        let parsed = Opt::parse_from(["client", "o-auth2", "--agent-control=false"]);
+        match parsed {
+            Opt::OAuth2 { agent_control, .. } => assert!(!agent_control),
+        }
+    }
+}

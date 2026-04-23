@@ -71,3 +71,56 @@ pub struct SimpleUserRepresentation {
     pub username: String,
     pub email: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Health, WebhookRequest};
+    use std::collections::HashMap;
+    use wazuh_cert_oauth2_model::models::errors::AppError;
+
+    fn base_request() -> WebhookRequest {
+        WebhookRequest {
+            event_type: "user-update".to_string(),
+            realm_id: "realm-a".to_string(),
+            id: None,
+            time: None,
+            client_id: None,
+            ip_address: None,
+            error: None,
+            details: Some(HashMap::new()),
+            resource_path: Some("users/abc123".to_string()),
+            representation: None,
+        }
+    }
+
+    #[test]
+    fn health_ok_returns_ok_status() {
+        let health = Health::ok();
+        assert_eq!(health.status, "OK");
+    }
+
+    #[test]
+    fn parses_simple_user_representation_from_json_string() {
+        let mut req = base_request();
+        req.representation = Some(
+            r#"{"id":"user-1","enabled":false,"username":"alice","email":"a@example.com"}"#
+                .to_string(),
+        );
+
+        let user = req
+            .get_simple_user_representation()
+            .expect("representation should parse");
+        assert_eq!(user.id, "user-1");
+        assert!(!user.enabled);
+        assert_eq!(user.username, "alice");
+    }
+
+    #[test]
+    fn returns_serialization_error_when_representation_is_missing() {
+        let req = base_request();
+        let err = req
+            .get_simple_user_representation()
+            .expect_err("missing representation should error");
+        assert!(matches!(err, AppError::Serialization(_)));
+    }
+}

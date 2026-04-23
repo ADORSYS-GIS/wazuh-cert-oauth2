@@ -51,16 +51,15 @@ Logging
 - `tracing_subscriber` is initialized automatically; logs are emitted to stdout.
 - Control verbosity with `RUST_LOG` (e.g., `info,rocket=warn,reqwest=warn`). Defaults to `info` if unset.
 
-Quick start
+## Quick start
+
+For detailed setup and run instructions, see the [Getting Started Guide](../../docs/getting-started.md).
 
 ```bash
-export RUST_LOG=info,rocket=warn,reqwest=warn
-
-wazuh-cert-oauth2-server \
-  --oauth-issuer https://issuer.example.com/realms/xyz \
-  --root-ca-path /data/issuing.pem \
-  --root-ca-key-path /data/issuing.key
+# General usage
+wazuh-cert-oauth2-server --help
 ```
+
 
 Operational guidance
 

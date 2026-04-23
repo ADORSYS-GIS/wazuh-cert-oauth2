@@ -28,14 +28,12 @@ CLI options (env mapped)
 - `--key-path` (`KEY_PATH`): destination key path (defaults to a sensible platform path).
 - `--agent-control` (`AGENT_CONTROL`, default true): perform stop/set-name/restart.
 
-Example
+## Quick start
+
+For detailed setup and run instructions, see the [Getting Started Guide](../../docs/getting-started.md).
 
 ```bash
-export RUST_LOG=info,reqwest=warn
-
-wazuh-cert-oauth2-client oauth2 \
-  --issuer https://issuer.example/realms/xyz \
-  --client-id wazuh-client \
-  --client-secret ... \
-  --endpoint https://cert.wazuh.example/api/register-agent
+# General usage
+wazuh-cert-oauth2-client --help
 ```
+
