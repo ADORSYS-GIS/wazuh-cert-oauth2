@@ -24,6 +24,7 @@ pub struct FlowParams {
     ca_cert_path: String,
     key_path: String,
     agent_control: bool,
+    timeout_secs: u64,
 }
 
 impl From<Opt> for FlowParams {
@@ -40,6 +41,7 @@ impl From<Opt> for FlowParams {
                 ca_cert_path,
                 key_path,
                 agent_control,
+                timeout_secs,
             } => Self {
                 issuer,
                 audience_csv: audience,
@@ -51,6 +53,7 @@ impl From<Opt> for FlowParams {
                 key_path,
                 agent_control,
                 ca_cert_path,
+                timeout_secs,
             },
         }
     }
@@ -84,6 +87,7 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
             client_id: params.client_id.clone(),
             client_secret: params.client_secret.clone(),
             is_service_account: params.is_service_account,
+            timeout_secs: params.timeout_secs,
         },
     )
     .await?;
@@ -144,6 +148,7 @@ mod tests {
             ca_cert_path: "/tmp/ca.pem".to_string(),
             key_path: "/tmp/client.key".to_string(),
             agent_control: false,
+            timeout_secs: 120,
         };
 
         let params = FlowParams::from(opt);

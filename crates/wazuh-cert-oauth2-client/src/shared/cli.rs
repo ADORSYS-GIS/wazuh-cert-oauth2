@@ -50,6 +50,9 @@ pub enum Opt {
 
         #[arg(env, long, default_value_t = true, action = ArgAction::Set, default_missing_value = "true", num_args = 0..=1)]
         agent_control: bool,
+
+        #[arg(env, long, default_value_t = 120, short = 't')]
+        timeout_secs: u64,
     },
 }
 
