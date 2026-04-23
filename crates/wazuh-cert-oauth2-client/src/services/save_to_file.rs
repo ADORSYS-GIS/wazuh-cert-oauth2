@@ -88,11 +88,15 @@ mod tests {
         .expect("save should succeed");
 
         assert_eq!(
-            fs::read_to_string(&cert_file).await.expect("cert should exist"),
+            fs::read_to_string(&cert_file)
+                .await
+                .expect("cert should exist"),
             "CERT"
         );
         assert_eq!(
-            fs::read_to_string(&key_file).await.expect("key should exist"),
+            fs::read_to_string(&key_file)
+                .await
+                .expect("key should exist"),
             "KEY"
         );
         assert_eq!(

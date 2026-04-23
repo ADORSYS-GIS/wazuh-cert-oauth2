@@ -250,7 +250,9 @@ mod tests {
 
         let files = json_files(&spool_dir).await;
         assert_eq!(files.len(), 1);
-        let bytes = fs::read(&files[0]).await.expect("remaining file should be readable");
+        let bytes = fs::read(&files[0])
+            .await
+            .expect("remaining file should be readable");
         let item: SpoolItem = serde_json::from_slice(&bytes).expect("json should parse");
         assert_eq!(item.req.subject.as_deref(), Some("user-b"));
 

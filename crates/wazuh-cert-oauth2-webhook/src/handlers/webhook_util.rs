@@ -46,10 +46,7 @@ mod tests {
             Some(r#"{"id":"representation-id","enabled":true,"username":"u","email":"u@x"}"#),
         );
 
-        assert_eq!(
-            extract_user_id(&req).as_deref(),
-            Some("representation-id")
-        );
+        assert_eq!(extract_user_id(&req).as_deref(), Some("representation-id"));
     }
 
     #[test]

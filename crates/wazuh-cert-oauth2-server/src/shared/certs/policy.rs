@@ -79,8 +79,8 @@ mod tests {
 
     #[test]
     fn rejects_non_p256_ec_keys() {
-        let group = EcGroup::from_curve_name(Nid::SECP384R1)
-            .expect("p384 group creation should succeed");
+        let group =
+            EcGroup::from_curve_name(Nid::SECP384R1).expect("p384 group creation should succeed");
         let ec = EcKey::generate(&group).expect("ec key generation should succeed");
         let public = to_public_key(PKey::from_ec_key(ec).expect("pkey conversion should succeed"));
 

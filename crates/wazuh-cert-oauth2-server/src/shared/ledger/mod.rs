@@ -129,9 +129,13 @@ mod tests {
     async fn ledger_records_and_revokes_entries() {
         let path = unique_ledger_path();
         let parent = path.parent().expect("path should have parent");
-        fs::create_dir_all(parent).await.expect("temp dir should exist");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
 
-        let ledger = Ledger::new(path.clone()).await.expect("ledger should initialize");
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
         ledger
             .record_issued(
                 "subject-a".to_string(),
@@ -165,9 +169,13 @@ mod tests {
     async fn ledger_revoke_unknown_serial_creates_revoked_stub() {
         let path = unique_ledger_path();
         let parent = path.parent().expect("path should have parent");
-        fs::create_dir_all(parent).await.expect("temp dir should exist");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
 
-        let ledger = Ledger::new(path.clone()).await.expect("ledger should initialize");
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
         ledger
             .mark_revoked("UNKNOWN01".to_string(), Some("preemptive".to_string()))
             .await

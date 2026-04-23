@@ -176,7 +176,9 @@ mod tests {
         ];
 
         let shared = Arc::new(RwLock::new(entries.clone()));
-        persist_csv(&path, &shared).await.expect("persist should work");
+        persist_csv(&path, &shared)
+            .await
+            .expect("persist should work");
 
         let written = fs::read_to_string(&path).await.expect("csv should exist");
         let parsed = parse_csv(&written).expect("persisted csv should parse");

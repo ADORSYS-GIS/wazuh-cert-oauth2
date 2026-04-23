@@ -48,6 +48,28 @@ pub(super) fn escape_csv_field(s: &str) -> String {
     }
 }
 
+pub(super) fn unescape_csv_field(s: &str) -> String {
+    let s = s.trim();
+    if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
+        let inner = &s[1..s.len() - 1];
+        let mut out = String::with_capacity(inner.len());
+        let mut chars = inner.chars().peekable();
+        while let Some(c) = chars.next() {
+            if c == '"' {
+                if let Some('"') = chars.peek() {
+                    let _ = chars.next();
+                    out.push('"');
+                }
+            } else {
+                out.push(c);
+            }
+        }
+        out
+    } else {
+        s.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{escape_csv_field, split_csv_line, unescape_csv_field};
@@ -80,27 +102,5 @@ mod tests {
     fn escape_keeps_plain_strings_unchanged() {
         let original = "simple-value";
         assert_eq!(escape_csv_field(original), original);
-    }
-}
-
-pub(super) fn unescape_csv_field(s: &str) -> String {
-    let s = s.trim();
-    if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
-        let inner = &s[1..s.len() - 1];
-        let mut out = String::with_capacity(inner.len());
-        let mut chars = inner.chars().peekable();
-        while let Some(c) = chars.next() {
-            if c == '"' {
-                if let Some('"') = chars.peek() {
-                    let _ = chars.next();
-                    out.push('"');
-                }
-            } else {
-                out.push(c);
-            }
-        }
-        out
-    } else {
-        s.to_string()
     }
 }
