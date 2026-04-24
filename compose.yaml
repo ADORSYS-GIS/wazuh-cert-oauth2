@@ -51,6 +51,10 @@ services:
 
       WEBHOOK_BASIC_USER: "user"
       WEBHOOK_BASIC_PASSWORD: "password"
+
+      GITHUB_TOKEN: ""
+      GITHUB_REPO_OWNER: ""
+      GITHUB_REPO_NAME: ""
     volumes:
       - webhook:/data/spool
     healthcheck:

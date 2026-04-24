@@ -65,11 +65,14 @@ impl WebhookRequest {
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct SimpleUserRepresentation {
-    pub id: String,
+    pub id: Option<String>,
     pub enabled: bool,
-    pub username: String,
-    pub email: String,
+    pub username: Option<String>,
+    pub email: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
 }
 
 #[cfg(test)]
@@ -110,9 +113,9 @@ mod tests {
         let user = req
             .get_simple_user_representation()
             .expect("representation should parse");
-        assert_eq!(user.id, "user-1");
+        assert_eq!(user.id, Some("user-1".to_string()));
         assert!(!user.enabled);
-        assert_eq!(user.username, "alice");
+        assert_eq!(user.username, Some("alice".to_string()));
     }
 
     #[test]

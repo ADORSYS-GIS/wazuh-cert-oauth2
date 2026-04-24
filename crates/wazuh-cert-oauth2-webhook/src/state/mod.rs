@@ -33,6 +33,10 @@ pub struct ProxyState {
     webhook_api_key: Option<String>,
     webhook_bearer_token: Option<String>,
 
+    pub(crate) github_token: Option<String>,
+    pub(crate) github_repo_owner: Option<String>,
+    pub(crate) github_repo_name: Option<String>,
+
     pub(crate) token_cache: Arc<RwLock<Option<oauth::CachedToken>>>,
 }
 
