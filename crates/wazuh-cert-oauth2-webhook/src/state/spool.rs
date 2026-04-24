@@ -10,9 +10,16 @@ use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 use super::ProxyState;
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GitHubTicket {
+    pub title: String,
+    pub body: String,
+}
+
 #[derive(Serialize, Deserialize)]
-struct SpoolItem {
-    req: RevokeRequest,
+enum SpoolItem {
+    RevokeRequest { req: RevokeRequest },
+    GitHubTicket { ticket: GitHubTicket },
 }
 
 /// Remove queued revoke requests targeting the given subject.
@@ -37,8 +44,8 @@ pub async fn cancel_pending_revokes_for_subject(
         }
         match tokio::fs::read(&path).await {
             Ok(bytes) => match serde_json::from_slice::<SpoolItem>(&bytes) {
-                Ok(item) => {
-                    if item.req.subject.as_deref() == Some(subject) {
+                Ok(SpoolItem::RevokeRequest { req }) => {
+                    if req.subject.as_deref() == Some(subject) {
                         debug!(
                             "canceling pending revoke for {} in {}",
                             subject,
@@ -52,6 +59,7 @@ pub async fn cancel_pending_revokes_for_subject(
                         }
                     }
                 }
+                Ok(SpoolItem::GitHubTicket { .. }) => { /* Ignore GitHubTicket */ }
                 Err(e) => {
                     // Leave invalid files to the regular processor to clean up
                     warn!("invalid spool item {}; skipping: {}", path.display(), e);
@@ -65,7 +73,7 @@ pub async fn cancel_pending_revokes_for_subject(
 
 #[tracing::instrument(skip(state, req))]
 pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -> AppResult<()> {
-    let item = SpoolItem { req };
+    let item = SpoolItem::RevokeRequest { req };
     let data = serde_json::to_vec(&item)?;
     let ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -78,6 +86,31 @@ pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -
         rid.push_str(&format!("{:02x}", b));
     }
     let filename = format!("revoke-{}-{}.json", ms, rid);
+    let path = state.spool_dir.join(&filename);
+    let tmp = state.spool_dir.join(format!("{}.tmp", filename));
+    tokio::fs::write(&tmp, data).await?;
+    tokio::fs::rename(&tmp, &path).await?;
+    Ok(())
+}
+
+#[tracing::instrument(skip(state, ticket))]
+pub async fn queue_github_ticket_to_spool_dir(
+    state: &ProxyState,
+    ticket: GitHubTicket,
+) -> AppResult<()> {
+    let item = SpoolItem::GitHubTicket { ticket };
+    let data = serde_json::to_vec(&item)?;
+    let ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let mut buf = [0u8; 8];
+    rand::rng().try_fill_bytes(&mut buf).unwrap_infallible();
+    let mut rid = String::with_capacity(buf.len() * 2);
+    for b in buf {
+        rid.push_str(&format!("{:02x}", b));
+    }
+    let filename = format!("ticket-{}-{}.json", ms, rid);
     let path = state.spool_dir.join(&filename);
     let tmp = state.spool_dir.join(format!("{}.tmp", filename));
     tokio::fs::write(&tmp, data).await?;
@@ -118,9 +151,18 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
             Ok(bytes) => match serde_json::from_slice::<SpoolItem>(&bytes) {
                 Ok(item) => {
                     debug!("processing spool file: {}", path.display());
-                    match state.forward_revoke_with_retry(item.req).await {
+                    let res = match item {
+                        SpoolItem::RevokeRequest { req } => {
+                            state.forward_revoke_with_retry(req).await
+                        }
+                        SpoolItem::GitHubTicket { ticket } => {
+                            state.forward_github_ticket_with_retry(ticket).await
+                        }
+                    };
+
+                    match res {
                         Ok(()) => {
-                            debug!("forwarded; removing {}", path.display());
+                            debug!("successfully processed {}; removing", path.display());
                             let _ = tokio::fs::remove_file(&path).await;
                         }
                         Err(e) => warn!("still failing for {}: {}", path.display(), e),
@@ -257,7 +299,10 @@ mod tests {
             .await
             .expect("remaining file should be readable");
         let item: SpoolItem = serde_json::from_slice(&bytes).expect("json should parse");
-        assert_eq!(item.req.subject.as_deref(), Some("user-b"));
+        match item {
+            SpoolItem::RevokeRequest { req } => assert_eq!(req.subject.as_deref(), Some("user-b")),
+            _ => panic!("Expected RevokeRequest variant"),
+        }
 
         let _ = fs::remove_dir_all(&spool_dir).await;
     }

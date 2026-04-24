@@ -2,6 +2,7 @@ use super::ProxyState;
 use super::oauth;
 use super::spool;
 use crate::models::WebhookRequest;
+use crate::state::spool::GitHubTicket;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
@@ -74,6 +75,60 @@ impl ProxyState {
         }
     }
 
+    #[tracing::instrument(skip(self, ticket))]
+    pub async fn forward_github_ticket_with_retry(&self, ticket: GitHubTicket) -> AppResult<()> {
+        let (token, owner, name) = match (
+            &self.github_token,
+            &self.github_repo_owner,
+            &self.github_repo_name,
+        ) {
+            (Some(t), Some(o), Some(n)) => (t, o, n),
+            _ => {
+                tracing::warn!(
+                    "Forwarding GitHub ticket requested but GitHub config is incomplete"
+                );
+                return Ok(());
+            }
+        };
+
+        let url = format!("https://api.github.com/repos/{}/{}/issues", owner, name);
+        let payload = serde_json::json!({
+            "title": ticket.title,
+            "body": ticket.body,
+        });
+
+        let resp = self
+            .execute_with_retry(|| async {
+                let builder = self
+                    .http
+                    .client()
+                    .post(&url)
+                    .header("User-Agent", "wazuh-cert-oauth2-webhook")
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .bearer_auth(token)
+                    .json(&payload);
+                Ok(builder)
+            })
+            .await?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let body = resp.text().await.unwrap_or_default();
+            tracing::error!(
+                "failed to create GitHub ticket: upstream returned status={}, body={:?}",
+                status,
+                body
+            );
+            return Err(AppError::UpstreamError(format!(
+                "GitHub ticket creation failed with status {}",
+                status
+            )));
+        }
+
+        tracing::info!("successfully created GitHub ticket");
+        Ok(())
+    }
+
     #[tracing::instrument(skip(self))]
     async fn acquire_token(&self) -> AppResult<Option<String>> {
         if let Some(s) = &self.static_bearer {
@@ -141,6 +196,10 @@ impl ProxyState {
 
     pub async fn queue_revoke(&self, req: RevokeRequest) -> AppResult<()> {
         spool::queue_revoke_to_spool_dir(self, req).await
+    }
+
+    pub async fn queue_github_ticket(&self, ticket: GitHubTicket) -> AppResult<()> {
+        spool::queue_github_ticket_to_spool_dir(self, ticket).await
     }
 
     pub async fn cancel_pending_revokes_for_subject(&self, subject: &str) -> AppResult<usize> {

@@ -8,7 +8,7 @@ use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 mod builder;
 pub(crate) mod core;
 mod oauth;
-mod spool;
+pub mod spool;
 mod utils;
 
 pub use spool::spawn_spool_processor;
