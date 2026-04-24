@@ -1,14 +1,14 @@
-use rocket::State;
-use rocket::http::Status;
-use rocket::serde::json::Json;
-use tracing::{debug, info, warn};
-use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
-
 use crate::handlers::auth::WebhookAuth;
-use crate::handlers::webhook_util::extract_user_id;
+use crate::handlers::webhook_util::{extract_user_id, prepare_github_issue};
 use crate::models::WebhookRequest;
 use crate::state::ProxyState;
 use crate::state::core::EventAction;
+use crate::state::spool::GitHubTicket;
+use rocket::http::Status;
+use rocket::serde::json::Json;
+use rocket::{State, post};
+use tracing::{debug, error, info, warn};
+use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 #[post("/webhook", format = "application/json", data = "<payload>")]
 #[tracing::instrument(skip(_auth, state, payload), fields(event_type = %payload.event_type, resource = ?payload.resource_path))]
@@ -32,7 +32,32 @@ pub async fn send_webhook(
         }
         EventAction::Revoke => handle_revoke(state, p).await,
         EventAction::Enabled => handle_enable(state, p).await,
+        EventAction::CreateTicket => handle_create_ticket(state, p).await,
     }
+}
+
+#[tracing::instrument(skip(state, p), fields(event_type = %p.event_type))]
+async fn handle_create_ticket(
+    state: &State<ProxyState>,
+    p: WebhookRequest,
+) -> Result<Status, Status> {
+    let (title, body) = prepare_github_issue(&p);
+    let ticket = GitHubTicket { title, body };
+
+    if let Err(e) = state.forward_github_ticket_with_retry(ticket.clone()).await {
+        warn!(
+            "initial GitHub ticket creation failed; spooling for retry: {}",
+            e
+        );
+        if let Err(se) = state.queue_github_ticket(ticket).await {
+            error!("CRITICAL: failed to spool GitHub ticket: {}", se);
+            return Err(Status::InternalServerError);
+        }
+    }
+
+    // We return Ok always to avoid Keycloak retrying the webhook indefinitely
+    // if the GitHub API is having issues.
+    Ok(Status::Ok)
 }
 
 #[tracing::instrument(skip(state), fields(event_type = %p.event_type))]

@@ -29,6 +29,9 @@ pub fn build_state(opt: &Opt) -> AppResult<ProxyState> {
         opt.webhook_basic_password.clone(),
         opt.webhook_api_key.clone(),
         opt.webhook_bearer_token.clone(),
+        opt.github_token.clone(),
+        opt.github_repo_owner.clone(),
+        opt.github_repo_name.clone(),
     )?;
     Ok(state)
 }

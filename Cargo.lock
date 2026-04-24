@@ -3529,6 +3529,7 @@ dependencies = [
  "mimalloc",
  "oauth2",
  "rand 0.10.0",
+ "reqwest",
  "rocket",
  "serde",
  "serde_json",

@@ -28,6 +28,9 @@ impl ProxyState {
         webhook_basic_password: Option<String>,
         webhook_api_key: Option<String>,
         webhook_bearer_token: Option<String>,
+        github_token: Option<String>,
+        github_repo_owner: Option<String>,
+        github_repo_name: Option<String>,
     ) -> AppResult<Self> {
         utils::ensure_spool_dir(&spool_dir);
         let oauth = oauth::build_oauth(
@@ -52,6 +55,9 @@ impl ProxyState {
             webhook_basic_password,
             webhook_api_key,
             webhook_bearer_token,
+            github_token,
+            github_repo_owner,
+            github_repo_name,
             token_cache: Arc::new(RwLock::new(None)),
         })
     }
