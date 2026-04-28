@@ -24,6 +24,7 @@ pub struct FlowParams {
     ca_cert_path: String,
     key_path: String,
     agent_control: bool,
+    overwrite: bool,
 }
 
 impl From<Opt> for FlowParams {
@@ -40,6 +41,7 @@ impl From<Opt> for FlowParams {
                 ca_cert_path,
                 key_path,
                 agent_control,
+                overwrite,
             } => Self {
                 issuer,
                 audience_csv: audience,
@@ -51,6 +53,7 @@ impl From<Opt> for FlowParams {
                 key_path,
                 agent_control,
                 ca_cert_path,
+                overwrite,
             },
         }
     }
@@ -95,8 +98,8 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
     debug!("Generating keypair and CSR");
     let (csr_pem, private_key_pem) = generate_key_and_csr(&sub)?;
 
-    debug!("Submitting CSR for signing");
-    let signed = submit_csr(&http, &params.endpoint, &token, &csr_pem).await?;
+    debug!("Submitting CSR for signing, overwrite={}", params.overwrite);
+    let signed = submit_csr(&http, &params.endpoint, &token, &csr_pem, params.overwrite).await?;
 
     debug!("Saving certificate and private key");
     save_cert_and_key(
@@ -144,6 +147,7 @@ mod tests {
             ca_cert_path: "/tmp/ca.pem".to_string(),
             key_path: "/tmp/client.key".to_string(),
             agent_control: false,
+            overwrite: true,
         };
 
         let params = FlowParams::from(opt);
@@ -158,5 +162,6 @@ mod tests {
         assert_eq!(params.ca_cert_path, "/tmp/ca.pem");
         assert_eq!(params.key_path, "/tmp/client.key");
         assert!(!params.agent_control);
+        assert!(params.overwrite);
     }
 }

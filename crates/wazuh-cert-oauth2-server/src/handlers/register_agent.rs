@@ -3,7 +3,6 @@ use crate::models::ca_config::CaProvider;
 use crate::shared::certs::sign_csr;
 use crate::shared::ledger::Ledger;
 use rocket::State;
-use rocket::http::Status;
 use rocket::serde::json::Json;
 use tracing::{debug, error, info};
 use wazuh_cert_oauth2_model::models::errors::AppError;
@@ -19,7 +18,7 @@ pub async fn register_agent(
     token: JwtToken,
     config: &State<CaProvider>,
     ledger: &State<Ledger>,
-) -> Result<Json<SignedCertResponse>, Status> {
+) -> Result<Json<SignedCertResponse>, AppError> {
     info!(
         "POST /register-agent called for subject={}",
         token.claims.sub
@@ -29,15 +28,7 @@ pub async fn register_agent(
         Ok(res) => Ok(Json(res)),
         Err(e) => {
             error!("CSR signing failed: {}", e);
-            match e {
-                AppError::CsrMissingPublicKey
-                | AppError::CsrVerificationFailed
-                | AppError::KeyPolicyRsaTooSmall { .. }
-                | AppError::KeyPolicyUnsupportedEcCurve { .. }
-                | AppError::KeyPolicyUnknownEcCurve
-                | AppError::KeyPolicyUnsupportedKeyType { .. } => Err(Status::BadRequest),
-                _ => Err(Status::InternalServerError),
-            }
+            Err(e)
         }
     }
 }

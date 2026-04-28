@@ -54,10 +54,27 @@ async fn ledger_worker(
                     apply_mark_revoked(&inner, &path, serial_hex, reason, revoked_at_unix).await;
                 let _ = respond_to.send(res);
             }
+            Command::CheckAndRevokeActive {
+                subject,
+                overwrite,
+                revoked_at_unix,
+                respond_to,
+            } => {
+                let res = apply_check_and_revoke_active(
+                    &inner,
+                    &path,
+                    &subject,
+                    overwrite,
+                    revoked_at_unix,
+                )
+                .await;
+                let _ = respond_to.send(res);
+            }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn apply_record_issued(
     inner: &Arc<RwLock<Vec<LedgerEntry>>>,
     path: &PathBuf,
@@ -97,9 +114,11 @@ async fn apply_mark_revoked(
             .rev()
             .find(|e| e.serial_hex.eq_ignore_ascii_case(&serial_hex))
         {
-            entry.revoked = true;
-            entry.revoked_at_unix = Some(revoked_at_unix);
-            entry.reason = reason.clone();
+            if !entry.revoked {
+                entry.revoked = true;
+                entry.revoked_at_unix = Some(revoked_at_unix);
+                entry.reason = reason.clone();
+            }
         } else {
             guard.push(LedgerEntry {
                 subject: String::new(),
@@ -113,5 +132,48 @@ async fn apply_mark_revoked(
             });
         }
     }
+    persist_csv(path, inner).await
+}
+
+async fn apply_check_and_revoke_active(
+    inner: &Arc<RwLock<Vec<LedgerEntry>>>,
+    path: &PathBuf,
+    subject: &str,
+    overwrite: bool,
+    revoked_at_unix: u64,
+) -> AppResult<()> {
+    use wazuh_cert_oauth2_model::models::errors::AppError;
+
+    let active_serials: Vec<String> = {
+        let guard = inner.read().await;
+        guard
+            .iter()
+            .filter(|e| e.subject == subject && !e.revoked)
+            .map(|e| e.serial_hex.clone())
+            .collect()
+    };
+
+    if active_serials.is_empty() {
+        return Ok(());
+    }
+
+    if !overwrite {
+        return Err(AppError::Conflict(
+            "User already has an active certificate. Use the --overwrite flag to re-enroll and replace it.".to_string(),
+        ));
+    }
+
+    {
+        let mut guard = inner.write().await;
+        for entry in guard
+            .iter_mut()
+            .filter(|e| e.subject == subject && !e.revoked)
+        {
+            entry.revoked = true;
+            entry.revoked_at_unix = Some(revoked_at_unix);
+            entry.reason = Some("auto-rotate (one cert per user)".to_string());
+        }
+    }
+
     persist_csv(path, inner).await
 }

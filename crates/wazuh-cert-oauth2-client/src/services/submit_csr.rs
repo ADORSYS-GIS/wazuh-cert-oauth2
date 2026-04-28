@@ -9,9 +9,11 @@ pub async fn submit_csr(
     endpoint: &str,
     token: &str,
     csr_pem: &str,
+    overwrite: bool,
 ) -> AppResult<SignedCertResponse> {
     let dto = SignCsrRequest {
         csr_pem: csr_pem.to_string(),
+        overwrite: Some(overwrite),
     };
     http.post_json_auth(endpoint, token, &dto).await
 }

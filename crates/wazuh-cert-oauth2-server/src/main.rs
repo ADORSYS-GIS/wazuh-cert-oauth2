@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use crate::handlers::crl::{get_crl, get_revocations};
 use crate::handlers::health::health;
+use crate::handlers::ledger::get_active_ledger;
 use crate::handlers::register_agent::register_agent;
 use crate::handlers::revoke::revoke;
 use crate::models::oidc_state::OidcState;
@@ -71,7 +72,10 @@ async fn main() -> AppResult<()> {
         .manage(Ledger::new(ledger_path.into()).await?)
         .manage(CrlState::new(crl_path.into()).await?)
         .mount("/", routes![health, get_crl])
-        .mount("/api", routes![register_agent, revoke, get_revocations])
+        .mount(
+            "/api",
+            routes![register_agent, revoke, get_revocations, get_active_ledger],
+        )
         .launch()
         .await
         .map_err(|e| AppError::RocketError(Box::new(e)))?;

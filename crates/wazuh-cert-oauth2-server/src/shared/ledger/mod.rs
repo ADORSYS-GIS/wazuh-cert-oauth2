@@ -7,11 +7,10 @@ mod commands;
 mod csv;
 mod csv_utils;
 mod loader;
-mod types;
 mod worker;
 
-pub use types::LedgerEntry;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
+pub use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 
 #[derive(Clone)]
 pub struct Ledger {
@@ -88,6 +87,38 @@ impl Ledger {
             .await
             .iter()
             .filter(|e| e.subject == subject)
+            .cloned()
+            .collect()
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn check_and_revoke_active(&self, subject: String, overwrite: bool) -> AppResult<()> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let (tx, rx) = oneshot::channel();
+        self.tx
+            .send(worker::Command::CheckAndRevokeActive {
+                subject,
+                overwrite,
+                revoked_at_unix: now,
+                respond_to: tx,
+            })
+            .await
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer dropped: {}", e)))?;
+        rx.await
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer closed: {}", e)))??;
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn find_active(&self) -> Vec<LedgerEntry> {
+        self.inner
+            .read()
+            .await
+            .iter()
+            .filter(|e| !e.revoked)
             .cloned()
             .collect()
     }

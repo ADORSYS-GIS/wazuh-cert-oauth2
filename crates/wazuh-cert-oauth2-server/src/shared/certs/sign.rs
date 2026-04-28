@@ -48,6 +48,15 @@ pub async fn sign_csr(
         return Err(AppError::CsrVerificationFailed);
     }
 
+    let is_admin = claims.is_admin();
+
+    // Policy Enforcement: single cert per user unless admin
+    if !is_admin {
+        ledger
+            .check_and_revoke_active(claims.sub.clone(), dto.overwrite == Some(true))
+            .await?;
+    }
+
     enforce_key_policy(&csr_pubkey)?;
     let (ca_cert, ca_key) = ca.get().await?;
     let cert = sign_csr_with_ca(

@@ -61,4 +61,7 @@ pub struct Opt {
     pub webhook_api_key: Option<String>,
     #[arg(long, env = "WEBHOOK_BEARER_TOKEN")]
     pub webhook_bearer_token: Option<String>,
+
+    #[arg(long, env = "KEYCLOAK_ADMIN_BASE_URL")]
+    pub keycloak_admin_base_url: Option<String>,
 }
