@@ -60,7 +60,7 @@ async fn ledger_worker(
                 revoked_at_unix,
                 respond_to,
             } => {
-                let res = apply_check_and_revoke_active(
+                let res: AppResult<bool> = apply_check_and_revoke_active(
                     &inner,
                     &path,
                     &subject,
@@ -141,20 +141,15 @@ async fn apply_check_and_revoke_active(
     subject: &str,
     overwrite: bool,
     revoked_at_unix: u64,
-) -> AppResult<()> {
+) -> AppResult<bool> {
     use wazuh_cert_oauth2_model::models::errors::AppError;
 
-    let active_serials: Vec<String> = {
-        let guard = inner.read().await;
-        guard
-            .iter()
-            .filter(|e| e.subject == subject && !e.revoked)
-            .map(|e| e.serial_hex.clone())
-            .collect()
-    };
+    // Hold the write lock for the full check-and-mutate to avoid a TOCTOU gap.
+    let mut guard = inner.write().await;
 
-    if active_serials.is_empty() {
-        return Ok(());
+    let has_active = guard.iter().any(|e| e.subject == subject && !e.revoked);
+    if !has_active {
+        return Ok(false);
     }
 
     if !overwrite {
@@ -163,17 +158,17 @@ async fn apply_check_and_revoke_active(
         ));
     }
 
+    for entry in guard
+        .iter_mut()
+        .filter(|e| e.subject == subject && !e.revoked)
     {
-        let mut guard = inner.write().await;
-        for entry in guard
-            .iter_mut()
-            .filter(|e| e.subject == subject && !e.revoked)
-        {
-            entry.revoked = true;
-            entry.revoked_at_unix = Some(revoked_at_unix);
-            entry.reason = Some("auto-rotate (one cert per user)".to_string());
-        }
+        entry.revoked = true;
+        entry.revoked_at_unix = Some(revoked_at_unix);
+        entry.reason = Some("auto-rotate (one cert per user)".to_string());
     }
+    // Release the read+write lock before the async persist.
+    drop(guard);
 
-    persist_csv(path, inner).await
+    persist_csv(path, inner).await?;
+    Ok(true)
 }

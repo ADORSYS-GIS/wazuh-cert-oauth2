@@ -92,7 +92,11 @@ impl Ledger {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn check_and_revoke_active(&self, subject: String, overwrite: bool) -> AppResult<()> {
+    pub async fn check_and_revoke_active(
+        &self,
+        subject: String,
+        overwrite: bool,
+    ) -> AppResult<bool> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -108,8 +112,7 @@ impl Ledger {
             .await
             .map_err(|e| AppError::UpstreamError(format!("ledger writer dropped: {}", e)))?;
         rx.await
-            .map_err(|e| AppError::UpstreamError(format!("ledger writer closed: {}", e)))??;
-        Ok(())
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer closed: {}", e)))?
     }
 
     #[tracing::instrument(skip(self))]
@@ -121,6 +124,22 @@ impl Ledger {
             .filter(|e| !e.revoked)
             .cloned()
             .collect()
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn find_revoked(&self) -> Vec<LedgerEntry> {
+        self.inner
+            .read()
+            .await
+            .iter()
+            .filter(|e| e.revoked)
+            .cloned()
+            .collect()
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn find_all(&self) -> Vec<LedgerEntry> {
+        self.inner.read().await.clone()
     }
 
     #[tracing::instrument(skip(self))]
@@ -216,6 +235,73 @@ mod tests {
         assert_eq!(revocations.len(), 1);
         assert_eq!(revocations[0].serial_hex, "UNKNOWN01");
         assert_eq!(revocations[0].reason.as_deref(), Some("preemptive"));
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn check_and_revoke_active_returns_true_when_cert_was_revoked() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
+
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
+        ledger
+            .record_issued(
+                "user-a".to_string(),
+                "CERT01".to_string(),
+                Some("https://issuer/realms/dev".to_string()),
+                Some("dev".to_string()),
+            )
+            .await
+            .expect("record_issued should succeed");
+
+        // overwrite=true — should revoke the existing cert and return true
+        let did_revoke = ledger
+            .check_and_revoke_active("user-a".to_string(), true)
+            .await
+            .expect("check_and_revoke_active should succeed");
+        assert!(did_revoke, "expected true when an active cert was revoked");
+
+        let active = ledger.find_active().await;
+        assert!(
+            active.is_empty(),
+            "no active certs should remain after auto-rotate"
+        );
+
+        let revocations = ledger.revoked_as_revocations().await;
+        assert_eq!(revocations.len(), 1);
+        assert_eq!(revocations[0].serial_hex, "CERT01");
+        assert_eq!(
+            revocations[0].reason.as_deref(),
+            Some("auto-rotate (one cert per user)")
+        );
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn check_and_revoke_active_returns_false_when_no_active_cert() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
+
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
+
+        // No certs at all — should return false, not error
+        let did_revoke = ledger
+            .check_and_revoke_active("user-b".to_string(), true)
+            .await
+            .expect("check_and_revoke_active should succeed even with no certs");
+        assert!(!did_revoke);
 
         let _ = fs::remove_dir_all(parent).await;
     }
