@@ -3456,6 +3456,7 @@ dependencies = [
 name = "wazuh-cert-oauth2-client"
 version = "0.4.2"
 dependencies = [
+ "anyhow",
  "clap",
  "diacritics",
  "env_logger",
@@ -3465,6 +3466,7 @@ dependencies = [
  "openssl",
  "rand 0.10.0",
  "tokio",
+ "url",
  "wazuh-cert-oauth2-model",
 ]
 
