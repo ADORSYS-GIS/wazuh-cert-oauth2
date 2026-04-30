@@ -6,7 +6,9 @@ use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
 
 use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
+use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
+use tracing::info;
 
 use super::{
     append_client_eku, append_core_extensions, append_crl_dp, append_key_usage,
@@ -38,6 +40,7 @@ pub async fn sign_csr(
     JwtToken { claims }: JwtToken,
     ca: &CaProvider,
     ledger: &Ledger,
+    crl: &CrlState,
 ) -> AppResult<SignedCertResponse> {
     let csr = X509Req::from_pem(dto.csr_pem.as_bytes())?;
     let csr_pubkey = csr
@@ -46,6 +49,22 @@ pub async fn sign_csr(
     let verified = csr.verify(&csr_pubkey)?;
     if !verified {
         return Err(AppError::CsrVerificationFailed);
+    }
+
+    let is_admin = claims.is_admin();
+
+    if is_admin {
+        info!(sub = %claims.sub, "admin user; skipping single-cert policy");
+    } else {
+        let did_revoke = ledger
+            .check_and_revoke_active(claims.sub.clone(), dto.overwrite == Some(true))
+            .await?;
+        if did_revoke {
+            // Rebuild the CRL immediately
+            let (ca_cert, ca_key) = ca.get().await?;
+            let revs = ledger.revoked_as_revocations().await;
+            crl.request_rebuild(ca_cert, ca_key, revs).await?;
+        }
     }
 
     enforce_key_policy(&csr_pubkey)?;

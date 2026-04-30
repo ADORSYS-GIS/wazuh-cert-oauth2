@@ -51,6 +51,7 @@ services:
 
       WEBHOOK_BASIC_USER: "user"
       WEBHOOK_BASIC_PASSWORD: "password"
+      KEYCLOAK_ADMIN_BASE_URL: "http://keycloak:9100/admin/realms/dev"
     volumes:
       - webhook:/data/spool
     healthcheck:

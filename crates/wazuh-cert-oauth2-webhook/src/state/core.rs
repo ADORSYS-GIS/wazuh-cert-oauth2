@@ -163,11 +163,12 @@ mod tests {
             None,
             None,
             None,
-            "test reason".to_string(),
+            "revoke".to_string(),
             webhook_basic_user,
             webhook_basic_password,
             webhook_api_key,
             webhook_bearer_token,
+            None,
         )
         .expect("state should build")
     }

@@ -54,10 +54,27 @@ async fn ledger_worker(
                     apply_mark_revoked(&inner, &path, serial_hex, reason, revoked_at_unix).await;
                 let _ = respond_to.send(res);
             }
+            Command::CheckAndRevokeActive {
+                subject,
+                overwrite,
+                revoked_at_unix,
+                respond_to,
+            } => {
+                let res: AppResult<bool> = apply_check_and_revoke_active(
+                    &inner,
+                    &path,
+                    &subject,
+                    overwrite,
+                    revoked_at_unix,
+                )
+                .await;
+                let _ = respond_to.send(res);
+            }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn apply_record_issued(
     inner: &Arc<RwLock<Vec<LedgerEntry>>>,
     path: &PathBuf,
@@ -97,9 +114,11 @@ async fn apply_mark_revoked(
             .rev()
             .find(|e| e.serial_hex.eq_ignore_ascii_case(&serial_hex))
         {
-            entry.revoked = true;
-            entry.revoked_at_unix = Some(revoked_at_unix);
-            entry.reason = reason.clone();
+            if !entry.revoked {
+                entry.revoked = true;
+                entry.revoked_at_unix = Some(revoked_at_unix);
+                entry.reason = reason.clone();
+            }
         } else {
             guard.push(LedgerEntry {
                 subject: String::new(),
@@ -114,4 +133,42 @@ async fn apply_mark_revoked(
         }
     }
     persist_csv(path, inner).await
+}
+
+async fn apply_check_and_revoke_active(
+    inner: &Arc<RwLock<Vec<LedgerEntry>>>,
+    path: &PathBuf,
+    subject: &str,
+    overwrite: bool,
+    revoked_at_unix: u64,
+) -> AppResult<bool> {
+    use wazuh_cert_oauth2_model::models::errors::AppError;
+
+    // Hold the write lock for the full check-and-mutate to avoid a TOCTOU gap.
+    let mut guard = inner.write().await;
+
+    let has_active = guard.iter().any(|e| e.subject == subject && !e.revoked);
+    if !has_active {
+        return Ok(false);
+    }
+
+    if !overwrite {
+        return Err(AppError::Conflict(
+            "User already has an active certificate. Use the --overwrite flag to re-enroll and replace it.".to_string(),
+        ));
+    }
+
+    for entry in guard
+        .iter_mut()
+        .filter(|e| e.subject == subject && !e.revoked)
+    {
+        entry.revoked = true;
+        entry.revoked_at_unix = Some(revoked_at_unix);
+        entry.reason = Some("auto-rotate (one cert per user)".to_string());
+    }
+    // Release the read+write lock before the async persist.
+    drop(guard);
+
+    persist_csv(path, inner).await?;
+    Ok(true)
 }
