@@ -64,11 +64,13 @@ async fn resolve_targets(
     };
     if let Some(subj) = subject {
         let entries = ledger.find_by_subject(&subj).await;
-        info!("found {} entries for subject", entries.len());
-        return if entries.is_empty() {
+        // Only target certificates that are not already revoked
+        let active_entries: Vec<_> = entries.into_iter().filter(|e| !e.revoked).collect();
+        info!("found {} active entries for subject", active_entries.len());
+        return if active_entries.is_empty() {
             Err(Status::NoContent)
         } else {
-            Ok(entries.into_iter().map(|e| e.serial_hex).collect())
+            Ok(active_entries.into_iter().map(|e| e.serial_hex).collect())
         };
     }
     Err(Status::BadRequest)

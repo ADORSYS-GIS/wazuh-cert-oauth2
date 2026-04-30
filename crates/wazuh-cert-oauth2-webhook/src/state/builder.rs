@@ -31,6 +31,7 @@ impl ProxyState {
         github_token: Option<String>,
         github_repo_owner: Option<String>,
         github_repo_name: Option<String>,
+        keycloak_admin_base_url: Option<String>,
     ) -> AppResult<Self> {
         utils::ensure_spool_dir(&spool_dir);
         let oauth = oauth::build_oauth(
@@ -58,6 +59,7 @@ impl ProxyState {
             github_token,
             github_repo_owner,
             github_repo_name,
+            keycloak_admin_base_url,
             token_cache: Arc::new(RwLock::new(None)),
         })
     }

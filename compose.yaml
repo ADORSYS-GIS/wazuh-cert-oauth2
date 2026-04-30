@@ -55,6 +55,7 @@ services:
       GITHUB_TOKEN: ""
       GITHUB_REPO_OWNER: ""
       GITHUB_REPO_NAME: ""
+      KEYCLOAK_ADMIN_BASE_URL: "http://keycloak:9100/admin/realms/dev"
     volumes:
       - webhook:/data/spool
     healthcheck:

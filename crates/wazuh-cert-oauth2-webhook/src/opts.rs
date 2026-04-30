@@ -71,4 +71,6 @@ pub struct Opt {
 
     #[arg(long, env = "GITHUB_REPO_NAME")]
     pub github_repo_name: Option<String>,
+    #[arg(long, env = "KEYCLOAK_ADMIN_BASE_URL")]
+    pub keycloak_admin_base_url: Option<String>,
 }

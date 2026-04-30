@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::models::errors::AppResult;
+use crate::models::errors::{AppError, AppResult};
 use reqwest::Client;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -38,6 +38,22 @@ impl HttpClient {
         Ok(resp.json().await?)
     }
 
+    #[instrument(level = "debug", skip(self, token))]
+    pub async fn fetch_json_auth<R: DeserializeOwned>(
+        &self,
+        url: &str,
+        token: &str,
+    ) -> AppResult<R> {
+        let resp = self
+            .client
+            .get(url)
+            .bearer_auth(token)
+            .send()
+            .await?
+            .error_for_status()?;
+        Ok(resp.json().await?)
+    }
+
     #[instrument(level = "debug", skip(self, body))]
     pub async fn post_json<B: Serialize, R: DeserializeOwned>(
         &self,
@@ -67,8 +83,20 @@ impl HttpClient {
             .bearer_auth(token)
             .json(body)
             .send()
-            .await?
-            .error_for_status()?;
+            .await?;
+
+        if !resp.status().is_success() {
+            // Try to extract a structured error message from the JSON body
+            let status = resp.status();
+            let msg = resp
+                .json::<serde_json::Value>()
+                .await
+                .ok()
+                .and_then(|v| v.get("error").and_then(|e| e.as_str()).map(String::from))
+                .unwrap_or_else(|| format!("HTTP {}", status.as_u16()));
+            return Err(AppError::UpstreamError(msg));
+        }
+
         Ok(resp.json().await?)
     }
 }

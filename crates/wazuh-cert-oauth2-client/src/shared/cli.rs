@@ -50,6 +50,9 @@ pub enum Opt {
 
         #[arg(env, long, default_value_t = true, action = ArgAction::Set, default_missing_value = "true", num_args = 0..=1)]
         agent_control: bool,
+
+        #[arg(env, long, default_value_t = false, action = ArgAction::Set, default_missing_value = "true", num_args = 0..=1)]
+        overwrite: bool,
     },
 }
 
@@ -72,6 +75,7 @@ mod tests {
                 ca_cert_path,
                 key_path,
                 agent_control,
+                overwrite, // ignore
                 ..
             } => {
                 assert_eq!(issuer, "https://login.wazuh.adorsys.team/realms/adorsys");
@@ -85,6 +89,7 @@ mod tests {
                 assert_eq!(ca_cert_path, default_server_ca_cert_path());
                 assert_eq!(key_path, default_key_path());
                 assert!(agent_control);
+                assert!(!overwrite);
             }
         }
     }
@@ -94,6 +99,22 @@ mod tests {
         let parsed = Opt::parse_from(["client", "o-auth2", "--agent-control=false"]);
         match parsed {
             Opt::OAuth2 { agent_control, .. } => assert!(!agent_control),
+        }
+    }
+
+    #[test]
+    fn oauth2_cli_allows_overwrite_flag() {
+        let parsed = Opt::parse_from(["client", "o-auth2", "--overwrite", "true"]);
+        match parsed {
+            Opt::OAuth2 { overwrite, .. } => assert!(overwrite),
+        }
+    }
+
+    #[test]
+    fn oauth2_cli_overwrite_explicit_false() {
+        let parsed = Opt::parse_from(["client", "o-auth2", "--overwrite=false"]);
+        match parsed {
+            Opt::OAuth2 { overwrite, .. } => assert!(!overwrite),
         }
     }
 }
