@@ -5,12 +5,14 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
+pub(crate) mod audit;
 mod builder;
 pub(crate) mod core;
 mod oauth;
-mod spool;
+pub mod spool;
 mod utils;
 
+pub use audit::{EnrollmentReport, generate_report};
 pub use spool::spawn_spool_processor;
 
 #[derive(Clone)]
@@ -32,6 +34,11 @@ pub struct ProxyState {
     webhook_basic_password: Option<String>,
     webhook_api_key: Option<String>,
     webhook_bearer_token: Option<String>,
+    pub(crate) keycloak_admin_base_url: Option<String>,
+
+    pub(crate) github_token: Option<String>,
+    pub(crate) github_repo_owner: Option<String>,
+    pub(crate) github_repo_name: Option<String>,
 
     pub(crate) token_cache: Arc<RwLock<Option<oauth::CachedToken>>>,
 }

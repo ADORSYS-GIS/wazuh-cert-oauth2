@@ -17,4 +17,10 @@ pub(super) enum Command {
         revoked_at_unix: u64,
         respond_to: tokio::sync::oneshot::Sender<AppResult<()>>,
     },
+    CheckAndRevokeActive {
+        subject: String,
+        overwrite: bool,
+        revoked_at_unix: u64,
+        respond_to: tokio::sync::oneshot::Sender<AppResult<bool>>,
+    },
 }

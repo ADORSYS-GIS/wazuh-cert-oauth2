@@ -1,7 +1,7 @@
 use crate::models::{SimpleUserRepresentation, WebhookRequest};
 
 pub(super) fn extract_user_id(p: &WebhookRequest) -> Option<String> {
-    if let Ok(SimpleUserRepresentation { id, .. }) = &p.get_simple_user_representation() {
+    if let Ok(SimpleUserRepresentation { id: Some(id), .. }) = &p.get_simple_user_representation() {
         return Some(id.to_string());
     }
 
@@ -16,6 +16,43 @@ pub(super) fn extract_user_id(p: &WebhookRequest) -> Option<String> {
         }
     }
     None
+}
+
+pub fn prepare_github_issue(p: &WebhookRequest) -> (String, String) {
+    let user = p.get_simple_user_representation().ok();
+
+    // Extract Email: representation > unknown
+    let email = user
+        .as_ref()
+        .and_then(|u| u.email.clone())
+        .unwrap_or_else(|| "unknown".to_string());
+
+    // Extract Username: representation.username > representation.first+last > "unknown"
+    let username = user
+        .as_ref()
+        .and_then(|u| u.username.clone())
+        .or_else(|| {
+            user.as_ref()
+                .and_then(|u| match (&u.first_name, &u.last_name) {
+                    (Some(f), Some(l)) => Some(format!("{} {}", f, l)),
+                    (Some(f), None) => Some(f.clone()),
+                    (None, Some(l)) => Some(l.clone()),
+                    (None, None) => None,
+                })
+        })
+        .unwrap_or_else(|| "unknown".to_string());
+
+    let title = format!("New user registered: {}", username);
+    let body = format!(
+        "A new user has been registered in Keycloak.\n\
+        ---\n\n\
+         - **Username**: {}\n\
+         - **Email**: {}\n\
+         - **Realm**: {}",
+        username, email, p.realm_id
+    );
+
+    (title, body)
 }
 
 #[cfg(test)]

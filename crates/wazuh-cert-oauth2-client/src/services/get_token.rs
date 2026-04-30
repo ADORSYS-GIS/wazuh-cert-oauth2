@@ -203,26 +203,33 @@ fn open_in_browser(url: &str) -> bool {
     ))]
     {
         use std::env;
-        if let Ok(user) = env::var("SUDO_USER") {
-            let mut cmd = Command::new("runuser");
-            cmd.arg("-u").arg(&user).arg("--").arg("xdg-open").arg(url);
+        let mut cmd = if let Ok(user) = env::var("SUDO_USER") {
+            // Running under sudo: drop back to the original user so xdg-open
+            // can reach their desktop session.
+            let mut c = Command::new("runuser");
+            c.arg("-u").arg(&user).arg("--").arg("xdg-open").arg(url);
+            c
+        } else {
+            let mut c = Command::new("xdg-open");
+            c.arg(url);
+            c
+        };
 
-            // Forward display and dbus session so xdg-open works cleanly
-            if let Ok(display) = env::var("DISPLAY") {
-                cmd.env("DISPLAY", display);
-            }
-            if let Ok(wayland) = env::var("WAYLAND_DISPLAY") {
-                cmd.env("WAYLAND_DISPLAY", wayland);
-            }
-            if let Ok(dbus) = env::var("DBUS_SESSION_BUS_ADDRESS") {
-                cmd.env("DBUS_SESSION_BUS_ADDRESS", dbus);
-            }
-
-            // Suppress GTK noise when using firefox as the default browser, which is common on Linux.
-            cmd.stderr(std::fs::File::open("/dev/null").unwrap());
-
-            return cmd.spawn().map(|_| true).unwrap_or(false);
+        // Forward display and dbus session so xdg-open works cleanly.
+        if let Ok(display) = env::var("DISPLAY") {
+            cmd.env("DISPLAY", display);
         }
+        if let Ok(wayland) = env::var("WAYLAND_DISPLAY") {
+            cmd.env("WAYLAND_DISPLAY", wayland);
+        }
+        if let Ok(dbus) = env::var("DBUS_SESSION_BUS_ADDRESS") {
+            cmd.env("DBUS_SESSION_BUS_ADDRESS", dbus);
+        }
+
+        // Suppress GTK noise (e.g. Firefox as default browser).
+        cmd.stderr(std::fs::File::open("/dev/null").unwrap());
+
+        return cmd.spawn().map(|_| true).unwrap_or(false);
     }
 
     // Fallback for any other targets: do nothing.

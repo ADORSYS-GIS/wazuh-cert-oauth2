@@ -89,9 +89,33 @@ sequenceDiagram
     end
 ```
 
+### 3. User Registration Tracking (GitHub Issue Flow)
+
+When a new user registers or is created in Keycloak, the Webhook Proxy handles the event and creates an issue in GitHub for administrative tracking.
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant Keycloak as Keycloak (IdP)
+    participant Webhook as Webhook Proxy (wazuh-cert-oauth2-webhook)
+    participant GitHub as GitHub API
+
+    Keycloak->>Webhook: POST /webhook (User Registered/Created)
+    Webhook->>Webhook: Extract User Metadata (Email, Username, Realm)
+    Webhook->>GitHub: POST /repos/{owner}/{repo}/issues
+    
+    alt Success
+        GitHub-->>Webhook: 201 Created
+    else Network Error / 5xx
+        Webhook->>Webhook: Retry with Exponential Backoff
+    end
+```
+
 #### Webhook Details:
-- **Resiliency**: The Webhook Proxy includes a persistent spooling mechanism. If the Certificate Server is unavailable, revocation requests are queued and retried automatically.
-- **Filtering**: Not all Keycloak events trigger a revocation. The proxy is configured to listen specifically for events that imply a user should no longer have access (e.g., account deletion or disabling).
+- **Resiliency**: The Webhook Proxy includes a persistent spooling mechanism and automatic retries with exponential backoff for all upstream requests (Certificate Server and GitHub API).
+- **Filtering**: The proxy identifies revoke-eligible events (`USER-DELETE`/`USER-UPDATE`) and ticket-eligible events (`REGISTER`/`USER-CREATE`).
+- **GitHub Integration**: For registration events, the proxy automatically creates a tracking issue in the configured GitHub repository.
 
 ---
 
