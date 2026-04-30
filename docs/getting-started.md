@@ -2,6 +2,10 @@
 
 This guide walks you through setting up and running the `wazuh-cert-oauth2` project locally. There are two ways to run the stack — pick the one that fits your workflow:
 
+> [!NOTE]
+> **GitHub Integration**: The Webhook Proxy supports automated GitHub issue creation for new user registrations in Keycloak. To use this feature, you will need a GitHub Personal Access Token (preferably a **fine-grained** token with only **Issue Creation** permissions), the repository owner, and the repository name. See the [Configuration Reference](#webhook-flags) for details.
+
+## Prerequisites
 | | [Option A: Docker Compose](#option-a-docker-compose-recommended) | [Option B: From Source](#option-b-running-from-source) |
 | :--- | :--- | :--- |
 | Best for | Quick setup, testing, demos | Active development, debugging |
@@ -185,7 +189,10 @@ The client will attempt to open the authorization URL in your system's default b
 | `--server-base-url` | `SERVER_BASE_URL` | (Required) | Base URL of the Certificate Server. |
 | `--spool-dir` | `SPOOL_DIR` | `/data/spool` | Directory for persistent retry spooling. |
 | `--oauth-client-id` | `OAUTH_CLIENT_ID` | (Required) | Client ID to talk to the Server. |
-| `--oauth-client-secret` | `OAUTH_CLIENT_SECRET` | (Required) | Client Secret for the Server. |
+| `--oauth-client-secret`| `OAUTH_CLIENT_SECRET`| (Required) | Client Secret for the Server. |
+| `--github-token` | `GITHUB_TOKEN` | (Optional) | GitHub PAT for issue creation. |
+| `--github-repo-owner`| `GITHUB_REPO_OWNER` | (Optional) | Owner of the repo for tickets. |
+| `--github-repo-name` | `GITHUB_REPO_NAME` | (Optional) | Name of the repo for tickets. |
 
 ### Client Flags
 | Flag | Env Variable | Default | Purpose |
