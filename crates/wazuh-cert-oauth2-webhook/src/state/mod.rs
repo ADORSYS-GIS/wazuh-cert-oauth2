@@ -11,9 +11,11 @@ pub(crate) mod core;
 mod oauth;
 pub mod spool;
 mod utils;
+pub(crate) mod wazuh_api;
 
 pub use audit::{EnrollmentReport, generate_report};
 pub use spool::spawn_spool_processor;
+pub use wazuh_api::WazuhApiClient;
 
 #[derive(Clone)]
 pub struct ProxyState {
@@ -41,6 +43,9 @@ pub struct ProxyState {
     pub(crate) github_repo_name: Option<String>,
 
     pub(crate) token_cache: Arc<RwLock<Option<oauth::CachedToken>>>,
+
+    /// Wazuh manager API client; `None` when eviction is not configured.
+    pub(crate) wazuh_api: Option<WazuhApiClient>,
 }
 
 impl ProxyState {}

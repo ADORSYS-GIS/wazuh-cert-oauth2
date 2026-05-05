@@ -37,6 +37,7 @@ impl Ledger {
         serial_hex: String,
         issuer: Option<String>,
         realm: Option<String>,
+        wazuh_agent_name: Option<String>,
     ) -> AppResult<()> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -50,6 +51,7 @@ impl Ledger {
                 issued_at_unix: now,
                 issuer,
                 realm,
+                wazuh_agent_name,
                 respond_to: tx,
             })
             .await
@@ -96,7 +98,7 @@ impl Ledger {
         &self,
         subject: String,
         overwrite: bool,
-    ) -> AppResult<bool> {
+    ) -> AppResult<Option<Vec<String>>> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -192,6 +194,7 @@ mod tests {
                 "ABCD01".to_string(),
                 Some("https://issuer/realms/dev".to_string()),
                 Some("dev".to_string()),
+                None,
             )
             .await
             .expect("record_issued should succeed");
@@ -256,16 +259,24 @@ mod tests {
                 "CERT01".to_string(),
                 Some("https://issuer/realms/dev".to_string()),
                 Some("dev".to_string()),
+                None,
             )
             .await
             .expect("record_issued should succeed");
 
-        // overwrite=true — should revoke the existing cert and return true
-        let did_revoke = ledger
+        // overwrite=true — Some(names) means a cert was revoked; names empty because no agent name stored
+        let revoked_names = ledger
             .check_and_revoke_active("user-a".to_string(), true)
             .await
             .expect("check_and_revoke_active should succeed");
-        assert!(did_revoke, "expected true when an active cert was revoked");
+        assert!(
+            revoked_names.is_some(),
+            "expected Some when an active cert was revoked"
+        );
+        assert!(
+            revoked_names.unwrap().is_empty(),
+            "no agent name was stored, so names should be empty"
+        );
 
         let active = ledger.find_active().await;
         assert!(
@@ -296,12 +307,12 @@ mod tests {
             .await
             .expect("ledger should initialize");
 
-        // No certs at all — should return false, not error
-        let did_revoke = ledger
+        // No certs at all — should return None, not error
+        let revoked_names = ledger
             .check_and_revoke_active("user-b".to_string(), true)
             .await
             .expect("check_and_revoke_active should succeed even with no certs");
-        assert!(!did_revoke);
+        assert!(revoked_names.is_none(), "expected None when no active cert exists");
 
         let _ = fs::remove_dir_all(parent).await;
     }

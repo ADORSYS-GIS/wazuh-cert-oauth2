@@ -3,10 +3,11 @@ use crate::handlers::webhook_util::{extract_user_id, prepare_github_issue};
 use crate::models::WebhookRequest;
 use crate::state::ProxyState;
 use crate::state::core::EventAction;
-use crate::state::spool::GitHubTicket;
+use crate::state::spool::{EvictRequest, GitHubTicket};
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{State, post};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{debug, error, info, warn};
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
@@ -91,21 +92,79 @@ async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
         return Ok(Status::Ok);
     }
     let subject = subject.unwrap();
+    let reason = state.revoke_reason();
+
+    let reason_str = reason.as_deref().unwrap_or("");
+
+    // Fetch the active ledger entry *before* forwarding the revoke so the
+    // wazuh_agent_name is still present on the active entry.
+    let wazuh_agent_name = if !reason_str.to_ascii_lowercase().starts_with("auto-rotate") && !reason_str.is_empty() {
+        match state.fetch_ledger_by_subject(&subject).await {
+            Ok(entries) => entries
+                .iter()
+                .filter(|e| !e.revoked && e.wazuh_agent_name.is_some())
+                .last()
+                .and_then(|e| e.wazuh_agent_name.clone()),
+            Err(e) => {
+                warn!(subject = %subject, "Failed to fetch ledger from server: {}", e);
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     let req = RevokeRequest {
         serial_hex: None,
-        subject: Some(subject),
-        reason: state.revoke_reason(),
+        subject: Some(subject.clone()),
+        reason: reason.clone(),
     };
     match state.forward_revoke_with_retry(req.clone()).await {
-        Ok(()) => Ok(Status::Ok),
+        Ok(()) => {}
         Err(e) => {
             warn!("immediate forward failed: {} — queueing", e);
-            state
-                .queue_revoke(req)
-                .await
-                .map(|_| Status::Ok)
-                .map_err(|_| Status::InternalServerError)
+            if let Err(qe) = state.queue_revoke(req).await {
+                error!("CRITICAL: failed to spool revoke: {}", qe);
+                return Err(Status::InternalServerError);
+            }
         }
     }
+
+    if reason_str.to_ascii_lowercase().starts_with("auto-rotate") {
+        debug!(
+            subject = %subject,
+            reason = %reason_str,
+            "Skipping eviction for auto-rotate revocation"
+        );
+    } else if !reason_str.is_empty() {
+        let triggered_at_unix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        let evict_req = EvictRequest {
+            subject: subject.clone(),
+            wazuh_agent_name,
+            reason: reason_str.to_string(),
+            triggered_at_unix,
+        };
+        info!(
+            subject = %subject,
+            reason = %reason_str,
+            "Queuing eviction for revoked certificate"
+        );
+        if let Err(e) = state.queue_evict(evict_req).await {
+            error!(
+                "CRITICAL: failed to spool eviction request for {}: {}",
+                subject, e
+            );
+        }
+    } else {
+        warn!(
+            subject = %subject,
+            "Revocation has no reason; skipping eviction"
+        );
+    }
+
+    Ok(Status::Ok)
 }

@@ -16,10 +16,20 @@ pub struct GitHubTicket {
     pub body: String,
 }
 
+/// Represents a request to evict (disconnect + delete) a Wazuh agent.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct EvictRequest {
+    pub subject: String,
+    pub wazuh_agent_name: Option<String>,
+    pub reason: String,
+    pub triggered_at_unix: u64,
+}
+
 #[derive(Serialize, Deserialize)]
 enum SpoolItem {
     RevokeRequest { req: RevokeRequest },
     GitHubTicket { ticket: GitHubTicket },
+    EvictRequest { req: EvictRequest },
 }
 
 /// Remove queued revoke requests targeting the given subject.
@@ -59,7 +69,7 @@ pub async fn cancel_pending_revokes_for_subject(
                         }
                     }
                 }
-                Ok(SpoolItem::GitHubTicket { .. }) => { /* Ignore GitHubTicket */ }
+                Ok(_) => { /* Ignore Other Spool Items*/ }
                 Err(e) => {
                     // Leave invalid files to the regular processor to clean up
                     warn!("invalid spool item {}; skipping: {}", path.display(), e);
@@ -71,9 +81,12 @@ pub async fn cancel_pending_revokes_for_subject(
     Ok(removed)
 }
 
-#[tracing::instrument(skip(state, req))]
-pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -> AppResult<()> {
-    let item = SpoolItem::RevokeRequest { req };
+#[tracing::instrument(skip(state, item))]
+async fn queue_item_to_spool_dir(
+    state: &ProxyState,
+    item: SpoolItem,
+    prefix: &str,
+) -> AppResult<()> {
     let data = serde_json::to_vec(&item)?;
     let ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -85,7 +98,7 @@ pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -
     for b in buf {
         rid.push_str(&format!("{:02x}", b));
     }
-    let filename = format!("revoke-{}-{}.json", ms, rid);
+    let filename = format!("{}-{}-{}.json", prefix, ms, rid);
     let path = state.spool_dir.join(&filename);
     let tmp = state.spool_dir.join(format!("{}.tmp", filename));
     tokio::fs::write(&tmp, data).await?;
@@ -93,29 +106,19 @@ pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -
     Ok(())
 }
 
-#[tracing::instrument(skip(state, ticket))]
+pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -> AppResult<()> {
+    queue_item_to_spool_dir(state, SpoolItem::RevokeRequest { req }, "revoke").await
+}
+
 pub async fn queue_github_ticket_to_spool_dir(
     state: &ProxyState,
     ticket: GitHubTicket,
 ) -> AppResult<()> {
-    let item = SpoolItem::GitHubTicket { ticket };
-    let data = serde_json::to_vec(&item)?;
-    let ms = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-    let mut buf = [0u8; 8];
-    rand::rng().try_fill_bytes(&mut buf).unwrap_infallible();
-    let mut rid = String::with_capacity(buf.len() * 2);
-    for b in buf {
-        rid.push_str(&format!("{:02x}", b));
-    }
-    let filename = format!("ticket-{}-{}.json", ms, rid);
-    let path = state.spool_dir.join(&filename);
-    let tmp = state.spool_dir.join(format!("{}.tmp", filename));
-    tokio::fs::write(&tmp, data).await?;
-    tokio::fs::rename(&tmp, &path).await?;
-    Ok(())
+    queue_item_to_spool_dir(state, SpoolItem::GitHubTicket { ticket }, "ticket").await
+}
+
+pub async fn queue_evict_to_spool_dir(state: &ProxyState, req: EvictRequest) -> AppResult<()> {
+    queue_item_to_spool_dir(state, SpoolItem::EvictRequest { req }, "evict").await
 }
 
 #[tracing::instrument(skip(state))]
@@ -158,6 +161,7 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
                         SpoolItem::GitHubTicket { ticket } => {
                             state.forward_github_ticket_with_retry(ticket).await
                         }
+                        SpoolItem::EvictRequest { req } => state.run_eviction_from_state(req).await,
                     };
 
                     match res {
@@ -185,7 +189,10 @@ fn is_json(p: &Path) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{SpoolItem, cancel_pending_revokes_for_subject, queue_revoke_to_spool_dir};
+    use super::{
+        EvictRequest, SpoolItem, cancel_pending_revokes_for_subject, queue_evict_to_spool_dir,
+        queue_revoke_to_spool_dir,
+    };
     use crate::state::ProxyState;
     use std::path::PathBuf;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -217,13 +224,25 @@ mod tests {
             None,
             None,
             "revoke".to_string(),
+            // webhook (4)
             None,
             None,
             None,
             None,
+            // github (3)
             None,
             None,
             None,
+            // keycloak_admin_base_url
+            None,
+            // wazuh: manager_url, api_user, api_password, api_token, ar_command
+            None,
+            None,
+            None,
+            None,
+            "delete-cert.sh".to_string(),
+            // wazuh_eviction_grace_seconds
+            30,
         )
         .expect("state should build")
     }
@@ -302,6 +321,40 @@ mod tests {
         match item {
             SpoolItem::RevokeRequest { req } => assert_eq!(req.subject.as_deref(), Some("user-b")),
             _ => panic!("Expected RevokeRequest variant"),
+        }
+
+        let _ = fs::remove_dir_all(&spool_dir).await;
+    }
+
+    #[tokio::test]
+    async fn queue_evict_writes_spool_file() {
+        let spool_dir = unique_spool_dir();
+        let state = build_state(spool_dir.clone());
+
+        let req = EvictRequest {
+            subject: "user-evict".to_string(),
+            wazuh_agent_name: Some("agent-name".to_string()),
+            reason: "test-revocation".to_string(),
+            triggered_at_unix: 1234567890,
+        };
+
+        queue_evict_to_spool_dir(&state, req.clone())
+            .await
+            .expect("queue should succeed");
+
+        let files = json_files(&spool_dir).await;
+        assert_eq!(files.len(), 1);
+
+        let bytes = fs::read(&files[0])
+            .await
+            .expect("spool file should be readable");
+        let item: SpoolItem = serde_json::from_slice(&bytes).expect("json should parse");
+        match item {
+            SpoolItem::EvictRequest { req: read_req } => {
+                assert_eq!(read_req.subject, req.subject);
+                assert_eq!(read_req.wazuh_agent_name, req.wazuh_agent_name);
+            }
+            _ => panic!("Expected EvictRequest variant"),
         }
 
         let _ = fs::remove_dir_all(&spool_dir).await;

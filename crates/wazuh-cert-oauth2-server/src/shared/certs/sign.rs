@@ -8,6 +8,7 @@ use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
+use crate::shared::webhook_notifier::WebhookNotifier;
 use tracing::info;
 
 use super::{
@@ -41,6 +42,7 @@ pub async fn sign_csr(
     ca: &CaProvider,
     ledger: &Ledger,
     crl: &CrlState,
+    webhook: Option<&WebhookNotifier>,
 ) -> AppResult<SignedCertResponse> {
     let csr = X509Req::from_pem(dto.csr_pem.as_bytes())?;
     let csr_pubkey = csr
@@ -56,14 +58,18 @@ pub async fn sign_csr(
     if is_admin {
         info!(sub = %claims.sub, "admin user; skipping single-cert policy");
     } else {
-        let did_revoke = ledger
+        let old_agent_names = ledger
             .check_and_revoke_active(claims.sub.clone(), dto.overwrite == Some(true))
             .await?;
-        if did_revoke {
+        if let Some(names) = old_agent_names {
             // Rebuild the CRL immediately
             let (ca_cert, ca_key) = ca.get().await?;
             let revs = ledger.revoked_as_revocations().await;
             crl.request_rebuild(ca_cert, ca_key, revs).await?;
+            // Notify the webhook to evict the stale Wazuh agent entries (fire-and-forget)
+            if let Some(notifier) = webhook {
+                notifier.notify_evict(&claims.sub, names).await;
+            }
         }
     }
 
@@ -85,6 +91,7 @@ pub async fn sign_csr(
             serial_hex,
             Some(claims.iss.clone()),
             realm,
+            dto.wazuh_agent_name.clone(),
         )
         .await?;
     let certificate_pem = String::from_utf8(cert.to_pem()?)?;

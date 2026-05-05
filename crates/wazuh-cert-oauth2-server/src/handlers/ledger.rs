@@ -24,3 +24,14 @@ pub async fn get_active_ledger(token: JwtToken, ledger: &State<Ledger>) -> Json<
 pub async fn get_revoked_ledger(token: JwtToken, ledger: &State<Ledger>) -> Json<Vec<LedgerEntry>> {
     Json(ledger.find_revoked().await)
 }
+
+/// Ledger entries for a specific subject
+#[get("/ledger/subject/<subject>")]
+#[tracing::instrument(skip(token, ledger), fields(sub = %token.claims.sub, target = %subject))]
+pub async fn get_ledger_by_subject(
+    token: JwtToken,
+    ledger: &State<Ledger>,
+    subject: String,
+) -> Json<Vec<LedgerEntry>> {
+    Json(ledger.find_by_subject(&subject).await)
+}

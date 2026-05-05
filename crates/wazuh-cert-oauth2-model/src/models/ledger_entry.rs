@@ -14,4 +14,6 @@ pub struct LedgerEntry {
     pub issuer: Option<String>,
     #[serde(default)]
     pub realm: Option<String>,
+    #[serde(default)]
+    pub wazuh_agent_name: Option<String>,
 }

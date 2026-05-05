@@ -4,6 +4,7 @@ use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 use crate::handlers::enrollment::get_enrollment_report;
+use crate::handlers::evict::internal_evict;
 use crate::handlers::health::health;
 use crate::handlers::webhook::send_webhook;
 use crate::opts::Opt;
@@ -34,6 +35,12 @@ pub fn build_state(opt: &Opt) -> AppResult<ProxyState> {
         opt.github_repo_owner.clone(),
         opt.github_repo_name.clone(),
         opt.keycloak_admin_base_url.clone(),
+        opt.wazuh_manager_url.clone(),
+        opt.wazuh_api_user.clone(),
+        opt.wazuh_api_password.clone(),
+        opt.wazuh_api_token.clone(),
+        opt.wazuh_ar_command.clone(),
+        opt.wazuh_eviction_grace_seconds,
     )?;
     Ok(state)
 }
@@ -51,7 +58,7 @@ pub async fn launch_rocket(state: ProxyState) -> AppResult<()> {
     rocket::build()
         .manage(state)
         .mount("/", routes![health])
-        .mount("/api", routes![send_webhook, get_enrollment_report])
+        .mount("/api", routes![send_webhook, get_enrollment_report, internal_evict])
         .launch()
         .await
         .map_err(|e| AppError::RocketError(Box::new(e)))?;

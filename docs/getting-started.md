@@ -182,6 +182,8 @@ The client will attempt to open the authorization URL in your system's default b
 | `--root-ca-key-path` | `ROOT_CA_KEY_PATH` | (Required) | Path to Root CA key (PEM). |
 | `--crl-path` | `CRL_PATH` | `/data/issuing.crl` | Path where CRL is written. |
 | `--ledger-path` | `LEDGER_PATH` | `/data/ledger.csv` | Path to the issuance ledger. |
+| `--webhook-base-url`| `WEBHOOK_BASE_URL` | (Optional) | Base URL of the Webhook Proxy. |
+| `--webhook-bearer-token`| `WEBHOOK_BEARER_TOKEN`| (Optional) | Bearer token for the Webhook Proxy. |
 
 ### Webhook Flags
 | Flag | Env Variable | Default | Purpose |
@@ -193,6 +195,13 @@ The client will attempt to open the authorization URL in your system's default b
 | `--github-token` | `GITHUB_TOKEN` | (Optional) | GitHub PAT for issue creation. |
 | `--github-repo-owner`| `GITHUB_REPO_OWNER` | (Optional) | Owner of the repo for tickets. |
 | `--github-repo-name` | `GITHUB_REPO_NAME` | (Optional) | Name of the repo for tickets. |
+| `--keycloak-admin-base-url`| `KEYCLOAK_ADMIN_BASE_URL`| (Optional)| Keycloak Admin API URL. |
+| `--wazuh-manager-url`| `WAZUH_MANAGER_URL` | (Optional) | Wazuh Manager API URL. |
+| `--wazuh-api-user` | `WAZUH_API_USER` | (Optional) | Wazuh API user. |
+| `--wazuh-api-password`| `WAZUH_API_PASSWORD`| (Optional) | Wazuh API password. |
+| `--wazuh-api-token` | `WAZUH_API_TOKEN` | (Optional) | Wazuh API static token. |
+| `--wazuh-ar-command`| `WAZUH_AR_COMMAND` | `delete-cert.sh`| Active-response command. |
+| `--wazuh-eviction-grace-seconds`| `WAZUH_EVICTION_GRACE_SECONDS`| `30` | Grace period before deletion. |
 
 ### Client Flags
 | Flag | Env Variable | Default | Purpose |

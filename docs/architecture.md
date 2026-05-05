@@ -112,6 +112,28 @@ sequenceDiagram
     end
 ```
 
+### 4. Internal Eviction Flow (Server-to-Webhook)
+
+When the Certificate Server detects a re-enrollment that overrides an active certificate, it notifies the Webhook Proxy to perform an agent eviction in Wazuh.
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant Server as Certificate Server (wazuh-cert-oauth2-server)
+    participant Webhook as Webhook Proxy (wazuh-cert-oauth2-webhook)
+    participant Wazuh as Wazuh Manager API
+
+    Server->>Webhook: POST /api/internal/evict (Subject, Agent Name)
+    Webhook->>Webhook: Queue Eviction
+    Webhook->>Wazuh: PUT /active-response (delete-cert command)
+    Webhook->>Webhook: Wait Grace Period (default 30s)
+    Webhook->>Wazuh: DELETE /agents/{agent_id}
+    
+    Wazuh-->>Webhook: Success
+    Webhook->>Webhook: Mark Eviction as Complete
+```
+
 #### Webhook Details:
 - **Resiliency**: The Webhook Proxy includes a persistent spooling mechanism and automatic retries with exponential backoff for all upstream requests (Certificate Server and GitHub API).
 - **Filtering**: The proxy identifies revoke-eligible events (`USER-DELETE`/`USER-UPDATE`) and ticket-eligible events (`REGISTER`/`USER-CREATE`).

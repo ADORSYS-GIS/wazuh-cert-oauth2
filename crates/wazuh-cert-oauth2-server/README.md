@@ -36,6 +36,8 @@ Configuration
 - `--crl-dist-url` (`CRL_DIST_URL`): optional CDP URL to embed in issued certs.
 - `--crl-path` (`CRL_PATH`, default `/data/issuing.crl`): CRL file path to write.
 - `--ledger-path` (`LEDGER_PATH`, default `/data/ledger.csv`): issued/revoked ledger path.
+- `--webhook-base-url` (`WEBHOOK_BASE_URL`): Optional base URL of the webhook (for eviction notifications).
+- `--webhook-bearer-token` (`WEBHOOK_BEARER_TOKEN`): Optional bearer token for the webhook.
 
 Data and persistence
 

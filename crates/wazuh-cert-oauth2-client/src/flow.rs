@@ -3,6 +3,7 @@ use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 use wazuh_cert_oauth2_model::services::jwks::validate_token;
 
+use crate::services::agent_name::generate_agent_name;
 use crate::services::generate_csr::generate_key_and_csr;
 use crate::services::get_token::{GetTokenParams, get_token};
 use crate::services::restart_agent::restart_agent;
@@ -99,11 +100,26 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
     let claims = validate_token(&token, &jwks, &Some(kc_audiences)).await?;
     let sub = claims.sub.clone();
 
+    let agent_name = if params.agent_control {
+        let name = claims.get_name().ok_or(AppError::JwtMissingName)?;
+        Some(generate_agent_name(&name))
+    } else {
+        None
+    };
+
     debug!("Generating keypair and CSR");
     let (csr_pem, private_key_pem) = generate_key_and_csr(&sub)?;
 
     debug!("Submitting CSR for signing, overwrite={}", params.overwrite);
-    let signed = submit_csr(&http, &params.endpoint, &token, &csr_pem, params.overwrite).await?;
+    let signed = submit_csr(
+        &http,
+        &params.endpoint,
+        &token,
+        &csr_pem,
+        params.overwrite,
+        agent_name.as_deref(),
+    )
+    .await?;
 
     debug!("Saving certificate and private key");
     save_cert_and_key(
@@ -117,11 +133,9 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
     .await?;
 
     if params.agent_control {
-        if let Some(name) = claims.get_name() {
-            debug!("Setting name");
-            set_name(&name).await?;
-        } else {
-            return Err(AppError::JwtMissingName);
+        if let Some(ref name) = agent_name {
+            debug!("Setting agent name");
+            set_name(name).await?;
         }
 
         info!("Name set successfully!");

@@ -9,6 +9,7 @@ pub(super) enum Command {
         issued_at_unix: u64,
         issuer: Option<String>,
         realm: Option<String>,
+        wazuh_agent_name: Option<String>,
         respond_to: tokio::sync::oneshot::Sender<AppResult<()>>,
     },
     MarkRevoked {
@@ -21,6 +22,6 @@ pub(super) enum Command {
         subject: String,
         overwrite: bool,
         revoked_at_unix: u64,
-        respond_to: tokio::sync::oneshot::Sender<AppResult<bool>>,
+        respond_to: tokio::sync::oneshot::Sender<AppResult<Option<Vec<String>>>>,
     },
 }

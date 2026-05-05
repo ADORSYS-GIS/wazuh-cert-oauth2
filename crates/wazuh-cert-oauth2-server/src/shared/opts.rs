@@ -36,4 +36,12 @@ pub struct Opt {
 
     #[arg(long, env = "LEDGER_PATH", default_value = "/data/ledger.csv")]
     pub ledger_path: String,
+
+    /// Base URL of the webhook service for eviction notifications on auto-rotate override.
+    #[arg(long, env = "WEBHOOK_BASE_URL")]
+    pub webhook_base_url: Option<String>,
+
+    /// Bearer token used to authenticate eviction requests to the webhook.
+    #[arg(long, env = "WEBHOOK_BEARER_TOKEN")]
+    pub webhook_bearer_token: Option<String>,
 }

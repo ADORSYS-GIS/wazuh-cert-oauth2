@@ -9,7 +9,7 @@ use wazuh_cert_oauth2_model::models::errors::AppResult;
 pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) -> AppResult<()> {
     let data = inner.read().await.clone();
     let mut out = String::new();
-    out.push_str("subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm\n");
+    out.push_str("subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n");
     for e in data.iter() {
         let subject = escape_csv_field(&e.subject);
         let serial = escape_csv_field(&e.serial_hex);
@@ -22,9 +22,11 @@ pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) 
         let issuer = escape_csv_field(issuer);
         let realm = e.realm.as_deref().unwrap_or("");
         let realm = escape_csv_field(realm);
+        let agent_name = e.wazuh_agent_name.as_deref().unwrap_or("");
+        let agent_name = escape_csv_field(agent_name);
         out.push_str(&format!(
-            "{},{},{},{},{},{},{},{}\n",
-            subject, serial, issued, revoked, revoked_at, reason, issuer, realm
+            "{},{},{},{},{},{},{},{},{}\n",
+            subject, serial, issued, revoked, revoked_at, reason, issuer, realm, agent_name
         ));
     }
 
@@ -74,6 +76,12 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
         } else {
             None
         };
+        let wazuh_agent_name = if fields.len() > 8 {
+            let v = unescape_csv_field(&fields[8]);
+            if v.is_empty() { None } else { Some(v) }
+        } else {
+            None
+        };
         out.push(LedgerEntry {
             subject,
             serial_hex,
@@ -83,6 +91,7 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
             reason,
             issuer,
             realm,
+            wazuh_agent_name,
         });
     }
     Ok(out)
@@ -111,7 +120,7 @@ mod tests {
     #[test]
     fn parse_csv_supports_legacy_rows_without_issuer_or_realm() {
         let csv = concat!(
-            "subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm\n",
+            "subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n",
             "user-a,ABC123,100,true,200,manual revoke\n"
         );
         let rows = parse_csv(csv).expect("csv should parse");
@@ -126,13 +135,14 @@ mod tests {
         assert_eq!(row.reason.as_deref(), Some("manual revoke"));
         assert_eq!(row.issuer, None);
         assert_eq!(row.realm, None);
+        assert_eq!(row.wazuh_agent_name, None);
     }
 
     #[test]
     fn parse_csv_unescapes_quoted_fields() {
         let csv = concat!(
-            "subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm\n",
-            "\"user,1\",ABC123,100,1,200,\"reason \"\"with quotes\"\"\",https://issuer/realms/dev,dev\n"
+            "subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n",
+            "\"user,1\",ABC123,100,1,200,\"reason \"\"with quotes\"\"\",https://issuer/realms/dev,dev,DevOps-SRE-123\n"
         );
         let rows = parse_csv(csv).expect("csv should parse");
         assert_eq!(rows.len(), 1);
@@ -142,6 +152,7 @@ mod tests {
         assert_eq!(row.reason.as_deref(), Some("reason \"with quotes\""));
         assert_eq!(row.issuer.as_deref(), Some("https://issuer/realms/dev"));
         assert_eq!(row.realm.as_deref(), Some("dev"));
+        assert_eq!(row.wazuh_agent_name.as_deref(), Some("DevOps-SRE-123"));
     }
 
     #[tokio::test]
@@ -162,6 +173,7 @@ mod tests {
                 reason: None,
                 issuer: Some("https://issuer/realms/main".to_string()),
                 realm: Some("main".to_string()),
+                wazuh_agent_name: Some("DevOps-SRE-main".to_string()),
             },
             LedgerEntry {
                 subject: "user-b".to_string(),
@@ -172,6 +184,7 @@ mod tests {
                 reason: Some("operator request".to_string()),
                 issuer: None,
                 realm: None,
+                wazuh_agent_name: None,
             },
         ];
 

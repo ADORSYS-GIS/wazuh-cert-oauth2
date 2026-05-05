@@ -2,8 +2,9 @@ use super::ProxyState;
 use super::oauth;
 use super::spool;
 use crate::models::WebhookRequest;
-use crate::state::spool::GitHubTicket;
+use crate::state::spool::{EvictRequest, GitHubTicket};
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
+use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 impl ProxyState {
@@ -202,8 +203,58 @@ impl ProxyState {
         spool::queue_github_ticket_to_spool_dir(self, ticket).await
     }
 
+    pub async fn queue_evict(&self, req: EvictRequest) -> AppResult<()> {
+        spool::queue_evict_to_spool_dir(self, req).await
+    }
+
     pub async fn cancel_pending_revokes_for_subject(&self, subject: &str) -> AppResult<usize> {
         spool::cancel_pending_revokes_for_subject(self, subject).await
+    }
+
+    pub async fn fetch_ledger_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
+        let url = format!(
+            "{}/api/ledger/subject/{}",
+            self.server_base_url.trim_end_matches('/'),
+            subject
+        );
+        let resp = self
+            .execute_with_retry(|| async {
+                let token = self.acquire_token().await?;
+                let mut builder = self.http.client().get(&url);
+                if let Some(t) = token {
+                    builder = builder.bearer_auth(t);
+                }
+                Ok(builder)
+            })
+            .await?;
+
+        if !resp.status().is_success() {
+            return Err(AppError::UpstreamError(format!(
+                "GET /ledger/subject/{} failed with status {}",
+                subject,
+                resp.status()
+            )));
+        }
+
+        let entries: Vec<LedgerEntry> = resp.json().await.map_err(|e| {
+            AppError::UpstreamError(format!("failed to parse ledger entries: {}", e))
+        })?;
+
+        Ok(entries)
+    }
+
+    /// Delegates eviction to the WazuhApiClient if configured, otherwise logs a warning.
+    pub async fn run_eviction_from_state(&self, req: EvictRequest) -> AppResult<()> {
+        match &self.wazuh_api {
+            Some(client) => client.run_eviction(&req).await,
+            None => {
+                tracing::warn!(
+                    subject = %req.subject,
+                    "Eviction requested but WAZUH_MANAGER_URL is not configured; skipping"
+                );
+                Ok(())
+            }
+        }
     }
 }
 
@@ -257,9 +308,19 @@ mod tests {
             webhook_basic_password,
             webhook_api_key,
             webhook_bearer_token,
+            // github (3) + keycloak_admin_base_url
             None,
             None,
             None,
+            None,
+            // wazuh: manager_url, api_user, api_password, api_token
+            None,
+            None,
+            None,
+            None,
+            "delete-cert.sh".to_string(),
+            // wazuh_eviction_grace_seconds
+            30,
         )
         .expect("state should build")
     }

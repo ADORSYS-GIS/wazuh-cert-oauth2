@@ -5,6 +5,8 @@ pub struct SignCsrRequest {
     pub csr_pem: String,
     #[serde(default)]
     pub overwrite: Option<bool>,
+    #[serde(default)]
+    pub wazuh_agent_name: Option<String>,
 }
 
 #[cfg(test)]
@@ -16,6 +18,7 @@ mod tests {
         let req = SignCsrRequest {
             csr_pem: "-----BEGIN CERTIFICATE REQUEST-----...".to_string(),
             overwrite: Some(true),
+            wazuh_agent_name: Some("DevOps-SRE-b7301d".to_string()),
         };
 
         let json = serde_json::to_string(&req).expect("serialize should work");
