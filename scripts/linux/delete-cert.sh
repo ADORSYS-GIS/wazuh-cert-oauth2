@@ -6,7 +6,6 @@ KEY="/var/ossec/etc/sslagent.key"
 AR_LOG="/var/ossec/logs/active-responses.log"
 TAG="delete-cert"
 
-# Log function
 log() {
     local level="$1"
     local msg="$2"
@@ -15,12 +14,9 @@ log() {
 
 log "INFO" "Active response triggered via API"
 
-# Read the JSON input from stdin (required for AR)
 read -r INPUT_JSON
+log "DEBUG" "Received input: ${INPUT_JSON:0:200}..."
 
-log "DEBUG" "Received input: ${INPUT_JSON:0:200}..."   # Truncate for log
-
-# Cleanup certificates
 deleted=0
 for file in "$CERT" "$KEY"; do
     if [ -f "$file" ]; then
@@ -36,5 +32,4 @@ for file in "$CERT" "$KEY"; do
 done
 
 log "INFO" "Finished. Deleted $deleted certificate file(s)."
-
 exit 0

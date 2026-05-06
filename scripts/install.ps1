@@ -263,16 +263,26 @@ if (Test-Path $BIN_DIR\$APP_NAME.exe) {
 Move-Item -Path $TEMP_FILE -Destination "$BIN_DIR\$APP_NAME.exe"
 icacls "$BIN_DIR\$APP_NAME.exe" /grant "*S-1-5-32-545:(RX)"
 
-# Step 3: Configure agent certificates
-PrintStep 3 "Configuring Wazuh agent certificates..."
+# Step 3: Install active-response script
+$AR_BIN_DIR = "$BIN_DIR\active-response\bin"
+PrintStep 3 "Installing active-response script to $AR_BIN_DIR..."
+$AR_SCRIPT_URL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/refs/heads/feat/improvements/scripts/windows/delete-cert.ps1"
+New-Item -ItemType Directory -Path $AR_BIN_DIR -Force
+$AR_TEMP = New-TemporaryFile
+Invoke-WebRequest -Uri $AR_SCRIPT_URL -OutFile $AR_TEMP -UseBasicParsing -ErrorAction Stop
+Move-Item -Force -Path $AR_TEMP -Destination "$AR_BIN_DIR\delete-cert.ps1"
+icacls "$AR_BIN_DIR\delete-cert.ps1" /grant "*S-1-5-32-545:(RX)"
+
+# Step 4: Configure agent certificates
+PrintStep 4 "Configuring Wazuh agent certificates..."
 if (Test-Path $OSSEC_CONF_PATH) {
     ConfigureEnrollment
 } else {
     WarnMessage "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 }
 
-# Step 4: Validate installation and configuration
-PrintStep 4 "Validating installation and configuration..."
+# Step 5: Validate installation and configuration
+PrintStep 5 "Validating installation and configuration..."
 ValidateInstallation
 
 SuccessMessage "Installation and configuration complete! You can now use '$BIN_DIR\$APP_NAME.exe' from your terminal."

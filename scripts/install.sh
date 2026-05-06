@@ -16,8 +16,20 @@ GROUP="wazuh"
 
 # Determine the OS and architecture
 case "$(uname)" in
-    "Linux") OS="unknown-linux-musl"; BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}; OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf" ;;
-    "Darwin") OS="apple-darwin"; BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}; OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf" ;;
+    "Linux")
+        OS="unknown-linux-musl"
+        BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}
+        OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf"
+        AR_BIN_DIR="/var/ossec/active-response/bin"
+        AR_SCRIPT_OS="linux"
+        ;;
+    "Darwin")
+        OS="apple-darwin"
+        BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}
+        OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf"
+        AR_BIN_DIR="/Library/Ossec/active-response/bin"
+        AR_SCRIPT_OS="macos"
+        ;;
     *) error_exit "Unsupported operating system: $(uname)" ;;
 esac
 
@@ -231,8 +243,16 @@ maybe_sudo mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DI
 maybe_sudo mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
 maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
 
-# Step 3: Configure agent certificates
-print_step 3 "Configuring Wazuh agent certificates..."
+# Step 3: Install active-response script
+print_step 3 "Installing active-response script to $AR_BIN_DIR..."
+AR_SCRIPT_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/refs/heads/feat/improvements/scripts/${AR_SCRIPT_OS}/delete-cert.sh"
+maybe_sudo mkdir -p "$AR_BIN_DIR" || error_exit "Failed to create directory $AR_BIN_DIR"
+curl -SL --progress-bar -o "$TEMP_DIR/delete-cert.sh" "$AR_SCRIPT_URL" || error_exit "Failed to download active-response script"
+maybe_sudo mv "$TEMP_DIR/delete-cert.sh" "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to install active-response script"
+maybe_sudo chmod 750 "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to set permissions on active-response script"
+
+# Step 4: Configure agent certificates
+print_step 4 "Configuring Wazuh agent certificates..."
 
 ## If OSSEC_CONF_PATH exist, then configure agent
 if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
@@ -241,8 +261,8 @@ else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
 
-# Step 4: Validate installation and configuration
-print_step 4 "Validating installation and configuration..."
+# Step 5: Validate installation and configuration
+print_step 5 "Validating installation and configuration..."
 validate_installation
 
 success_message "Installation and configuration complete! You can now use '$BIN_DIR/$APP_NAME' from your terminal."
