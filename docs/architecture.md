@@ -75,9 +75,7 @@ sequenceDiagram
 
     Keycloak->>Webhook: POST /webhook (User Deleted/Disabled)
     Webhook->>Webhook: Filter & Extract Subject (userId)
-    
-    Note over Webhook,Server: Reliable Delivery (Disk Spooling)
-    
+
     Webhook->>Server: POST /api/revoke (Subject: userId)
     
     alt Server Reachable
@@ -86,6 +84,7 @@ sequenceDiagram
         Server->>Server: Rebuild CRL
     else Server Down
         Server-->>Webhook: Error / Timeout
+        Note over Webhook: Spool for reliable retry
         Webhook->>Webhook: Spool Revocation Request to Disk
         Webhook->>Webhook: Retry in background from Spool
     end
