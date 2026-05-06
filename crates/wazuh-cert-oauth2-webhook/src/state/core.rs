@@ -155,13 +155,6 @@ impl ProxyState {
                 return EventAction::Ignore;
             }
 
-            if t == "user-update"
-                && let Ok(user) = webhook_request.get_simple_user_representation()
-                && user.enabled
-            {
-                return EventAction::Enabled;
-            }
-
             return EventAction::Revoke;
         }
 
@@ -205,10 +198,6 @@ impl ProxyState {
 
     pub async fn queue_evict(&self, req: EvictRequest) -> AppResult<()> {
         spool::queue_evict_to_spool_dir(self, req).await
-    }
-
-    pub async fn cancel_pending_revokes_for_subject(&self, subject: &str) -> AppResult<usize> {
-        spool::cancel_pending_revokes_for_subject(self, subject).await
     }
 
     pub async fn fetch_ledger_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
@@ -261,7 +250,6 @@ impl ProxyState {
 #[derive(Clone, PartialOrd, PartialEq, Debug)]
 pub enum EventAction {
     Revoke,
-    Enabled,
     Ignore,
     CreateTicket,
 }
@@ -351,19 +339,6 @@ mod tests {
 
         let action = state.is_allowed_event("user-delete", &req);
         assert_eq!(action, EventAction::Revoke);
-    }
-
-    #[test]
-    fn user_update_for_enabled_user_maps_to_enabled_action() {
-        let state = build_state(None, None, None, None);
-        let req = webhook_request(
-            "user-update",
-            Some("admin/realms/x/users/u1"),
-            Some(r#"{"id":"u1","enabled":true,"username":"alice","email":"a@example.com"}"#),
-        );
-
-        let action = state.is_allowed_event("user-update", &req);
-        assert_eq!(action, EventAction::Enabled);
     }
 
     #[test]

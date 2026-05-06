@@ -32,55 +32,6 @@ enum SpoolItem {
     EvictRequest { req: EvictRequest },
 }
 
-/// Remove queued revoke requests targeting the given subject.
-/// Returns the number of files removed.
-#[tracing::instrument(skip(state))]
-pub async fn cancel_pending_revokes_for_subject(
-    state: &ProxyState,
-    subject: &str,
-) -> AppResult<usize> {
-    let mut removed: usize = 0;
-    let mut dir = match tokio::fs::read_dir(&state.spool_dir).await {
-        Ok(d) => d,
-        Err(e) => {
-            warn!("spool read_dir failed: {}", e);
-            return Ok(0);
-        }
-    };
-    while let Some(entry) = dir.next_entry().await? {
-        let path = entry.path();
-        if !is_json(&path) {
-            continue;
-        }
-        match tokio::fs::read(&path).await {
-            Ok(bytes) => match serde_json::from_slice::<SpoolItem>(&bytes) {
-                Ok(SpoolItem::RevokeRequest { req }) => {
-                    if req.subject.as_deref() == Some(subject) {
-                        debug!(
-                            "canceling pending revoke for {} in {}",
-                            subject,
-                            path.display()
-                        );
-                        match tokio::fs::remove_file(&path).await {
-                            Ok(()) => {
-                                removed += 1;
-                            }
-                            Err(e) => warn!("failed to remove {}: {}", path.display(), e),
-                        }
-                    }
-                }
-                Ok(_) => { /* Ignore Other Spool Items*/ }
-                Err(e) => {
-                    // Leave invalid files to the regular processor to clean up
-                    warn!("invalid spool item {}; skipping: {}", path.display(), e);
-                }
-            },
-            Err(e) => warn!("failed to read {}: {}", path.display(), e),
-        }
-    }
-    Ok(removed)
-}
-
 #[tracing::instrument(skip(state, item))]
 async fn queue_item_to_spool_dir(
     state: &ProxyState,
@@ -190,7 +141,7 @@ fn is_json(p: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        EvictRequest, SpoolItem, cancel_pending_revokes_for_subject, queue_evict_to_spool_dir,
+        EvictRequest, SpoolItem, queue_evict_to_spool_dir,
         queue_revoke_to_spool_dir,
     };
     use crate::state::ProxyState;
@@ -277,51 +228,6 @@ mod tests {
 
         let files = json_files(&spool_dir).await;
         assert_eq!(files.len(), 1);
-
-        let _ = fs::remove_dir_all(&spool_dir).await;
-    }
-
-    #[tokio::test]
-    async fn cancel_pending_revokes_removes_only_matching_subject() {
-        let spool_dir = unique_spool_dir();
-        let state = build_state(spool_dir.clone());
-
-        queue_revoke_to_spool_dir(
-            &state,
-            RevokeRequest {
-                serial_hex: None,
-                subject: Some("user-a".to_string()),
-                reason: Some("reason".to_string()),
-            },
-        )
-        .await
-        .expect("queue should succeed");
-        queue_revoke_to_spool_dir(
-            &state,
-            RevokeRequest {
-                serial_hex: None,
-                subject: Some("user-b".to_string()),
-                reason: Some("reason".to_string()),
-            },
-        )
-        .await
-        .expect("queue should succeed");
-
-        let removed = cancel_pending_revokes_for_subject(&state, "user-a")
-            .await
-            .expect("cancel should succeed");
-        assert_eq!(removed, 1);
-
-        let files = json_files(&spool_dir).await;
-        assert_eq!(files.len(), 1);
-        let bytes = fs::read(&files[0])
-            .await
-            .expect("remaining file should be readable");
-        let item: SpoolItem = serde_json::from_slice(&bytes).expect("json should parse");
-        match item {
-            SpoolItem::RevokeRequest { req } => assert_eq!(req.subject.as_deref(), Some("user-b")),
-            _ => panic!("Expected RevokeRequest variant"),
-        }
 
         let _ = fs::remove_dir_all(&spool_dir).await;
     }

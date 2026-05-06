@@ -32,7 +32,6 @@ pub async fn send_webhook(
             Ok(Status::Ok)
         }
         EventAction::Revoke => handle_revoke(state, p).await,
-        EventAction::Enabled => handle_enable(state, p).await,
         EventAction::CreateTicket => handle_create_ticket(state, p).await,
     }
 }
@@ -58,26 +57,6 @@ async fn handle_create_ticket(
 
     // We return Ok always to avoid Keycloak retrying the webhook indefinitely
     // if the GitHub API is having issues.
-    Ok(Status::Ok)
-}
-
-#[tracing::instrument(skip(state), fields(event_type = %p.event_type))]
-async fn handle_enable(state: &State<ProxyState>, p: WebhookRequest) -> Result<Status, Status> {
-    info!(
-        "handling enable event; type={} resourcePath={:?}",
-        p.event_type, p.resource_path
-    );
-    // On enable: cancel any queued revoke requests for the subject to avoid
-    // revoking immediately after a quick re-enable.
-    if let Some(subject) = extract_user_id(&p) {
-        match state.cancel_pending_revokes_for_subject(&subject).await {
-            Ok(n) => info!("canceled {} pending revokes for subject {}", n, subject),
-            Err(e) => warn!("failed to cancel pending revokes for {}: {}", subject, e),
-        }
-    } else {
-        debug!("enable event without subject; nothing to cancel");
-    }
-    // No upstream "unrevoke"; return OK
     Ok(Status::Ok)
 }
 

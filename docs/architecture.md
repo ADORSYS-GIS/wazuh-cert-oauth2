@@ -36,11 +36,10 @@ sequenceDiagram
 
     Note over User,AgentClient: Authorization Phase
 
-    AgentClient->>AgentClient: Construct Authorization URL
-    AgentClient->>User: Display auth URL in terminal
-    User->>Keycloak: Open browser (if not automatically opened by client), login and authorize
-    Keycloak-->>User: Show authorization code (manual copy)
-    User->>AgentClient: Paste authorization code
+    AgentClient->>AgentClient: Construct Authorization URL & start local HTTP callback server
+    AgentClient->>User: Display auth URL in terminal (opens browser automatically if possible)
+    User->>Keycloak: Login and authorize in browser
+    Keycloak-->>AgentClient: Redirect to localhost callback with authorization code
 
     AgentClient->>Keycloak: Exchange code for access token (and optionally ID token)
     Keycloak-->>AgentClient: Token response (access_token[, id_token, refresh_token])
@@ -92,24 +91,7 @@ sequenceDiagram
     end
 ```
 
-### 3. Subject Re-enablement
-
-When a user is re-enabled in Keycloak, the Webhook Proxy cancels any pending (queued) revocations for that subject to prevent accidental revocation due to synchronization delays.
-
-```mermaid
-sequenceDiagram
-    autonumber
-
-    participant Keycloak as Keycloak (IdP)
-    participant Webhook as Webhook Proxy (wazuh-cert-oauth2-webhook)
-
-    Keycloak->>Webhook: POST /webhook (User Enabled/Updated)
-    Webhook->>Webhook: Extract Subject (userId)
-    Webhook->>Webhook: Scan Spool for pending Revocations
-    Webhook->>Webhook: Delete matching .json spool files
-```
-
-### 4. User Registration Tracking (GitHub Issue Flow)
+### 3. User Registration Tracking (GitHub Issue Flow)
 
 When a new user registers or is created in Keycloak, the Webhook Proxy handles the event and creates an issue in GitHub for administrative tracking.
 
@@ -123,20 +105,19 @@ sequenceDiagram
 
     Keycloak->>Webhook: POST /webhook (User Registered/Created)
     Webhook->>Webhook: Extract User Metadata
-    
-    Note over Webhook,GitHub: Reliable Delivery (Disk Spooling)
 
     Webhook->>GitHub: POST /repos/{owner}/{repo}/issues
     
     alt Success
         GitHub-->>Webhook: 201 Created
     else Network Error / 5xx
+        Note over Webhook: Spool for reliable retry
         Webhook->>Webhook: Spool Ticket Request to Disk
         Webhook->>Webhook: Retry in background from Spool
     end
 ```
 
-### 5. Internal Eviction Flow (Server-to-Webhook)
+### 4. Internal Eviction Flow (Server-to-Webhook)
 
 When the Certificate Server detects a re-enrollment that overrides an active certificate, it notifies the Webhook Proxy to perform an agent eviction in Wazuh.
 
@@ -150,7 +131,6 @@ sequenceDiagram
 
     Server->>Webhook: POST /api/internal/evict (Subject, Agent Name, Reason)
     
-    rect rgb(240, 240, 240)
     Note right of Webhook: Immediate Eviction Attempt
     
     alt Reason: "auto-rotate"
@@ -159,7 +139,6 @@ sequenceDiagram
         Webhook->>Wazuh: PUT /active-response (delete-cert)
         Webhook->>Webhook: Wait Grace Period (default 30s)
         Webhook->>Wazuh: DELETE /agents/{agent_id}
-    end
     end
 
     alt Failure
