@@ -6,7 +6,7 @@ This document describes the high-level architecture of the `wazuh-cert-oauth2` p
 
 1.  **Wazuh Agent CLI (`wazuh-cert-oauth2-client`)**: A CLI tool run on the Wazuh agent host. It handles user authentication via OIDC, CSR generation, and submission to the backend.
 2.  **Certificate Server (`wazuh-cert-oauth2-server`)**: The central backend that validates OIDC tokens, signs CSRs using a Root CA, and manages the Certificate Revocation List (CRL).
-3.  **Webhook Proxy (`wazuh-cert-oauth2-webhook`)**: A specialized service that listens for events from the Identity Provider (e.g., Keycloak) and triggers certificate revocations in the backend.
+3.  **Webhook Proxy (`wazuh-cert-oauth2-webhook`)**: A specialized service that listens for events from the Identity Provider (e.g., Keycloak). It features persistent disk-backed spooling for reliable delivery of revocations, GitHub issue creation, and Wazuh agent evictions.
 4.  **Keycloak (IdP)**: The Identity Provider responsible for user authentication and triggering webhook events when user states change.
 
 ---
@@ -76,6 +76,9 @@ sequenceDiagram
 
     Keycloak->>Webhook: POST /webhook (User Deleted/Disabled)
     Webhook->>Webhook: Filter & Extract Subject (userId)
+    
+    Note over Webhook,Server: Reliable Delivery (Disk Spooling)
+    
     Webhook->>Server: POST /api/revoke (Subject: userId)
     
     alt Server Reachable
@@ -84,12 +87,29 @@ sequenceDiagram
         Server->>Server: Rebuild CRL
     else Server Down
         Server-->>Webhook: Error / Timeout
-        Webhook->>Webhook: Queue Revocation Request
-        Webhook->>Webhook: Retry in background
+        Webhook->>Webhook: Spool Revocation Request to Disk
+        Webhook->>Webhook: Retry in background from Spool
     end
 ```
 
-### 3. User Registration Tracking (GitHub Issue Flow)
+### 3. Subject Re-enablement
+
+When a user is re-enabled in Keycloak, the Webhook Proxy cancels any pending (queued) revocations for that subject to prevent accidental revocation due to synchronization delays.
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant Keycloak as Keycloak (IdP)
+    participant Webhook as Webhook Proxy (wazuh-cert-oauth2-webhook)
+
+    Keycloak->>Webhook: POST /webhook (User Enabled/Updated)
+    Webhook->>Webhook: Extract Subject (userId)
+    Webhook->>Webhook: Scan Spool for pending Revocations
+    Webhook->>Webhook: Delete matching .json spool files
+```
+
+### 4. User Registration Tracking (GitHub Issue Flow)
 
 When a new user registers or is created in Keycloak, the Webhook Proxy handles the event and creates an issue in GitHub for administrative tracking.
 
@@ -102,17 +122,21 @@ sequenceDiagram
     participant GitHub as GitHub API
 
     Keycloak->>Webhook: POST /webhook (User Registered/Created)
-    Webhook->>Webhook: Extract User Metadata (Email, Username, Realm)
+    Webhook->>Webhook: Extract User Metadata
+    
+    Note over Webhook,GitHub: Reliable Delivery (Disk Spooling)
+
     Webhook->>GitHub: POST /repos/{owner}/{repo}/issues
     
     alt Success
         GitHub-->>Webhook: 201 Created
     else Network Error / 5xx
-        Webhook->>Webhook: Retry with Exponential Backoff
+        Webhook->>Webhook: Spool Ticket Request to Disk
+        Webhook->>Webhook: Retry in background from Spool
     end
 ```
 
-### 4. Internal Eviction Flow (Server-to-Webhook)
+### 5. Internal Eviction Flow (Server-to-Webhook)
 
 When the Certificate Server detects a re-enrollment that overrides an active certificate, it notifies the Webhook Proxy to perform an agent eviction in Wazuh.
 
@@ -124,14 +148,26 @@ sequenceDiagram
     participant Webhook as Webhook Proxy (wazuh-cert-oauth2-webhook)
     participant Wazuh as Wazuh Manager API
 
-    Server->>Webhook: POST /api/internal/evict (Subject, Agent Name)
-    Webhook->>Webhook: Queue Eviction
-    Webhook->>Wazuh: PUT /active-response (delete-cert command)
-    Webhook->>Webhook: Wait Grace Period (default 30s)
-    Webhook->>Wazuh: DELETE /agents/{agent_id}
+    Server->>Webhook: POST /api/internal/evict (Subject, Agent Name, Reason)
     
-    Wazuh-->>Webhook: Success
-    Webhook->>Webhook: Mark Eviction as Complete
+    rect rgb(240, 240, 240)
+    Note right of Webhook: Immediate Eviction Attempt
+    
+    alt Reason: "auto-rotate"
+        Webhook->>Wazuh: DELETE /agents/{agent_id}
+    else Standard Reason
+        Webhook->>Wazuh: PUT /active-response (delete-cert)
+        Webhook->>Webhook: Wait Grace Period (default 30s)
+        Webhook->>Wazuh: DELETE /agents/{agent_id}
+    end
+    end
+
+    alt Failure
+        Webhook->>Webhook: Spool Eviction to Disk
+        Webhook->>Webhook: Retry in background from Spool
+    else Success
+        Webhook->>Webhook: Done
+    end
 ```
 
 #### Webhook Details:
@@ -147,5 +183,5 @@ sequenceDiagram
 | :--- | :--- |
 | **Client** | CSR Generation, OIDC Auth, Local Config Management |
 | **Server** | Token Validation, CSR Signing (CA), CRL Generation, Ledger Persistence |
-| **Webhook** | Event Transformation, Reliable Revocation Forwarding |
-| **Model** | Shared Data Structures & Error Types (used by all crates) |
+| **Webhook** | Event Transformation, Persistent Spooling, Wazuh Agent Eviction |
+| **Model** | Shared Data Structures & Centralized Wazuh API Client |
