@@ -87,4 +87,6 @@ pub struct Opt {
     pub wazuh_ar_command: String,
     #[arg(long, env = "WAZUH_EVICTION_GRACE_SECONDS", default_value_t = 30)]
     pub wazuh_eviction_grace_seconds: u64,
+    #[arg(long, env = "WAZUH_AR_SPOOL_TTL_SECONDS", default_value_t = 86400)]
+    pub wazuh_ar_spool_ttl_seconds: u64,
 }

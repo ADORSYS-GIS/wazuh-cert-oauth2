@@ -114,6 +114,7 @@ webhook:
             WAZUH_API_TOKEN: ""
             WAZUH_AR_COMMAND: "delete-cert.sh"
             WAZUH_EVICTION_GRACE_SECONDS: 30
+            WAZUH_AR_SPOOL_TTL_SECONDS: 86400
 
           probes:
             startup:

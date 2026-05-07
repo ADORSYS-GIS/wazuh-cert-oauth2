@@ -33,10 +33,7 @@ impl WebhookNotifier {
     /// Fire-and-forget: POST an eviction request to the webhook for each old agent name.
     /// Logs a warning on failure but never propagates the error — eviction is best-effort.
     pub async fn notify_evict(&self, subject: &str, old_agent_names: Vec<String>) {
-        let url = format!(
-            "{}/api/internal/evict",
-            self.base_url.trim_end_matches('/')
-        );
+        let url = format!("{}/api/internal/evict", self.base_url.trim_end_matches('/'));
         let triggered_at_unix = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()

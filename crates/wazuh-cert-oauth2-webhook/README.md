@@ -39,6 +39,7 @@ Configuration
 - `--wazuh-api-token` (`WAZUH_API_TOKEN`): Wazuh API static token (optional).
 - `--wazuh-ar-command` (`WAZUH_AR_COMMAND`, default `delete-cert.sh`): Active-response command to run.
 - `--wazuh-eviction-grace-seconds` (`WAZUH_EVICTION_GRACE_SECONDS`, default 30): Grace period before agent deletion.
+- `--wazuh-ar-spool-ttl-seconds` (`WAZUH_AR_SPOOL_TTL_SECONDS`, default 86400): TTL for pending AR commands (e.g. 24h) before forcing agent deletion.
 - Inbound webhook auth (any set are accepted):
   - `--webhook-basic-user` (`WEBHOOK_BASIC_USER`)
   - `--webhook-basic-password` (`WEBHOOK_BASIC_PASSWORD`)

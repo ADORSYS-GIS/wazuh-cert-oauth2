@@ -38,6 +38,7 @@ impl ProxyState {
         wazuh_api_token: Option<String>,
         wazuh_ar_command: String,
         wazuh_eviction_grace_seconds: u64,
+        ar_spool_ttl_seconds: u64,
     ) -> AppResult<Self> {
         utils::ensure_spool_dir(&spool_dir);
         let oauth = oauth::build_oauth(
@@ -55,6 +56,7 @@ impl ProxyState {
                 wazuh_api_token,
                 wazuh_ar_command.clone(),
                 wazuh_eviction_grace_seconds,
+                ar_spool_ttl_seconds,
             )
         });
         Ok(Self {

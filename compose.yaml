@@ -18,7 +18,7 @@ services:
 
       CRL_PATH: "/data/issuing.crl"
       CRL_DIST_URL: "http://localhost:8000/crl/issuing.crl"
-      WEBHOOK_BASE_URL: ""
+      WEBHOOK_BASE_URL: "http://webhook:8000"
       WEBHOOK_BEARER_TOKEN: ""
     user: "${UID:-}:${GID:-}"
     volumes:
@@ -63,7 +63,9 @@ services:
       WAZUH_API_USER: ""
       WAZUH_API_PASSWORD: ""
       WAZUH_API_TOKEN: ""
+      WAZUH_AR_COMMAND: "delete-cert.sh"
       WAZUH_EVICTION_GRACE_SECONDS: 30
+      WAZUH_AR_SPOOL_TTL_SECONDS: 86400
     user: "${UID:-}:${GID:-}"
     volumes:
       - webhook:/data/spool

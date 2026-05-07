@@ -2,7 +2,7 @@ use super::ProxyState;
 use super::oauth;
 use super::spool;
 use crate::models::WebhookRequest;
-use crate::state::spool::{EvictRequest, GitHubTicket};
+use crate::state::spool::{ArPendingRequest, EvictRequest, GitHubTicket};
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
@@ -200,6 +200,10 @@ impl ProxyState {
         spool::queue_evict_to_spool_dir(self, req).await
     }
 
+    pub async fn queue_ar_pending(&self, req: ArPendingRequest) -> AppResult<()> {
+        spool::queue_ar_pending_to_spool_dir(self, req).await
+    }
+
     pub async fn fetch_ledger_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
         let url = format!(
             "{}/api/ledger/subject/{}",
@@ -235,11 +239,29 @@ impl ProxyState {
     /// Delegates eviction to the WazuhApiClient if configured, otherwise logs a warning.
     pub async fn run_eviction_from_state(&self, req: EvictRequest) -> AppResult<()> {
         match &self.wazuh_api {
-            Some(client) => client.run_eviction(&req).await,
+            Some(client) => {
+                if let Some(ar_pending) = client.run_eviction(&req).await? {
+                    self.queue_ar_pending(ar_pending).await?;
+                }
+                Ok(())
+            }
             None => {
                 tracing::warn!(
                     subject = %req.subject,
                     "Eviction requested but WAZUH_MANAGER_URL is not configured; skipping"
+                );
+                Ok(())
+            }
+        }
+    }
+
+    pub async fn run_ar_pending_from_state(&self, req: ArPendingRequest) -> AppResult<()> {
+        match &self.wazuh_api {
+            Some(client) => client.run_ar_pending(&req).await,
+            None => {
+                tracing::warn!(
+                    agent_id = %req.agent_id,
+                    "AR retry requested but Wazuh client is not configured; skipping"
                 );
                 Ok(())
             }
@@ -309,6 +331,8 @@ mod tests {
             "delete-cert.sh".to_string(),
             // wazuh_eviction_grace_seconds
             30,
+            // wazuh_ar_spool_ttl_seconds
+            86400,
         )
         .expect("state should build")
     }
