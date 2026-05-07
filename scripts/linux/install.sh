@@ -166,8 +166,16 @@ maybe_sudo mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DI
 maybe_sudo mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
 maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
 
-# Step 3: Configure agent certificates
-print_step 3 "Configuring Wazuh agent certificates..."
+# Step 3: Install active-response script
+print_step 3 "Installing active-response script..."
+AR_BIN_DIR="/var/ossec/active-response/bin"
+maybe_sudo mkdir -p "$AR_BIN_DIR" || error_exit "Failed to create directory $AR_BIN_DIR"
+download_and_verify_file "${WAZUH_CERT_OAUTH2_REPO_URL}/scripts/linux/delete-cert.sh" "$TEMP_DIR/delete-cert.sh" "scripts/linux/delete-cert.sh" "delete-cert.sh" "${WAZUH_CERT_OAUTH2_REPO_URL}/checksums.sha256"
+maybe_sudo mv "$TEMP_DIR/delete-cert.sh" "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to install delete-cert.sh"
+maybe_sudo chmod 750 "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to set permissions on delete-cert.sh"
+
+# Step 4: Configure agent certificates
+print_step 4 "Configuring Wazuh agent certificates..."
 
 ## If OSSEC_CONF_PATH exist, then configure agent
 if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
@@ -176,8 +184,8 @@ else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
 
-# Step 4: Validate installation and configuration
-print_step 4 "Validating installation and configuration..."
+# Step 5: Validate installation and configuration
+print_step 5 "Validating installation and configuration..."
 validate_installation
 
 success_message "Installation and configuration complete! You can now use '$BIN_DIR/$APP_NAME' from your terminal."
