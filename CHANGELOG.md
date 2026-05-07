@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[72d28d6](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/72d28d6dc2db34be3ca733f75d146709e10eeddb)...[b7b5999](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b7b59990d7cb75d9f6fb9f0e9172aaae33f2f072)
+[fb5e8e7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fb5e8e747d8bff8092ab6b36cd9ecef128cba212)...[068448b](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/068448be1d8c01a47350f06b038dea09e94bc829)
 
 ### Bug Fixes
 
@@ -12,30 +12,20 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 
+- Update CHANGELOG.md and checksums [skip ci] ([`9eb6070`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9eb6070143ff63f728ffd63789807aa74a6c2f89))
 - Update CHANGELOG.md and checksums [skip ci] ([`8b1735f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8b1735f3e031dc68c210e0d41cffeabceaab6f4f))
 - Update CHANGELOG.md and checksums [skip ci] ([`0c7afcf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0c7afcf65fb278abcdf0c24a2932660998d67328))
 - Update CHANGELOG.md and checksums [skip ci] ([`b7b5999`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b7b59990d7cb75d9f6fb9f0e9172aaae33f2f072))
-
-## 0.4.2-rc.1 - 2026-04-01
-
-[fb5e8e7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fb5e8e747d8bff8092ab6b36cd9ecef128cba212)...[72d28d6](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/72d28d6dc2db34be3ca733f75d146709e10eeddb)
-
-### Documentation
-
-- Update CHANGELOG.md and checksums [skip ci] ([`9eb6070`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9eb6070143ff63f728ffd63789807aa74a6c2f89))
+- Update CHANGELOG.md and checksums [skip ci] ([`9873492`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9873492325b3189e4696a92611c74f6cb775e274))
 
 ### Features
 
-- Add step to generate and include binary and script checksums in release workflow ([`8ad9ee0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8ad9ee04ee6d2f7364a2ead238caee221eac0c01))
-
-### Miscellaneous Tasks
-
-- Remove script checksums from release pull request description ([`117bceb`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/117bcebd4cb17f72a0dcec5cdb76d78e62f8ab19))
-- Include checksums.sha256 in release workflow updates and pull requests ([`72d28d6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/72d28d6dc2db34be3ca733f75d146709e10eeddb))
+- Added templates for delete cert scripts ([`39aae3b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/39aae3bdf166f9a7c111a9d17de9448ba17ba28a))
+- Added templates for delete cert scripts ([`6e68eb1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6e68eb187b1eb882a47f1090861da2713179a768))
 
 ## 0.4.2-rc.2 - 2026-04-15
 
-[606f48c](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/606f48cbcc95995008f77c0094fb8391b7904f6b)...[fb5e8e7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fb5e8e747d8bff8092ab6b36cd9ecef128cba212)
+[72d28d6](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/72d28d6dc2db34be3ca733f75d146709e10eeddb)...[fb5e8e7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fb5e8e747d8bff8092ab6b36cd9ecef128cba212)
 
 ### Bug Fixes
 
@@ -55,7 +45,7 @@ All notable changes to this project will be documented in this file.
 
 ### Miscellaneous Tasks
 
-- Update CHANGELOG.md ([`1b6a86c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1b6a86c6773c2caa83ec54e1e4dc402361ce8cf1))
+- Enable helm chart publishing for version tags ([`58ed0c6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/58ed0c6e3145594675c80f110511605812d77f25))
 - Add checksums.sha256 file for script integrity verification ([`1e17ef4`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e17ef4e298d8ed9fcc3fb97aba7c21e8bfd50ee))
 - Added workflow to lint and test scripts ([`df5a1da`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/df5a1da9b2feb7bd347bc7755b1e17e4d8c093cf))
 - Update checksums.sha256 ([`716955e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/716955e7d7aa642476f2827e7ae7e2adb2f21508))
@@ -80,6 +70,20 @@ All notable changes to this project will be documented in this file.
 - Add OS checks in install/uninstall scripts for Linux and MacOS compatibility ([`c2f858f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c2f858fd3ff5914fbebcfbdea3774a6a68f6ae57))
 - Use parameter expansion for OSSEC_CONF_PATH and BIN_DIR in install/uninstall scripts ([`613b0ce`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/613b0ce113afc35d1bc6a278da1c9cffc5d1f11f))
 - Update OS checks and logging in installation and uninstallation scripts for Linux and macOS ([`f91365f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f91365f838f3c845f83559cc00aa10625368deaa))
+
+## 0.4.2-rc.1 - 2026-04-01
+
+[606f48c](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/606f48cbcc95995008f77c0094fb8391b7904f6b)...[72d28d6](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/72d28d6dc2db34be3ca733f75d146709e10eeddb)
+
+### Features
+
+- Add step to generate and include binary and script checksums in release workflow ([`8ad9ee0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8ad9ee04ee6d2f7364a2ead238caee221eac0c01))
+
+### Miscellaneous Tasks
+
+- Update CHANGELOG.md ([`1b6a86c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1b6a86c6773c2caa83ec54e1e4dc402361ce8cf1))
+- Remove script checksums from release pull request description ([`117bceb`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/117bcebd4cb17f72a0dcec5cdb76d78e62f8ab19))
+- Include checksums.sha256 in release workflow updates and pull requests ([`72d28d6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/72d28d6dc2db34be3ca733f75d146709e10eeddb))
 
 ## 0.4.2 - 2026-02-27
 
