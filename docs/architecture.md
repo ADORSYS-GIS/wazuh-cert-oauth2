@@ -136,20 +136,30 @@ sequenceDiagram
         Webhook->>Wazuh: DELETE /agents/{agent_id}
     else Standard Reason
         Webhook->>Wazuh: PUT /active-response (delete-cert)
-        Webhook->>Webhook: Wait Grace Period (default 30s)
-        Webhook->>Wazuh: DELETE /agents/{agent_id}
+        alt AR Outcome: "Sent"
+            Webhook->>Webhook: Wait Grace Period (default 30s)
+            Webhook->>Wazuh: DELETE /agents/{agent_id}
+        else AR Outcome: "AgentOffline"
+            Webhook->>Webhook: Spool AR Command to Disk
+            Note over Webhook: Spool Processor Loop
+            loop Until "Sent" or "TTL Expired"
+                Webhook->>Wazuh: Retry PUT /active-response
+            end
+            Webhook->>Wazuh: DELETE /agents/{agent_id}
+        end
     end
 
-    alt Failure
+    alt Network Failure
         Webhook->>Webhook: Spool Eviction to Disk
         Webhook->>Webhook: Retry in background from Spool
-    else Success
+    else Success / TTL Expired
         Webhook->>Webhook: Done
     end
 ```
 
 #### Webhook Details:
 - **Resiliency**: The Webhook Proxy includes a persistent spooling mechanism and automatic retries with exponential backoff for all upstream requests (Certificate Server and GitHub API).
+- **Hardened Eviction**: The eviction pipeline delays agent deletion if the agent is offline, ensuring the certificate deletion command is spooled and delivered when the agent reconnects.
 - **Filtering**: The proxy identifies revoke-eligible events (`USER-DELETE`/`USER-UPDATE`) and ticket-eligible events (`REGISTER`/`USER-CREATE`).
 - **GitHub Integration**: For registration events, the proxy automatically creates a tracking issue in the configured GitHub repository.
 

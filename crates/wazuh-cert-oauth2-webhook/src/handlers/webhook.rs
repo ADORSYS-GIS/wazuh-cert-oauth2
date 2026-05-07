@@ -77,21 +77,22 @@ async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
 
     // Fetch the active ledger entry *before* forwarding the revoke so the
     // wazuh_agent_name is still present on the active entry.
-    let wazuh_agent_name = if !reason_str.to_ascii_lowercase().starts_with("auto-rotate") && !reason_str.is_empty() {
-        match state.fetch_ledger_by_subject(&subject).await {
-            Ok(entries) => entries
-                .iter()
-                .filter(|e| !e.revoked && e.wazuh_agent_name.is_some())
-                .last()
-                .and_then(|e| e.wazuh_agent_name.clone()),
-            Err(e) => {
-                warn!(subject = %subject, "Failed to fetch ledger from server: {}", e);
-                None
+    let wazuh_agent_name =
+        if !reason_str.to_ascii_lowercase().starts_with("auto-rotate") && !reason_str.is_empty() {
+            match state.fetch_ledger_by_subject(&subject).await {
+                Ok(entries) => entries
+                    .iter()
+                    .filter(|e| !e.revoked && e.wazuh_agent_name.is_some())
+                    .last()
+                    .and_then(|e| e.wazuh_agent_name.clone()),
+                Err(e) => {
+                    warn!(subject = %subject, "Failed to fetch ledger from server: {}", e);
+                    None
+                }
             }
-        }
-    } else {
-        None
-    };
+        } else {
+            None
+        };
 
     let req = RevokeRequest {
         serial_hex: None,

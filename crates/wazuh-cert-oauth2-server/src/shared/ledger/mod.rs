@@ -312,7 +312,10 @@ mod tests {
             .check_and_revoke_active("user-b".to_string(), true)
             .await
             .expect("check_and_revoke_active should succeed even with no certs");
-        assert!(revoked_names.is_none(), "expected None when no active cert exists");
+        assert!(
+            revoked_names.is_none(),
+            "expected None when no active cert exists"
+        );
 
         let _ = fs::remove_dir_all(parent).await;
     }

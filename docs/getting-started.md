@@ -202,6 +202,7 @@ The client will attempt to open the authorization URL in your system's default b
 | `--wazuh-api-token` | `WAZUH_API_TOKEN` | (Optional) | Wazuh API static token. |
 | `--wazuh-ar-command`| `WAZUH_AR_COMMAND` | `delete-cert.sh`| Active-response command. |
 | `--wazuh-eviction-grace-seconds`| `WAZUH_EVICTION_GRACE_SECONDS`| `30` | Grace period before deletion. |
+| `--wazuh-ar-spool-ttl-seconds`| `WAZUH_AR_SPOOL_TTL_SECONDS`| `86400` | TTL for pending AR commands. |
 
 ### Client Flags
 | Flag | Env Variable | Default | Purpose |

@@ -41,6 +41,7 @@ pub fn build_state(opt: &Opt) -> AppResult<ProxyState> {
         opt.wazuh_api_token.clone(),
         opt.wazuh_ar_command.clone(),
         opt.wazuh_eviction_grace_seconds,
+        opt.wazuh_ar_spool_ttl_seconds,
     )?;
     Ok(state)
 }
@@ -58,7 +59,10 @@ pub async fn launch_rocket(state: ProxyState) -> AppResult<()> {
     rocket::build()
         .manage(state)
         .mount("/", routes![health])
-        .mount("/api", routes![send_webhook, get_enrollment_report, internal_evict])
+        .mount(
+            "/api",
+            routes![send_webhook, get_enrollment_report, internal_evict],
+        )
         .launch()
         .await
         .map_err(|e| AppError::RocketError(Box::new(e)))?;
