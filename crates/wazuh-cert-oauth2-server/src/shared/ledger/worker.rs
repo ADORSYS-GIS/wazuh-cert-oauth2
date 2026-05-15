@@ -30,6 +30,7 @@ async fn ledger_worker(
                 issued_at_unix,
                 issuer,
                 realm,
+                wazuh_agent_name,
                 respond_to,
             } => {
                 let res = apply_record_issued(
@@ -40,6 +41,7 @@ async fn ledger_worker(
                     issued_at_unix,
                     issuer,
                     realm,
+                    wazuh_agent_name,
                 )
                 .await;
                 let _ = respond_to.send(res);
@@ -54,10 +56,27 @@ async fn ledger_worker(
                     apply_mark_revoked(&inner, &path, serial_hex, reason, revoked_at_unix).await;
                 let _ = respond_to.send(res);
             }
+            Command::CheckAndRevokeActive {
+                subject,
+                overwrite,
+                revoked_at_unix,
+                respond_to,
+            } => {
+                let res: AppResult<Option<Vec<String>>> = apply_check_and_revoke_active(
+                    &inner,
+                    &path,
+                    &subject,
+                    overwrite,
+                    revoked_at_unix,
+                )
+                .await;
+                let _ = respond_to.send(res);
+            }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn apply_record_issued(
     inner: &Arc<RwLock<Vec<LedgerEntry>>>,
     path: &PathBuf,
@@ -66,6 +85,7 @@ async fn apply_record_issued(
     issued_at_unix: u64,
     issuer: Option<String>,
     realm: Option<String>,
+    wazuh_agent_name: Option<String>,
 ) -> AppResult<()> {
     {
         let mut guard = inner.write().await;
@@ -78,6 +98,7 @@ async fn apply_record_issued(
             reason: None,
             issuer,
             realm,
+            wazuh_agent_name,
         });
     }
     persist_csv(path, inner).await
@@ -97,9 +118,11 @@ async fn apply_mark_revoked(
             .rev()
             .find(|e| e.serial_hex.eq_ignore_ascii_case(&serial_hex))
         {
-            entry.revoked = true;
-            entry.revoked_at_unix = Some(revoked_at_unix);
-            entry.reason = reason.clone();
+            if !entry.revoked {
+                entry.revoked = true;
+                entry.revoked_at_unix = Some(revoked_at_unix);
+                entry.reason = reason.clone();
+            }
         } else {
             guard.push(LedgerEntry {
                 subject: String::new(),
@@ -110,8 +133,49 @@ async fn apply_mark_revoked(
                 reason: reason.clone(),
                 issuer: None,
                 realm: None,
+                wazuh_agent_name: None,
             });
         }
     }
     persist_csv(path, inner).await
+}
+
+async fn apply_check_and_revoke_active(
+    inner: &Arc<RwLock<Vec<LedgerEntry>>>,
+    path: &PathBuf,
+    subject: &str,
+    overwrite: bool,
+    revoked_at_unix: u64,
+) -> AppResult<Option<Vec<String>>> {
+    use wazuh_cert_oauth2_model::models::errors::AppError;
+
+    let mut guard = inner.write().await;
+
+    let has_active = guard.iter().any(|e| e.subject == subject && !e.revoked);
+    if !has_active {
+        return Ok(None);
+    }
+
+    if !overwrite {
+        return Err(AppError::Conflict(
+            "User already has an active certificate. Use the --overwrite flag to re-enroll and replace it.".to_string(),
+        ));
+    }
+
+    let mut old_agent_names = Vec::new();
+    for entry in guard
+        .iter_mut()
+        .filter(|e| e.subject == subject && !e.revoked)
+    {
+        entry.revoked = true;
+        entry.revoked_at_unix = Some(revoked_at_unix);
+        entry.reason = Some("auto-rotate (one cert per user)".to_string());
+        if let Some(ref name) = entry.wazuh_agent_name {
+            old_agent_names.push(name.clone());
+        }
+    }
+    drop(guard);
+
+    persist_csv(path, inner).await?;
+    Ok(Some(old_agent_names))
 }

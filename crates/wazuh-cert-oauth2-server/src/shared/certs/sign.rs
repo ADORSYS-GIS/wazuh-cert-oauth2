@@ -6,7 +6,10 @@ use wazuh_cert_oauth2_model::models::signed_cert_response::SignedCertResponse;
 
 use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
+use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
+use crate::shared::webhook_notifier::WebhookNotifier;
+use tracing::info;
 
 use super::{
     append_client_eku, append_core_extensions, append_crl_dp, append_key_usage,
@@ -38,6 +41,8 @@ pub async fn sign_csr(
     JwtToken { claims }: JwtToken,
     ca: &CaProvider,
     ledger: &Ledger,
+    crl: &CrlState,
+    webhook: Option<&WebhookNotifier>,
 ) -> AppResult<SignedCertResponse> {
     let csr = X509Req::from_pem(dto.csr_pem.as_bytes())?;
     let csr_pubkey = csr
@@ -46,6 +51,26 @@ pub async fn sign_csr(
     let verified = csr.verify(&csr_pubkey)?;
     if !verified {
         return Err(AppError::CsrVerificationFailed);
+    }
+
+    let is_admin = claims.is_admin();
+
+    if is_admin {
+        info!(sub = %claims.sub, "admin user; skipping single-cert policy");
+    } else {
+        let old_agent_names = ledger
+            .check_and_revoke_active(claims.sub.clone(), dto.overwrite == Some(true))
+            .await?;
+        if let Some(names) = old_agent_names {
+            // Rebuild the CRL immediately
+            let (ca_cert, ca_key) = ca.get().await?;
+            let revs = ledger.revoked_as_revocations().await;
+            crl.request_rebuild(ca_cert, ca_key, revs).await?;
+            // Notify the webhook to evict the stale Wazuh agent entries (fire-and-forget)
+            if let Some(notifier) = webhook {
+                notifier.notify_evict(&claims.sub, names).await;
+            }
+        }
     }
 
     enforce_key_policy(&csr_pubkey)?;
@@ -66,6 +91,7 @@ pub async fn sign_csr(
             serial_hex,
             Some(claims.iss.clone()),
             realm,
+            dto.wazuh_agent_name.clone(),
         )
         .await?;
     let certificate_pem = String::from_utf8(cert.to_pem()?)?;
@@ -98,4 +124,30 @@ fn sign_csr_with_ca(
     append_san_cn_and_identity_uri(&mut builder, ca_cert, subject_cn, issuer, subject_cn)?;
     sign_builder(&mut builder, ca_key)?;
     Ok(builder.build())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extract_realm_from_issuer;
+
+    #[test]
+    fn extracts_realm_when_realms_segment_exists() {
+        let iss = "https://auth.example/realms/my-realm/protocol/openid-connect/token";
+        assert_eq!(extract_realm_from_issuer(iss).as_deref(), Some("my-realm"));
+    }
+
+    #[test]
+    fn extraction_is_case_insensitive_for_realms_segment() {
+        let iss = "https://auth.example/REALMS/CaseRealm";
+        assert_eq!(extract_realm_from_issuer(iss).as_deref(), Some("CaseRealm"));
+    }
+
+    #[test]
+    fn returns_none_for_invalid_or_non_realm_urls() {
+        assert_eq!(extract_realm_from_issuer("not-a-url"), None);
+        assert_eq!(
+            extract_realm_from_issuer("https://auth.example/protocol/openid-connect"),
+            None
+        );
+    }
 }

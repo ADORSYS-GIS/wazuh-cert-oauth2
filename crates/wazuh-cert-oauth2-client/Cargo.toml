@@ -16,6 +16,8 @@ mid.workspace = true
 rand.workspace = true
 diacritics.workspace = true
 openssl.workspace = true
+anyhow.workspace = true
+url.workspace = true
 
 [dependencies.wazuh-cert-oauth2-model]
 features = ["openssl"]

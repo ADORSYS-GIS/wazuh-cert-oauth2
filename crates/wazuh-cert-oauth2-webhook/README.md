@@ -12,6 +12,7 @@ Endpoints
 
 - `GET /health`: liveness probe.
 - `POST /api/webhook`: receives IdP event payloads; will ignore, revoke, or cancel queued revokes depending on event type/body.
+- `POST /api/internal/evict`: internal endpoint for the cert server to trigger agent eviction.
 
 Configuration
 
@@ -28,6 +29,17 @@ Configuration
 - `--oauth-scope` (`OAUTH_SCOPE`): Optional scope.
 - `--oauth-audience` (`OAUTH_AUDIENCE`): Optional audience.
 - `--keycloak-revoke-reason` (`KEYCLOAK_REVOKE_REASON`, default `Keycloak event`): Reason string attached to server revoke requests.
+- `--github-token` (`GITHUB_TOKEN`): GitHub PAT for issue creation (optional).
+- `--github-repo-owner` (`GITHUB_REPO_OWNER`): Owner of the repo for tickets (optional).
+- `--github-repo-name` (`GITHUB_REPO_NAME`): Name of the repo for tickets (optional).
+- `--keycloak-admin-base-url` (`KEYCLOAK_ADMIN_BASE_URL`): Base URL for Keycloak Admin API (optional).
+- `--wazuh-manager-url` (`WAZUH_MANAGER_URL`): Wazuh Manager API URL (optional, for eviction).
+- `--wazuh-api-user` (`WAZUH_API_USER`): Wazuh API user (optional).
+- `--wazuh-api-password` (`WAZUH_API_PASSWORD`): Wazuh API password (optional).
+- `--wazuh-api-token` (`WAZUH_API_TOKEN`): Wazuh API static token (optional).
+- `--wazuh-ar-command` (`WAZUH_AR_COMMAND`, default `delete-cert.sh`): Active-response command to run.
+- `--wazuh-eviction-grace-seconds` (`WAZUH_EVICTION_GRACE_SECONDS`, default 30): Grace period before agent deletion.
+- `--wazuh-ar-spool-ttl-seconds` (`WAZUH_AR_SPOOL_TTL_SECONDS`, default 86400): TTL for pending AR commands (e.g. 24h) before forcing agent deletion.
 - Inbound webhook auth (any set are accepted):
   - `--webhook-basic-user` (`WEBHOOK_BASIC_USER`)
   - `--webhook-basic-password` (`WEBHOOK_BASIC_PASSWORD`)
@@ -43,14 +55,12 @@ Logging
 - `tracing_subscriber` is initialized automatically; logs are emitted to stdout.
 - Control verbosity with `RUST_LOG` (e.g., `info,rocket=warn,reqwest=warn`). Defaults to `info` if unset.
 
-Quick start
+## Quick start
+
+For detailed setup and run instructions, see the [Getting Started Guide](../../docs/getting-started.md).
 
 ```bash
-export RUST_LOG=info,rocket=warn,reqwest=warn
-
-wazuh-cert-oauth2-webhook \
-  --server-base-url https://cert.wazuh.example \
-  --oauth-issuer https://issuer.example/realms/xyz \
-  --oauth-client-id my-client \
-  --oauth-client-secret ...
+# General usage
+wazuh-cert-oauth2-webhook --help
 ```
+

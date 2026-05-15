@@ -1,3 +1,4 @@
+pub mod agent_name;
 pub mod generate_csr;
 pub mod get_token;
 pub mod restart_agent;

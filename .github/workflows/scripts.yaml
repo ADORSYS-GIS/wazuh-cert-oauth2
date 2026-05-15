@@ -10,7 +10,7 @@ on:
 env:
   WAZUH_MANAGER: "127.0.0.1"
   WAZUH_CERT_OAUTH2_REPO_REF: "main"
-  WOPS_VERSION: "0.4.2-rc.1"
+  WOPS_VERSION: "0.4.3-rc.1"
 
 jobs:
   lint-scripts:

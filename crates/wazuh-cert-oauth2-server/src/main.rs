@@ -5,6 +5,9 @@ use std::time::Duration;
 
 use crate::handlers::crl::{get_crl, get_revocations};
 use crate::handlers::health::health;
+use crate::handlers::ledger::{
+    get_active_ledger, get_all_ledger, get_ledger_by_subject, get_revoked_ledger,
+};
 use crate::handlers::register_agent::register_agent;
 use crate::handlers::revoke::revoke;
 use crate::models::oidc_state::OidcState;
@@ -32,6 +35,10 @@ async fn main() -> AppResult<()> {
 
     info!("starting up");
 
+    let opt = match Opt::try_parse() {
+        Ok(opt) => opt,
+        Err(e) => e.exit(),
+    };
     let Opt {
         oauth_issuer,
         kc_audiences,
@@ -43,11 +50,20 @@ async fn main() -> AppResult<()> {
         crl_dist_url,
         crl_path,
         ledger_path,
-    } = Opt::try_parse()?;
+        ..
+    } = opt;
     let kc_audiences = kc_audiences.map(|a| a.split(",").map(|s| s.to_string()).collect());
 
     // Shared HTTP client service with connection pooling
     let http_client = HttpClient::new_with_defaults()?;
+
+    let webhook_notifier = opt.webhook_base_url.map(|base_url| {
+        crate::shared::webhook_notifier::WebhookNotifier::new(
+            http_client.clone(),
+            base_url,
+            opt.webhook_bearer_token,
+        )
+    });
 
     rocket::build()
         .manage(http_client.clone())
@@ -66,8 +82,20 @@ async fn main() -> AppResult<()> {
         ))
         .manage(Ledger::new(ledger_path.into()).await?)
         .manage(CrlState::new(crl_path.into()).await?)
+        .manage(webhook_notifier)
         .mount("/", routes![health, get_crl])
-        .mount("/api", routes![register_agent, revoke, get_revocations])
+        .mount(
+            "/api",
+            routes![
+                register_agent,
+                revoke,
+                get_revocations,
+                get_all_ledger,
+                get_active_ledger,
+                get_revoked_ledger,
+                get_ledger_by_subject
+            ],
+        )
         .launch()
         .await
         .map_err(|e| AppError::RocketError(Box::new(e)))?;

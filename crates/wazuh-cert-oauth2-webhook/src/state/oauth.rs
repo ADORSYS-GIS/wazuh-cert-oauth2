@@ -91,3 +91,55 @@ pub(crate) async fn cache_token(
     let mut guard = cache.write().await;
     *guard = Some(CachedToken { token, exp });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{CachedToken, build_oauth, cache_token};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+    use tokio::sync::RwLock;
+
+    #[test]
+    fn build_oauth_requires_issuer_client_id_and_secret() {
+        assert!(
+            build_oauth(
+                Some("https://issuer".to_string()),
+                Some("client".to_string()),
+                Some("secret".to_string()),
+                Some("scope".to_string()),
+                Some("aud".to_string())
+            )
+            .is_some()
+        );
+
+        assert!(
+            build_oauth(
+                Some("https://issuer".to_string()),
+                Some("client".to_string()),
+                None,
+                None,
+                None
+            )
+            .is_none()
+        );
+    }
+
+    #[tokio::test]
+    async fn cache_token_stores_value_and_expiration() {
+        let cache: Arc<RwLock<Option<CachedToken>>> = Arc::new(RwLock::new(None));
+        let before = Instant::now();
+
+        cache_token(
+            &cache,
+            "access-token".to_string(),
+            Some(Duration::from_secs(120)),
+        )
+        .await;
+
+        let guard = cache.read().await;
+        let cached = guard.as_ref().expect("token should be cached");
+        assert_eq!(cached.token, "access-token");
+        assert!(cached.exp > before);
+        assert!(cached.exp <= before + Duration::from_secs(120));
+    }
+}
