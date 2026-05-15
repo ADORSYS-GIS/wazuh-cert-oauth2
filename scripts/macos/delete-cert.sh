@@ -10,6 +10,7 @@ log() {
     local level="$1"
     local msg="$2"
     echo "$(date '+%Y/%m/%d %H:%M:%S') $TAG: [$level] $msg" >> "$AR_LOG"
+    return 0
 }
 
 log "INFO" "Active response triggered via API"
@@ -19,7 +20,7 @@ log "DEBUG" "Received input: ${INPUT_JSON:0:200}..."
 
 deleted=0
 for file in "$CERT" "$KEY"; do
-    if [ -f "$file" ]; then
+    if [[ -f "$file" ]]; then
         if rm -f "$file"; then
             log "INFO" "Successfully deleted $file"
             deleted=$((deleted + 1))

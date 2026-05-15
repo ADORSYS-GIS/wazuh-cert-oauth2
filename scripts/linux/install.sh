@@ -16,80 +16,9 @@ fi
 # Global variables with defaults
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
 WOPS_VERSION=${WOPS_VERSION:-"0.4.3-rc.3"}
-USER="root"
-GROUP="wazuh"
-
-# Determine the OS and architecture
-case "$(uname)" in
-    "Linux")
-        OS="unknown-linux-musl"
-        BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}
-        OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf"
-        AR_BIN_DIR="/var/ossec/active-response/bin"
-        AR_SCRIPT_OS="linux"
-        ;;
-    "Darwin")
-        OS="apple-darwin"
-        BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}
-        OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf"
-        AR_BIN_DIR="/Library/Ossec/active-response/bin"
-        AR_SCRIPT_OS="macos"
-        ;;
-    *) error_exit "Unsupported operating system: $(uname)" ;;
-esac
-
-ARCH=$(uname -m)
-case "$ARCH" in
-    "x86_64") ARCH="x86_64" ;;
-    "arm64"|"aarch64") ARCH="aarch64" ;;
-    *) error_exit "Unsupported architecture: $ARCH" ;;
-esac
-
-# Define text formatting
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
-BOLD='\033[1m'
-NORMAL='\033[0m'
-
-# Function for logging with timestamp
-log() {
-    local LEVEL="$1"
-    shift
-    local MESSAGE="$*"
-    local TIMESTAMP
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    echo -e "${TIMESTAMP} ${LEVEL} ${MESSAGE}"
-}
-
-# Logging helpers
-info_message() {
-    log "${BLUE}${BOLD}[INFO]${NORMAL}" "$*"
-}
-
-warn_message() {
-    log "${YELLOW}${BOLD}[WARNING]${NORMAL}" "$*"
-}
-
-error_message() {
-    log "${RED}${BOLD}[ERROR]${NORMAL}" "$*"
-}
-
-success_message() {
-    log "${GREEN}${BOLD}[SUCCESS]${NORMAL}" "$*"
-}
-
-print_step() {
-    log "${BLUE}${BOLD}[STEP]${NORMAL}" "$1: $2"
-}
-
-# Exit script with an error message
-error_exit() {
-    error_message "$1"
-WOPS_VERSION=${WOPS_VERSION:-"0.4.2"}
 WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERSION}"}
 WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
+WAZUH_CERT_OAUTH2_RELEASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v${WOPS_VERSION}"
 
 # Linux-specific configuration
 OS="unknown-linux-musl"
@@ -114,7 +43,7 @@ calculate_sha256_bootstrap() {
 }
 
 # Download checksums and verify utils.sh integrity BEFORE sourcing it
-if ! curl "${WAZUH_CERT_OAUTH2_REPO_URL}/checksums.sha256" -o "$UTILS_TMP/checksums.sha256"; then
+if ! curl -fSsL "${WAZUH_CERT_OAUTH2_RELEASE_URL}/checksums.sha256" -o "$UTILS_TMP/checksums.sha256"; then
     echo "Failed to download checksums.sha256"
     exit 1
 fi
@@ -220,9 +149,8 @@ validate_installation() {
 # Construct binary name and URL for download
 ARCH=$(detect_arch)
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
-BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
-URL="$BASE_URL/$BIN_NAME"
-BIN_CHECKSUM_URL="$BASE_URL/checksums.sha256"
+URL="${WAZUH_CERT_OAUTH2_RELEASE_URL}/$BIN_NAME"
+BIN_CHECKSUM_URL="${WAZUH_CERT_OAUTH2_RELEASE_URL}/checksums.sha256"
 
 # Create a temporary directory and ensure it is cleaned up
 TEMP_DIR=$(mktemp -d) || error_exit "Failed to create temporary directory"
@@ -240,7 +168,7 @@ maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executabl
 
 # Step 3: Install active-response script
 print_step 3 "Installing active-response script to $AR_BIN_DIR..."
-AR_SCRIPT_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/refs/heads/feat/improvements/scripts/${AR_SCRIPT_OS}/delete-cert.sh"
+AR_SCRIPT_URL="${WAZUH_CERT_OAUTH2_REPO_URL}/scripts/linux/delete-cert.sh"
 maybe_sudo mkdir -p "$AR_BIN_DIR" || error_exit "Failed to create directory $AR_BIN_DIR"
 curl -SL --progress-bar -o "$TEMP_DIR/delete-cert.sh" "$AR_SCRIPT_URL" || error_exit "Failed to download active-response script"
 maybe_sudo mv "$TEMP_DIR/delete-cert.sh" "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to install active-response script"

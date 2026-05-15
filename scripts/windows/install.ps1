@@ -3,28 +3,29 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # Default log level and application details
-$APP_NAME = if ($env:APP_NAME -ne $null) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
+$APP_NAME = if ($null -ne $env:APP_NAME) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
 $DEFAULT_WOPS_VERSION = "0.4.3-rc.3"
-$WOPS_VERSION = if ($env:WOPS_VERSION -ne $null) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
-$OSSEC_CONF_PATH = if ($env:OSSEC_CONF_PATH -ne $null) { $env:OSSEC_CONF_PATH } else { "C:\Program Files (x86)\ossec-agent\ossec.conf" }
+$WOPS_VERSION = if ($null -ne $env:WOPS_VERSION) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
+$OSSEC_CONF_PATH = if ($null -ne $env:OSSEC_CONF_PATH) { $env:OSSEC_CONF_PATH } else { "C:\Program Files (x86)\ossec-agent\ossec.conf" }
 $USER = "root"
 $GROUP = "wazuh"
 
 # Variables
-if (-not $env:WAZUH_CERT_OAUTH2_REPO_REF) { 
+if (-not $env:WAZUH_CERT_OAUTH2_REPO_REF) {
     $env:WAZUH_CERT_OAUTH2_REPO_REF = "refs/tags/v$WOPS_VERSION"
 }
 $WAZUH_CERT_OAUTH2_REPO_REF = $env:WAZUH_CERT_OAUTH2_REPO_REF
 $WAZUH_CERT_OAUTH2_REPO_URL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF"
+$WAZUH_CERT_OAUTH2_RELEASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
 
 # Create a secure temporary directory for utilities
 $UtilsTmp = Join-Path $env:TEMP "wazuh-cert-oauth2-utils-$(Get-Random)"
 New-Item -ItemType Directory -Path $UtilsTmp -Force | Out-Null
 
 try {
-    $ChecksumsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
+    $ChecksumsURL = "$WAZUH_CERT_OAUTH2_RELEASE_URL/checksums.sha256"
     $UtilsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/shared/utils.ps1"
-    
+
     $global:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
     $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
 
@@ -57,7 +58,7 @@ function ConfigureEnrollment {
     $keyPath = "etc\sslagent.key"    # Updated path to etc folder
     $agentName = "AGENT_NAME"
 
-    if (-Not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
+    if (-not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet)) {
 
         # Read the OSSEC configuration file
         $configContent = Get-Content -Path $OSSEC_CONF_PATH -Raw
@@ -180,12 +181,12 @@ if ($ARCH -ne "x86_64" -and $ARCH -ne "x86") {
 
 # Construct binary name and URL for download
 $BIN_NAME = "$APP_NAME-$ARCH-pc-windows-msvc.exe"
-$BASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
-$URL = "$BASE_URL/$BIN_NAME"
-$BIN_CHECKSUM_URL = "$BASE_URL/checksums.sha256"
+$URL = "$WAZUH_CERT_OAUTH2_RELEASE_URL/$BIN_NAME"
+$BIN_CHECKSUM_URL = "$WAZUH_CERT_OAUTH2_RELEASE_URL/checksums.sha256"
 
 # Fallback URL if the constructed URL fails
-$FALLBACK_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$DEFAULT_WOPS_VERSION/wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
+$FALLBACK_RELEASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$DEFAULT_WOPS_VERSION"
+$FALLBACK_URL = "$FALLBACK_RELEASE_URL/wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
 
 # Step 1: Download the binary file with checksum verification
 $TEMP_FILE = New-TemporaryFile
@@ -216,7 +217,7 @@ icacls "$BIN_DIR\$APP_NAME.exe" /grant "*S-1-5-32-545:(RX)"
 # Step 3: Install active-response script
 $AR_BIN_DIR = "$BIN_DIR\active-response\bin"
 PrintStep 3 "Installing active-response script to $AR_BIN_DIR..."
-$AR_SCRIPT_URL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/refs/heads/feat/improvements/scripts/windows/delete-cert.ps1"
+$AR_SCRIPT_URL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/windows/delete-cert.ps1"
 New-Item -ItemType Directory -Path $AR_BIN_DIR -Force
 $AR_TEMP = New-TemporaryFile
 Invoke-WebRequest -Uri $AR_SCRIPT_URL -OutFile $AR_TEMP -UseBasicParsing -ErrorAction Stop

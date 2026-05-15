@@ -9,9 +9,10 @@ fi
 
 # Global variables with defaults
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.4.2"}
+WOPS_VERSION=${WOPS_VERSION:-"0.4.3-rc.3"}
 WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERSION}"}
 WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
+WAZUH_CERT_OAUTH2_RELEASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v${WOPS_VERSION}"
 
 # Create a secure temporary directory for utilities
 UTILS_TMP=$(mktemp -d)
@@ -31,7 +32,7 @@ calculate_sha256_bootstrap() {
 }
 
 # Download checksums and verify utils.sh integrity BEFORE sourcing it
-if ! curl "${WAZUH_CERT_OAUTH2_REPO_URL}/checksums.sha256" -o "$UTILS_TMP/checksums.sha256"; then
+if ! curl -fSsL "${WAZUH_CERT_OAUTH2_RELEASE_URL}/checksums.sha256" -o "$UTILS_TMP/checksums.sha256"; then
     echo "Failed to download checksums.sha256"
     exit 1
 fi

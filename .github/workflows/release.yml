@@ -199,6 +199,7 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Commit and push changes
+        if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
         run: |
           if [[ -n $(git status --porcelain) ]]; then
             git add CHANGELOG.md checksums.sha256
@@ -227,7 +228,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: "0"
-          ref: main
+          ref: ${{ github.ref }}
           persist-credentials: 'false'
 
       - name: Get the version
