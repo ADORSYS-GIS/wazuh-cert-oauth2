@@ -14,6 +14,7 @@ WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERS
 WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
 WAZUH_CERT_OAUTH2_RELEASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v${WOPS_VERSION}"
 AR_BIN_DIR=${AR_BIN_DIR:-"/Library/Ossec/active-response/bin"}
+BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}
 
 # Create a secure temporary directory for utilities
 UTILS_TMP=$(mktemp -d)
