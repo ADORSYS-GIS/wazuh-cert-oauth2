@@ -96,6 +96,25 @@ webhook:
                 secretKeyRef:
                   name: webhook-basic-credentials
                   key: password
+            GITHUB_TOKEN: ""
+            GITHUB_REPO_OWNER: ""
+            GITHUB_REPO_NAME: ""
+            KEYCLOAK_ADMIN_BASE_URL: ""
+            WAZUH_MANAGER_URL: ""
+            WAZUH_API_USER: ""
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: wazuh-api-credentials
+            #       key: user
+            WAZUH_API_PASSWORD: ""
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: wazuh-api-credentials
+            #       key: password
+            WAZUH_API_TOKEN: ""
+            WAZUH_AR_COMMAND: "delete-cert.sh"
+            WAZUH_EVICTION_GRACE_SECONDS: 30
+            WAZUH_AR_SPOOL_TTL_SECONDS: 86400
 
           probes:
             startup:

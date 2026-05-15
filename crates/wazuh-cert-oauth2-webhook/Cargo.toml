@@ -18,6 +18,7 @@ mimalloc.workspace = true
 rand.workspace = true
 base64.workspace = true
 unwrap-infallible.workspace = true
+reqwest.workspace = true
 
 [dependencies.wazuh-cert-oauth2-model]
 workspace = true

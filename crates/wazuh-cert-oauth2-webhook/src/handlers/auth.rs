@@ -86,3 +86,23 @@ impl<'r> FromRequest<'r> for WebhookAuth {
         Outcome::Error((Status::Unauthorized, ()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::constant_time_eq;
+
+    #[test]
+    fn returns_true_for_identical_values() {
+        assert!(constant_time_eq("same-token", "same-token"));
+    }
+
+    #[test]
+    fn returns_false_for_different_values() {
+        assert!(!constant_time_eq("same-token", "different-token"));
+    }
+
+    #[test]
+    fn returns_false_for_different_lengths() {
+        assert!(!constant_time_eq("abc", "abcd"));
+    }
+}

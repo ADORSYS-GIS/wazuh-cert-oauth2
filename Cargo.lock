@@ -338,7 +338,7 @@ checksum = "6f8d983286843e49675a4b7a2d174efe136dc93a18d69130dd18198a6c167601"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.3.0",
- "rand_core 0.10.0",
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -959,7 +959,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "r-efi",
- "rand_core 0.10.0",
+ "rand_core 0.10.1",
  "wasip2",
  "wasip3",
 ]
@@ -1066,9 +1066,9 @@ dependencies = [
 
 [[package]]
 name = "hmac-sha256"
-version = "1.1.12"
+version = "1.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad6880c8d4a9ebf39c6e8b77007ce223f646a4d21ce29d99f70cb16420545425"
+checksum = "ec9d92d097f4749b64e8cc33d924d9f40a2d4eb91402b458014b781f5733d60f"
 
 [[package]]
 name = "http"
@@ -1504,12 +1504,11 @@ checksum = "f9fbbcab51052fe104eb5e5d351cf728d30a5be1fe14d9be8a3b097481fb97de"
 
 [[package]]
 name = "libmimalloc-sys"
-version = "0.1.44"
+version = "0.1.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "667f4fec20f29dfc6bc7357c582d91796c169ad7e2fce709468aefeb2c099870"
+checksum = "2d1eacfa31c33ec25e873c136ba5669f00f9866d0688bea7be4d3f7e43067df6"
 dependencies = [
  "cc",
- "libc",
 ]
 
 [[package]]
@@ -1592,9 +1591,9 @@ dependencies = [
 
 [[package]]
 name = "mimalloc"
-version = "0.1.48"
+version = "0.1.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1ee66a4b64c74f4ef288bcbb9192ad9c3feaad75193129ac8509af543894fd8"
+checksum = "b3627c4272df786b9260cabaa46aec1d59c93ede723d4c3ef646c503816b0640"
 dependencies = [
  "libmimalloc-sys",
 ]
@@ -1819,9 +1818,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.112"
+version = "0.9.115"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57d55af3b3e226502be1526dfdba67ab0e9c96fc293004e79576b2b9edb0dbdb"
+checksum = "158fe5b292746440aa6e7a7e690e55aeb72d41505e2804c23c6973ad0e9c9781"
 dependencies = [
  "cc",
  "libc",
@@ -2142,7 +2141,7 @@ checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
 dependencies = [
  "chacha20",
  "getrandom 0.4.1",
- "rand_core 0.10.0",
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -2185,9 +2184,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c8d0fd677905edcbeedbf2edb6494d676f0e98d54d5cf9bda0b061cb8fb8aba"
+checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
 name = "redox_syscall"
@@ -3454,8 +3453,9 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-client"
-version = "0.4.2"
+version = "0.4.3-rc.3"
 dependencies = [
+ "anyhow",
  "clap",
  "diacritics",
  "env_logger",
@@ -3465,12 +3465,13 @@ dependencies = [
  "openssl",
  "rand 0.10.1",
  "tokio",
+ "url",
  "wazuh-cert-oauth2-model",
 ]
 
 [[package]]
 name = "wazuh-cert-oauth2-healthcheck"
-version = "0.4.2"
+version = "0.4.3-rc.3"
 dependencies = [
  "clap",
  "env_logger",
@@ -3481,7 +3482,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-model"
-version = "0.4.2"
+version = "0.4.3-rc.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -3495,6 +3496,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.18",
+ "tokio",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -3502,7 +3504,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-server"
-version = "0.4.2"
+version = "0.4.3-rc.3"
 dependencies = [
  "clap",
  "foreign-types",
@@ -3521,7 +3523,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-webhook"
-version = "0.4.2"
+version = "0.4.3-rc.3"
 dependencies = [
  "base64 0.22.1",
  "clap",

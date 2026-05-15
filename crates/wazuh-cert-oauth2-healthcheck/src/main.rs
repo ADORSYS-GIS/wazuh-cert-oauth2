@@ -27,7 +27,10 @@ async fn main() {
     // Initialize minimal logging if present
     let _ = env_logger::try_init();
 
-    let opt = Opt::parse();
+    let opt = match Opt::try_parse() {
+        Ok(opt) => opt,
+        Err(e) => e.exit(),
+    };
 
     let path = if opt.path.starts_with('/') {
         opt.path

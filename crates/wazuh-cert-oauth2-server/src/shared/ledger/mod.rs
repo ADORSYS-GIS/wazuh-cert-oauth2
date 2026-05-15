@@ -7,11 +7,10 @@ mod commands;
 mod csv;
 mod csv_utils;
 mod loader;
-mod types;
 mod worker;
 
-pub use types::LedgerEntry;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
+pub use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 
 #[derive(Clone)]
 pub struct Ledger {
@@ -38,6 +37,7 @@ impl Ledger {
         serial_hex: String,
         issuer: Option<String>,
         realm: Option<String>,
+        wazuh_agent_name: Option<String>,
     ) -> AppResult<()> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -51,6 +51,7 @@ impl Ledger {
                 issued_at_unix: now,
                 issuer,
                 realm,
+                wazuh_agent_name,
                 respond_to: tx,
             })
             .await
@@ -93,6 +94,57 @@ impl Ledger {
     }
 
     #[tracing::instrument(skip(self))]
+    pub async fn check_and_revoke_active(
+        &self,
+        subject: String,
+        overwrite: bool,
+    ) -> AppResult<Option<Vec<String>>> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+        let (tx, rx) = oneshot::channel();
+        self.tx
+            .send(worker::Command::CheckAndRevokeActive {
+                subject,
+                overwrite,
+                revoked_at_unix: now,
+                respond_to: tx,
+            })
+            .await
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer dropped: {}", e)))?;
+        rx.await
+            .map_err(|e| AppError::UpstreamError(format!("ledger writer closed: {}", e)))?
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn find_active(&self) -> Vec<LedgerEntry> {
+        self.inner
+            .read()
+            .await
+            .iter()
+            .filter(|e| !e.revoked)
+            .cloned()
+            .collect()
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn find_revoked(&self) -> Vec<LedgerEntry> {
+        self.inner
+            .read()
+            .await
+            .iter()
+            .filter(|e| e.revoked)
+            .cloned()
+            .collect()
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn find_all(&self) -> Vec<LedgerEntry> {
+        self.inner.read().await.clone()
+    }
+
+    #[tracing::instrument(skip(self))]
     pub async fn revoked_as_revocations(&self) -> Vec<crate::shared::crl::RevocationEntry> {
         self.inner
             .read()
@@ -105,5 +157,166 @@ impl Ledger {
                 revoked_at_unix: e.revoked_at_unix.unwrap_or_default(),
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Ledger;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use tokio::fs;
+
+    fn unique_ledger_path() -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time should be monotonic")
+            .as_nanos();
+        std::env::temp_dir()
+            .join(format!("wazuh-ledger-test-{}", nanos))
+            .join("ledger.csv")
+    }
+
+    #[tokio::test]
+    async fn ledger_records_and_revokes_entries() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
+
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
+        ledger
+            .record_issued(
+                "subject-a".to_string(),
+                "ABCD01".to_string(),
+                Some("https://issuer/realms/dev".to_string()),
+                Some("dev".to_string()),
+                None,
+            )
+            .await
+            .expect("record_issued should succeed");
+
+        let by_subject = ledger.find_by_subject("subject-a").await;
+        assert_eq!(by_subject.len(), 1);
+        assert_eq!(by_subject[0].serial_hex, "ABCD01");
+        assert!(!by_subject[0].revoked);
+
+        ledger
+            .mark_revoked("ABCD01".to_string(), Some("manual".to_string()))
+            .await
+            .expect("mark_revoked should succeed");
+
+        let revocations = ledger.revoked_as_revocations().await;
+        assert_eq!(revocations.len(), 1);
+        assert_eq!(revocations[0].serial_hex, "ABCD01");
+        assert_eq!(revocations[0].reason.as_deref(), Some("manual"));
+        assert!(revocations[0].revoked_at_unix > 0);
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn ledger_revoke_unknown_serial_creates_revoked_stub() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
+
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
+        ledger
+            .mark_revoked("UNKNOWN01".to_string(), Some("preemptive".to_string()))
+            .await
+            .expect("mark_revoked should succeed");
+
+        let revocations = ledger.revoked_as_revocations().await;
+        assert_eq!(revocations.len(), 1);
+        assert_eq!(revocations[0].serial_hex, "UNKNOWN01");
+        assert_eq!(revocations[0].reason.as_deref(), Some("preemptive"));
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn check_and_revoke_active_returns_true_when_cert_was_revoked() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
+
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
+        ledger
+            .record_issued(
+                "user-a".to_string(),
+                "CERT01".to_string(),
+                Some("https://issuer/realms/dev".to_string()),
+                Some("dev".to_string()),
+                None,
+            )
+            .await
+            .expect("record_issued should succeed");
+
+        // overwrite=true — Some(names) means a cert was revoked; names empty because no agent name stored
+        let revoked_names = ledger
+            .check_and_revoke_active("user-a".to_string(), true)
+            .await
+            .expect("check_and_revoke_active should succeed");
+        assert!(
+            revoked_names.is_some(),
+            "expected Some when an active cert was revoked"
+        );
+        assert!(
+            revoked_names.unwrap().is_empty(),
+            "no agent name was stored, so names should be empty"
+        );
+
+        let active = ledger.find_active().await;
+        assert!(
+            active.is_empty(),
+            "no active certs should remain after auto-rotate"
+        );
+
+        let revocations = ledger.revoked_as_revocations().await;
+        assert_eq!(revocations.len(), 1);
+        assert_eq!(revocations[0].serial_hex, "CERT01");
+        assert_eq!(
+            revocations[0].reason.as_deref(),
+            Some("auto-rotate (one cert per user)")
+        );
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn check_and_revoke_active_returns_false_when_no_active_cert() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should exist");
+
+        let ledger = Ledger::new(path.clone())
+            .await
+            .expect("ledger should initialize");
+
+        // No certs at all — should return None, not error
+        let revoked_names = ledger
+            .check_and_revoke_active("user-b".to_string(), true)
+            .await
+            .expect("check_and_revoke_active should succeed even with no certs");
+        assert!(
+            revoked_names.is_none(),
+            "expected None when no active cert exists"
+        );
+
+        let _ = fs::remove_dir_all(parent).await;
     }
 }

@@ -4,6 +4,7 @@ use std::path::PathBuf;
 #[derive(Parser, Debug, Clone)]
 #[command(
     name = "wazuh-cert-oauth2-webhook",
+    version,
     about = "Webhook proxy that forwards revocations with retry and failsafe"
 )]
 pub struct Opt {
@@ -60,4 +61,32 @@ pub struct Opt {
     pub webhook_api_key: Option<String>,
     #[arg(long, env = "WEBHOOK_BEARER_TOKEN")]
     pub webhook_bearer_token: Option<String>,
+
+    // GitHub Ticket Creation (for REGISTER/USER_CREATE events)
+    #[arg(long, env = "GITHUB_TOKEN")]
+    pub github_token: Option<String>,
+
+    #[arg(long, env = "GITHUB_REPO_OWNER")]
+    pub github_repo_owner: Option<String>,
+
+    #[arg(long, env = "GITHUB_REPO_NAME")]
+    pub github_repo_name: Option<String>,
+    #[arg(long, env = "KEYCLOAK_ADMIN_BASE_URL")]
+    pub keycloak_admin_base_url: Option<String>,
+
+    // Wazuh Manager API — eviction pipeline
+    #[arg(long, env = "WAZUH_MANAGER_URL")]
+    pub wazuh_manager_url: Option<String>,
+    #[arg(long, env = "WAZUH_API_USER")]
+    pub wazuh_api_user: Option<String>,
+    #[arg(long, env = "WAZUH_API_PASSWORD")]
+    pub wazuh_api_password: Option<String>,
+    #[arg(long, env = "WAZUH_API_TOKEN")]
+    pub wazuh_api_token: Option<String>,
+    #[arg(long, env = "WAZUH_AR_COMMAND", default_value = "delete-cert.sh")]
+    pub wazuh_ar_command: String,
+    #[arg(long, env = "WAZUH_EVICTION_GRACE_SECONDS", default_value_t = 30)]
+    pub wazuh_eviction_grace_seconds: u64,
+    #[arg(long, env = "WAZUH_AR_SPOOL_TTL_SECONDS", default_value_t = 86400)]
+    pub wazuh_ar_spool_ttl_seconds: u64,
 }

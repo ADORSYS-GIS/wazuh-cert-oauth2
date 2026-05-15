@@ -10,7 +10,7 @@ services:
       RUST_LOG: "info"
       ROCKET_ADDRESS: "0.0.0.0"
 
-      OAUTH_ISSUER: "http://host.docker.internal:9100/realms/dev"
+      OAUTH_ISSUER: "http://keycloak:9100/realms/dev"
 
       ROOT_CA_PATH: "/data/root-ca.pem"
       ROOT_CA_KEY_PATH: "/data/root-ca-key.pem"
@@ -18,8 +18,14 @@ services:
 
       CRL_PATH: "/data/issuing.crl"
       CRL_DIST_URL: "http://localhost:8000/crl/issuing.crl"
+      WEBHOOK_BASE_URL: "http://webhook:8000"
+      WEBHOOK_BEARER_TOKEN: ""
+    user: "${UID:-}:${GID:-}"
     volumes:
       - oauth2:/data
+      - ./root-ca.pem:/data/root-ca.pem:ro
+      - ./root-ca-key.pem:/data/root-ca-key.pem:ro
+
     healthcheck:
       test: ["CMD", "/app/healthcheck"]
       interval: 30s
@@ -38,15 +44,29 @@ services:
       RUST_LOG: "info"
       ROCKET_ADDRESS: "0.0.0.0"
 
-      OAUTH_ISSUER: "http://host.docker.internal:9100/realms/dev"
+      OAUTH_ISSUER: "http://keycloak:9100/realms/dev"
       OAUTH_CLIENT_ID: "test-client-secret"
       OAUTH_CLIENT_SECRET: "some-secret"
 
-      SERVER_BASE_URL: "http://localhost:8000"
+      SERVER_BASE_URL: "http://oauth2:8000"
       SPOOL_DIR: "/data/spool"
 
       WEBHOOK_BASIC_USER: "user"
       WEBHOOK_BASIC_PASSWORD: "password"
+      WEBHOOK_BEARER_TOKEN: ""
+
+      GITHUB_TOKEN: ""
+      GITHUB_REPO_OWNER: ""
+      GITHUB_REPO_NAME: ""
+      KEYCLOAK_ADMIN_BASE_URL: "http://keycloak:9100/admin/realms/dev"
+      WAZUH_MANAGER_URL: ""
+      WAZUH_API_USER: ""
+      WAZUH_API_PASSWORD: ""
+      WAZUH_API_TOKEN: ""
+      WAZUH_AR_COMMAND: "delete-cert.sh"
+      WAZUH_EVICTION_GRACE_SECONDS: 30
+      WAZUH_AR_SPOOL_TTL_SECONDS: 86400
+    user: "${UID:-}:${GID:-}"
     volumes:
       - webhook:/data/spool
     healthcheck:
@@ -66,7 +86,7 @@ services:
       KC_LOG_CONSOLE_COLOR: "true"
       KC_HTTP_PORT: 9100
 
-      WEBHOOK_HTTP_BASE_PATH: "http://host.docker.internal:8100/api/webhook"
+      WEBHOOK_HTTP_BASE_PATH: "http://webhook:8000/api/webhook"
       WEBHOOK_HTTP_AUTH_USERNAME: "user"
       WEBHOOK_HTTP_AUTH_PASSWORD: "password"
     entrypoint: /bin/sh

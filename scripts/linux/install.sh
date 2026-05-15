@@ -7,133 +7,68 @@ else
     set -eu
 fi
 
-# Default log level and application details
-LOG_LEVEL=${LOG_LEVEL:-INFO}
-APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.4.2"}
-USER="root"
-GROUP="wazuh"
-
-# Determine the OS and architecture
-case "$(uname)" in
-    "Linux") OS="unknown-linux-musl"; BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}; OSSEC_CONF_PATH="/var/ossec/etc/ossec.conf" ;;
-    "Darwin") OS="apple-darwin"; BIN_DIR=${BIN_DIR:-"/Library/Ossec/bin"}; OSSEC_CONF_PATH="/Library/Ossec/etc/ossec.conf" ;;
-    *) error_exit "Unsupported operating system: $(uname)" ;;
-esac
-
-ARCH=$(uname -m)
-case "$ARCH" in
-    "x86_64") ARCH="x86_64" ;;
-    "arm64"|"aarch64") ARCH="aarch64" ;;
-    *) error_exit "Unsupported architecture: $ARCH" ;;
-esac
-
-# Define text formatting
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
-BOLD='\033[1m'
-NORMAL='\033[0m'
-
-# Function for logging with timestamp
-log() {
-    local LEVEL="$1"
-    shift
-    local MESSAGE="$*"
-    local TIMESTAMP
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    echo -e "${TIMESTAMP} ${LEVEL} ${MESSAGE}"
-}
-
-# Logging helpers
-info_message() {
-    log "${BLUE}${BOLD}[INFO]${NORMAL}" "$*"
-}
-
-warn_message() {
-    log "${YELLOW}${BOLD}[WARNING]${NORMAL}" "$*"
-}
-
-error_message() {
-    log "${RED}${BOLD}[ERROR]${NORMAL}" "$*"
-}
-
-success_message() {
-    log "${GREEN}${BOLD}[SUCCESS]${NORMAL}" "$*"
-}
-
-print_step() {
-    log "${BLUE}${BOLD}[STEP]${NORMAL}" "$1: $2"
-}
-
-# Exit script with an error message
-error_exit() {
-    error_message "$1"
+# OS guard early in the script
+if [ "$(uname -s)" != "Linux" ]; then
+    printf "%s\n" "[ERROR] This installation script is intended for Linux systems. Please use the appropriate script for your operating system." >&2
     exit 1
-}
+fi
 
-# Check if a command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
+# Global variables with defaults
+APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
+WOPS_VERSION=${WOPS_VERSION:-"0.4.3-rc.3"}
+WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERSION}"}
+WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
+WAZUH_CERT_OAUTH2_RELEASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v${WOPS_VERSION}"
 
-# Ensure root privileges, either directly or through sudo
-maybe_sudo() {
-    if [ "$(id -u)" -ne 0 ]; then
-        if command_exists sudo; then
-            sudo "$@"
-        else
-            error_message "This script requires root privileges. Please run with sudo or as root."
-            exit 1
-        fi
+# Linux-specific configuration
+OS="unknown-linux-musl"
+BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}
+AR_BIN_DIR=${AR_BIN_DIR:-"/var/ossec/active-response/bin"}
+OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
+
+# Create a secure temporary directory for utilities
+UTILS_TMP=$(mktemp -d)
+trap 'rm -rf "$UTILS_TMP"' EXIT
+if ! curl "${WAZUH_CERT_OAUTH2_REPO_URL}/scripts/shared/utils.sh" -o "$UTILS_TMP/utils.sh"; then
+    echo "Failed to download utils.sh"
+    exit 1
+fi
+
+# Function to calculate SHA256 (cross-platform bootstrap)
+calculate_sha256_bootstrap() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
     else
-        "$@"
+        shasum -a 256 "$1" | awk '{print $1}'
     fi
 }
 
-sed_alternative() {
-    if command_exists gsed; then
-        maybe_sudo gsed "$@"
-    else
-        maybe_sudo sed "$@"
-    fi
-}
+# Download checksums and verify utils.sh integrity BEFORE sourcing it
+if ! curl -fSsL "${WAZUH_CERT_OAUTH2_RELEASE_URL}/checksums.sha256" -o "$UTILS_TMP/checksums.sha256"; then
+    echo "Failed to download checksums.sha256"
+    exit 1
+fi
 
-# Create user and group if they do not exist
-ensure_user_group() {
-    info_message "Ensuring that the $USER:$GROUP user and group exist..."
 
-    if ! id -u "$USER" >/dev/null 2>&1; then
-        info_message "Creating user $USER..."
-        if [ "$(uname -o)" = "GNU/Linux" ] && command -v groupadd >/dev/null 2>&1; then
-            maybe_sudo useradd -m "$USER"
-        elif [ "$(which apk)" = "/sbin/apk" ]; then
-            maybe_sudo adduser -D "$USER"
-        else
-            error_message "Unsupported OS for creating user."
-            exit 1
-        fi
-    fi
+EXPECTED_HASH=$(grep "scripts/shared/utils.sh" "$UTILS_TMP/checksums.sha256" | awk '{print $1}')
+ACTUAL_HASH=$(calculate_sha256_bootstrap "$UTILS_TMP/utils.sh")
 
-    if ! getent group "$GROUP" >/dev/null 2>&1; then
-        info_message "Creating group $GROUP..."
-        if [ "$(uname -o)" = "GNU/Linux" ] && command -v groupadd >/dev/null 2>&1; then
-            maybe_sudo groupadd "$GROUP"
-        elif [ "$(which apk)" = "/sbin/apk" ]; then
-            maybe_sudo addgroup "$GROUP"
-        else
-            error_message "Unsupported OS for creating group."
-            exit 1
-        fi
-    fi
-}
+if [ -z "$EXPECTED_HASH" ] || [ "$EXPECTED_HASH" != "$ACTUAL_HASH" ]; then
+    echo "Error: Checksum verification failed for utils.sh" >&2
+    echo "Expected hash: $EXPECTED_HASH" >&2
+    echo "Actual hash: $ACTUAL_HASH" >&2
+    exit 1
+fi
+
+# Source utils.sh only after verification
+. "$UTILS_TMP/utils.sh"
+
 
 check_enrollment() {
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
         ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n </enrollment>\n"
         # Add the file_limit block after the <syscheck> line
-        sed_alternative -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
+        sed_inplace -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during the addition of the enrollment block."
             exit 1
         }
@@ -144,7 +79,7 @@ check_enrollment() {
 
     # Check and insert agent certificate path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH"; then
-        sed_alternative -i '/<agent_name=*/ a\
+        sed_inplace -i '/<agent_name=*/ a\
         <agent_certificate_path>etc/sslagent.cert</agent_certificate_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent certificate configuration."
             exit 1
@@ -153,7 +88,7 @@ check_enrollment() {
 
     # Check and insert agent key path if it doesn't exist
     if ! maybe_sudo grep -q '<agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH"; then
-        sed_alternative -i '/<agent_name=*/ a\
+        sed_inplace -i '/<agent_name=*/ a\
         <agent_key_path>etc/sslagent.key</agent_key_path>' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent key configuration."
             exit 1
@@ -162,7 +97,7 @@ check_enrollment() {
 
     # Check and delete auth pass path if it exists
     if maybe_sudo grep -q '<authorization_pass_path>etc/authd.pass</authorization_pass_path>' "$OSSEC_CONF_PATH"; then
-        sed_alternative -i '/<authorization_pass_path>.*<\/authorization_pass_path>/d' "$OSSEC_CONF_PATH" || {
+        sed_inplace -i '/<authorization_pass_path>.*<\/authorization_pass_path>/d' "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during Wazuh agent auth pass removal."
             exit 1
         }
@@ -213,17 +148,18 @@ validate_installation() {
 }
 
 # Construct binary name and URL for download
+ARCH=$(detect_arch)
 BIN_NAME="$APP_NAME-${ARCH}-${OS}"
-BASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
-URL="$BASE_URL/$BIN_NAME"
+URL="${WAZUH_CERT_OAUTH2_RELEASE_URL}/$BIN_NAME"
+BIN_CHECKSUM_URL="${WAZUH_CERT_OAUTH2_RELEASE_URL}/checksums.sha256"
 
 # Create a temporary directory and ensure it is cleaned up
 TEMP_DIR=$(mktemp -d) || error_exit "Failed to create temporary directory"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-# Step 1: Download the binary file
+# Step 1: Download the binary file with checksum verification
 print_step 1 "Downloading $BIN_NAME from $URL..."
-curl -SL --progress-bar -o "$TEMP_DIR/$BIN_NAME" "$URL" || error_exit "Failed to download $BIN_NAME"
+download_and_verify_file "$URL" "$TEMP_DIR/$BIN_NAME" "$BIN_NAME" "$BIN_NAME" "$BIN_CHECKSUM_URL" "$UTILS_TMP/checksums.sha256"
 
 # Step 2: Install the binary
 print_step 2 "Installing binary to $BIN_DIR..."
@@ -231,8 +167,16 @@ maybe_sudo mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DI
 maybe_sudo mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
 maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
 
-# Step 3: Configure agent certificates
-print_step 3 "Configuring Wazuh agent certificates..."
+# Step 3: Install active-response script
+print_step 3 "Installing active-response script to $AR_BIN_DIR..."
+AR_SCRIPT_URL="${WAZUH_CERT_OAUTH2_REPO_URL}/scripts/linux/delete-cert.sh"
+maybe_sudo mkdir -p "$AR_BIN_DIR" || error_exit "Failed to create directory $AR_BIN_DIR"
+curl -SL --progress-bar -o "$TEMP_DIR/delete-cert.sh" "$AR_SCRIPT_URL" || error_exit "Failed to download active-response script"
+maybe_sudo mv "$TEMP_DIR/delete-cert.sh" "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to install active-response script"
+maybe_sudo chmod 750 "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to set permissions on active-response script"
+
+# Step 4: Configure agent certificates
+print_step 4 "Configuring Wazuh agent certificates..."
 
 ## If OSSEC_CONF_PATH exist, then configure agent
 if maybe_sudo [ -f "$OSSEC_CONF_PATH" ]; then
@@ -241,8 +185,8 @@ else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
 
-# Step 4: Validate installation and configuration
-print_step 4 "Validating installation and configuration..."
+# Step 5: Validate installation and configuration
+print_step 5 "Validating installation and configuration..."
 validate_installation
 
 success_message "Installation and configuration complete! You can now use '$BIN_DIR/$APP_NAME' from your terminal."

@@ -36,6 +36,26 @@
           "value": "test"
         }
       ]
+    },
+    {
+      "username": "service-account-test-client",
+      "enabled": true,
+      "serviceAccountClientId": "test-client",
+      "clientRoles": {
+        "realm-management": [
+          "view-users"
+        ]
+      }
+    },
+    {
+      "username": "service-account-test-client-secret",
+      "enabled": true,
+      "serviceAccountClientId": "test-client-secret",
+      "clientRoles": {
+        "realm-management": [
+          "view-users"
+        ]
+      }
     }
   ],
   "clients": [
@@ -51,8 +71,8 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "urn:ietf:wg:oauth:2.0:oob",
-        "*"
+        "http://localhost:*",
+        "http://127.0.0.1:*"
       ],
       "webOrigins": [
         "*"
@@ -63,7 +83,7 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
-      "serviceAccountsEnabled": false,
+      "serviceAccountsEnabled": true,
       "publicClient": true,
       "frontchannelLogout": true,
       "protocol": "openid-connect",
@@ -124,7 +144,7 @@
       "standardFlowEnabled": false,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": false,
+      "serviceAccountsEnabled": true,
       "publicClient": false,
       "frontchannelLogout": true,
       "protocol": "openid-connect",

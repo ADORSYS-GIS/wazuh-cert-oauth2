@@ -38,7 +38,9 @@ async fn app() -> AppResult<()> {
 
             Ok(())
         }
-        _ => Ok(()),
+        Err(e) => {
+            e.exit();
+        }
     }
 }
 

@@ -36,6 +36,8 @@ Configuration
 - `--crl-dist-url` (`CRL_DIST_URL`): optional CDP URL to embed in issued certs.
 - `--crl-path` (`CRL_PATH`, default `/data/issuing.crl`): CRL file path to write.
 - `--ledger-path` (`LEDGER_PATH`, default `/data/ledger.csv`): issued/revoked ledger path.
+- `--webhook-base-url` (`WEBHOOK_BASE_URL`): Optional base URL of the webhook (for eviction notifications).
+- `--webhook-bearer-token` (`WEBHOOK_BEARER_TOKEN`): Optional bearer token for the webhook.
 
 Data and persistence
 
@@ -51,16 +53,15 @@ Logging
 - `tracing_subscriber` is initialized automatically; logs are emitted to stdout.
 - Control verbosity with `RUST_LOG` (e.g., `info,rocket=warn,reqwest=warn`). Defaults to `info` if unset.
 
-Quick start
+## Quick start
+
+For detailed setup and run instructions, see the [Getting Started Guide](../../docs/getting-started.md).
 
 ```bash
-export RUST_LOG=info,rocket=warn,reqwest=warn
-
-wazuh-cert-oauth2-server \
-  --oauth-issuer https://issuer.example.com/realms/xyz \
-  --root-ca-path /data/issuing.pem \
-  --root-ca-key-path /data/issuing.key
+# General usage
+wazuh-cert-oauth2-server --help
 ```
+
 
 Operational guidance
 
