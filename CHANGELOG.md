@@ -4,13 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[6801930](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6801930a348eb6feb5355474e4cb198cfdd073ba)...[4faa81b](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4faa81b6b5a29216974a1736d1afd2c9661f6594)
+[6801930](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6801930a348eb6feb5355474e4cb198cfdd073ba)...[04014b8](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/04014b8381eb7b8d6d3c40d58259c18c30a227f5)
+
+### Bug Fixes
+
+- Add OSSEC_CONF_PATH variable to uninstall script ([`d72e9a6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/d72e9a6bfae559882f5674a7fcd9b893887b4758))
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`0583b5c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0583b5c45cde71b7c2a76762fb70fe23a1d596a2))
 - Update CHANGELOG.md and checksums [skip ci] ([`22201af`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/22201af40b160e5d7743a0b4b61f801a7629ee8f))
 - Update CHANGELOG.md and checksums [skip ci] ([`0abd406`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0abd4064878fc7f36a2c4ccbdcaed55f33f78451))
+- Update CHANGELOG.md and checksums [skip ci] ([`5500be1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5500be105347c8fe06fbf6ed5ef42d43cac0cbf1))
 
 ### Features
 
