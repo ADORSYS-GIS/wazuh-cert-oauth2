@@ -4,11 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[fd690e5](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fd690e5ec9ad4d92dde436ff02bfff3f2b9c735e)...[643d65e](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/643d65e7936300d3ae98787065f278b1198008ec)
+[fd690e5](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fd690e5ec9ad4d92dde436ff02bfff3f2b9c735e)...[6801930](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6801930a348eb6feb5355474e4cb198cfdd073ba)
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`643d65e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/643d65e7936300d3ae98787065f278b1198008ec))
+- Update CHANGELOG.md and checksums [skip ci] ([`8303e10`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8303e10344e7922c794e30a5dadd5c897abce272))
+
+### Features
+
+- Update WOPS version to 0.4.3-rc.3 and improve script URLs for checksum verification ([`6801930`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6801930a348eb6feb5355474e4cb198cfdd073ba))
 
 ## 0.4.2-rc.1 - 2026-05-12
 
