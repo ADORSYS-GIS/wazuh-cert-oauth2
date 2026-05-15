@@ -51,3 +51,47 @@ pub fn default_path_to_ossec() -> PathBuf {
 
     Path::new(base_path).to_path_buf()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        default_cert_path, default_key_path, default_path_agent_control, default_path_to_ossec,
+        default_path_to_ossec_conf, default_server_ca_cert_path,
+    };
+
+    fn normalize(p: String) -> String {
+        p.replace('\\', "/")
+    }
+
+    #[test]
+    fn default_cert_key_and_ca_paths_are_under_ossec_etc() {
+        let base = normalize(default_path_to_ossec().display().to_string());
+        let cert = normalize(default_cert_path());
+        let key = normalize(default_key_path());
+        let ca = normalize(default_server_ca_cert_path());
+
+        assert!(cert.starts_with(&base));
+        assert!(key.starts_with(&base));
+        assert!(ca.starts_with(&base));
+        assert!(cert.ends_with("/etc/sslagent.cert"));
+        assert!(key.ends_with("/etc/sslagent.key"));
+        assert!(ca.ends_with("/etc/ca_cert.pem"));
+    }
+
+    #[test]
+    fn default_agent_control_path_points_to_wazuh_control() {
+        let control = normalize(default_path_agent_control());
+        assert!(control.ends_with("/bin/wazuh-control"));
+    }
+
+    #[test]
+    fn default_ossec_conf_path_matches_platform_layout() {
+        let conf = normalize(default_path_to_ossec_conf());
+        if cfg!(target_os = "windows") {
+            assert!(conf.ends_with("/ossec.conf"));
+            assert!(!conf.contains("/etc/"));
+        } else {
+            assert!(conf.ends_with("/etc/ossec.conf"));
+        }
+    }
+}

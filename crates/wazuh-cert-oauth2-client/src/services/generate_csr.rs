@@ -27,3 +27,34 @@ pub fn generate_key_and_csr(sub: &str) -> AppResult<(String, String)> {
 
     Ok((csr_pem, key_pem))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::generate_key_and_csr;
+    use openssl::nid::Nid;
+    use openssl::pkey::PKey;
+    use openssl::x509::X509Req;
+
+    #[test]
+    fn generated_csr_has_subject_cn_and_matches_private_key() {
+        let subject = "agent-subject-123";
+        let (csr_pem, key_pem) = generate_key_and_csr(subject).expect("csr generation should work");
+
+        let csr = X509Req::from_pem(csr_pem.as_bytes()).expect("csr pem should parse");
+        let key = PKey::private_key_from_pem(key_pem.as_bytes()).expect("key pem should parse");
+
+        assert!(csr.verify(&key).expect("csr verification should run"));
+        assert_eq!(key.rsa().expect("rsa key").size() * 8, 2048);
+
+        let cn = csr
+            .subject_name()
+            .entries_by_nid(Nid::COMMONNAME)
+            .next()
+            .expect("common name should exist")
+            .data()
+            .as_utf8()
+            .expect("cn should be utf8")
+            .to_string();
+        assert_eq!(cn, subject);
+    }
+}

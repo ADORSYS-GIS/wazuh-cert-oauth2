@@ -49,3 +49,62 @@ pub async fn validate_token(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::validate_token;
+    use crate::models::errors::AppError;
+    use jsonwebtoken::jwk::JwkSet;
+    use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    struct TestClaims {
+        sub: String,
+        iss: String,
+        exp: usize,
+        name: Option<String>,
+        preferred_username: Option<String>,
+    }
+
+    fn sample_claims() -> TestClaims {
+        TestClaims {
+            sub: "subject-1".to_string(),
+            iss: "https://issuer.example/realms/test".to_string(),
+            exp: 4_102_444_800, // 2100-01-01
+            name: Some("Alice".to_string()),
+            preferred_username: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn validate_token_fails_when_kid_is_missing() {
+        let header = Header::new(Algorithm::HS256);
+        let token = encode(
+            &header,
+            &sample_claims(),
+            &EncodingKey::from_secret(b"secret"),
+        )
+        .expect("token should encode");
+        let jwks = JwkSet { keys: vec![] };
+
+        let err = validate_token(&token, &jwks, &None).await.unwrap_err();
+        assert!(matches!(err, AppError::JwtMissingKid));
+    }
+
+    #[tokio::test]
+    async fn validate_token_fails_when_kid_not_found_in_jwks() {
+        let mut header = Header::new(Algorithm::HS256);
+        header.kid = Some("missing-kid".to_string());
+        let token = encode(
+            &header,
+            &sample_claims(),
+            &EncodingKey::from_secret(b"secret"),
+        )
+        .expect("token should encode");
+        let jwks = JwkSet { keys: vec![] };
+
+        let err = validate_token(&token, &jwks, &None).await.unwrap_err();
+        assert!(matches!(err, AppError::JwtKeyNotFound(k) if k == "missing-kid"));
+    }
+}

@@ -121,6 +121,8 @@ cert:
 
             CRL_PATH: '/usr/share/wazuh-cert-oauth2/data/issuing.crl'
             CRL_DIST_URL: 'https://{{ .Values.global.version }}/crl/issuing.crl'
+            WEBHOOK_BASE_URL: ""
+            WEBHOOK_BEARER_TOKEN: ""
 
           probes:
             startup:
