@@ -93,11 +93,32 @@ function CleanupConfiguration {
     }
 }
 
+# Remove active response script
+function RemoveActiveResponseScript {
+    param ([string]$BinDir)
+
+    $arBinDir = Join-Path $BinDir 'active-response\bin'
+    $arScriptPath = Join-Path $arBinDir 'delete-cert.ps1'
+
+    if (Test-Path $arScriptPath) {
+        InfoMessage "Removing active-response script from $arScriptPath..."
+        try {
+            Remove-Item -Path $arScriptPath -Force
+            InfoMessage "Active-response script removed successfully."
+        } catch {
+            ErrorMessage "Failed to remove active-response script: $_"
+        }
+    } else {
+        WarnMessage "Active-response script not found at $arScriptPath. Skipping."
+    }
+}
+
 # Main script execution
 EnsureAdmin
 $BIN_DIR = Get-BinDirectory
 
 UninstallBinary -BinDir $BIN_DIR
+RemoveActiveResponseScript -BinDir $BIN_DIR
 CleanupConfiguration
 
 SuccessMessage "Uninstallation of $APP_NAME completed successfully."
