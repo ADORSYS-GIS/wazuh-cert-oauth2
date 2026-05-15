@@ -23,6 +23,7 @@ WAZUH_CERT_OAUTH2_RELEASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/
 # Linux-specific configuration
 OS="unknown-linux-musl"
 BIN_DIR=${BIN_DIR:-"/var/ossec/bin"}
+AR_BIN_DIR=${AR_BIN_DIR:-"/var/ossec/active-response/bin"}
 OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/var/ossec/etc/ossec.conf"}
 
 # Create a secure temporary directory for utilities
