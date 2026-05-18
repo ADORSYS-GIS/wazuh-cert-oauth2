@@ -96,10 +96,25 @@ webhook:
                 secretKeyRef:
                   name: webhook-basic-credentials
                   key: password
+            # Comma-separated KEY=VALUE pairs of custom headers the webhook sender must include.
+            # Example: "X-Hub-Signature=abc123,X-My-Header=val"
+            WEBHOOK_CUSTOM_HEADERS: ""
             GITHUB_TOKEN: ""
             GITHUB_REPO_OWNER: ""
             GITHUB_REPO_NAME: ""
-            KEYCLOAK_ADMIN_BASE_URL: ""
+            IDP_TYPE: "keycloak"
+            IDP_ADMIN_BASE_URL: ""
+            IDP_REVOKE_REASON: "Keycloak event"
+            # For IDP_TYPE=google, set one:
+            # - GOOGLE_DOMAIN for domain-wide
+            # - GOOGLE_CUSTOMER for customer-wide
+            GOOGLE_CUSTOMER: ""
+            GOOGLE_DOMAIN: ""
+            # Use WEBHOOK_AUTH_TYPE=google with Google webhooks.
+            # Set GOOGLE_CHANNEL_ID / GOOGLE_CHANNEL_TOKEN for channel validation.
+            WEBHOOK_AUTH_TYPE: "default"
+            GOOGLE_CHANNEL_ID: ""
+            GOOGLE_CHANNEL_TOKEN: ""
             WAZUH_MANAGER_URL: ""
             WAZUH_API_USER: ""
             #   valueFrom:

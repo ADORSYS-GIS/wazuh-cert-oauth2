@@ -1,7 +1,6 @@
 use super::ProxyState;
 use super::oauth;
 use super::spool;
-use crate::models::WebhookRequest;
 use crate::state::spool::{ArPendingRequest, EvictRequest, GitHubTicket};
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
@@ -131,7 +130,7 @@ impl ProxyState {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn acquire_token(&self) -> AppResult<Option<String>> {
+    pub(crate) async fn acquire_token(&self) -> AppResult<Option<String>> {
         if let Some(s) = &self.static_bearer {
             return Ok(Some(s.clone()));
         }
@@ -141,51 +140,26 @@ impl ProxyState {
         Ok(None)
     }
 
-    #[tracing::instrument(skip(self, webhook_request), fields(event_type = %event_type_lower))]
-    pub fn is_allowed_event(
+    /// Delegate event parsing + action mapping to the IdP adapter.
+    pub fn idp_parse_event(
         &self,
-        event_type_lower: &str,
-        webhook_request: &WebhookRequest,
-    ) -> EventAction {
-        let t = event_type_lower;
-        if t == "user-update" || t == "user-delete" {
-            if let Some(rp) = &webhook_request.resource_path
-                && !rp.contains("users/")
-            {
-                return EventAction::Ignore;
-            }
-
-            return EventAction::Revoke;
-        }
-
-        if t == "register" || t == "user-create" {
-            return EventAction::CreateTicket;
-        }
-
-        EventAction::Ignore
+        headers: &rocket::http::HeaderMap<'_>,
+        req: &serde_json::Value,
+    ) -> crate::ports::idp::IdpEvent {
+        self.idp.parse_event_with_headers(headers, req)
     }
 
-    pub fn revoke_reason(&self) -> Option<String> {
-        Some(self.revoke_reason.clone())
+    /// Extract user information from a webhook payload via the IdP adapter.
+    pub fn idp_extract_user(
+        &self,
+        req: &serde_json::Value,
+    ) -> AppResult<crate::models::SimpleUserRepresentation> {
+        self.idp.extract_user(req)
     }
 
-    pub fn webhook_allows_anonymous(&self) -> bool {
-        self.webhook_basic_user.is_none()
-            && self.webhook_basic_password.is_none()
-            && self.webhook_api_key.is_none()
-            && self.webhook_bearer_token.is_none()
-    }
-    pub fn webhook_basic_user(&self) -> Option<&str> {
-        self.webhook_basic_user.as_deref()
-    }
-    pub fn webhook_basic_password(&self) -> Option<&str> {
-        self.webhook_basic_password.as_deref()
-    }
-    pub fn webhook_api_key(&self) -> Option<&str> {
-        self.webhook_api_key.as_deref()
-    }
-    pub fn webhook_bearer_token(&self) -> Option<&str> {
-        self.webhook_bearer_token.as_deref()
+    /// Returns the configured revoke reason from the IdP adapter.
+    pub fn revoke_reason(&self) -> String {
+        self.idp.revoke_reason()
     }
 
     pub async fn queue_revoke(&self, req: RevokeRequest) -> AppResult<()> {
@@ -266,139 +240,5 @@ impl ProxyState {
                 Ok(())
             }
         }
-    }
-}
-
-#[derive(Clone, PartialOrd, PartialEq, Debug)]
-pub enum EventAction {
-    Revoke,
-    Ignore,
-    CreateTicket,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{EventAction, ProxyState};
-    use crate::models::WebhookRequest;
-    use std::collections::HashMap;
-    use std::path::PathBuf;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
-    use wazuh_cert_oauth2_model::services::http_client::HttpClient;
-
-    fn unique_spool_dir() -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time should be monotonic")
-            .as_nanos();
-        std::env::temp_dir().join(format!("wazuh-webhook-state-core-{}", nanos))
-    }
-
-    fn build_state(
-        webhook_api_key: Option<String>,
-        webhook_bearer_token: Option<String>,
-        webhook_basic_user: Option<String>,
-        webhook_basic_password: Option<String>,
-    ) -> ProxyState {
-        ProxyState::new(
-            "https://server.example".to_string(),
-            unique_spool_dir(),
-            HttpClient::new_with_defaults().expect("http client"),
-            2,
-            Duration::from_millis(5),
-            Duration::from_millis(20),
-            Duration::from_secs(1),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            "revoke".to_string(),
-            webhook_basic_user,
-            webhook_basic_password,
-            webhook_api_key,
-            webhook_bearer_token,
-            // github (3) + keycloak_admin_base_url
-            None,
-            None,
-            None,
-            None,
-            // wazuh: manager_url, api_user, api_password, api_token
-            None,
-            None,
-            None,
-            None,
-            "delete-cert.sh".to_string(),
-            // wazuh_eviction_grace_seconds
-            30,
-            // wazuh_ar_spool_ttl_seconds
-            86400,
-        )
-        .expect("state should build")
-    }
-
-    fn webhook_request(
-        event_type: &str,
-        resource_path: Option<&str>,
-        representation: Option<&str>,
-    ) -> WebhookRequest {
-        WebhookRequest {
-            event_type: event_type.to_string(),
-            realm_id: "realm".to_string(),
-            id: None,
-            time: None,
-            client_id: None,
-            ip_address: None,
-            error: None,
-            details: Some(HashMap::new()),
-            resource_path: resource_path.map(|s| s.to_string()),
-            representation: representation.map(|s| s.to_string()),
-        }
-    }
-
-    #[test]
-    fn user_delete_event_with_user_path_is_revoked() {
-        let state = build_state(None, None, None, None);
-        let req = webhook_request("user-delete", Some("admin/realms/x/users/u1"), None);
-
-        let action = state.is_allowed_event("user-delete", &req);
-        assert_eq!(action, EventAction::Revoke);
-    }
-
-    #[test]
-    fn non_user_resource_paths_are_ignored() {
-        let state = build_state(None, None, None, None);
-        let req = webhook_request("user-update", Some("admin/realms/x/groups/g1"), None);
-
-        let action = state.is_allowed_event("user-update", &req);
-        assert_eq!(action, EventAction::Ignore);
-    }
-
-    #[test]
-    fn webhook_allows_anonymous_only_when_no_credentials_are_configured() {
-        let anonymous = build_state(None, None, None, None);
-        assert!(anonymous.webhook_allows_anonymous());
-
-        let with_api_key = build_state(Some("secret-key".to_string()), None, None, None);
-        assert!(!with_api_key.webhook_allows_anonymous());
-        assert_eq!(with_api_key.webhook_api_key(), Some("secret-key"));
-    }
-
-    #[test]
-    fn register_event_maps_to_create_ticket_action() {
-        let state = build_state(None, None, None, None);
-        let req = webhook_request("REGISTER", None, None);
-
-        let action = state.is_allowed_event("register", &req);
-        assert_eq!(action, EventAction::CreateTicket);
-    }
-
-    #[test]
-    fn user_create_event_maps_to_create_ticket_action() {
-        let state = build_state(None, None, None, None);
-        let req = webhook_request("USER-CREATE", None, None);
-
-        let action = state.is_allowed_event("user-create", &req);
-        assert_eq!(action, EventAction::CreateTicket);
     }
 }

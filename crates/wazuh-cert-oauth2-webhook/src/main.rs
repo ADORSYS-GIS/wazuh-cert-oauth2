@@ -6,10 +6,12 @@ use mimalloc::MiMalloc;
 use tracing::info;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
+mod adapters;
 mod bootstrap;
 mod handlers;
 mod models;
 mod opts;
+mod ports;
 mod state;
 
 use crate::bootstrap::{build_state, launch_rocket, spawn_spool_bg};

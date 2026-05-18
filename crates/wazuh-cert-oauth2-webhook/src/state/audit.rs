@@ -1,20 +1,11 @@
-use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
-use wazuh_cert_oauth2_model::models::errors::AppResult;
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 
 use super::ProxyState;
 use super::oauth::acquire_oauth_token;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct KeycloakUser {
-    pub id: String,
-    pub username: String,
-    pub email: Option<String>,
-    pub enabled: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct EnrollmentReport {
     pub enabled_users: usize,
     pub active_certs: usize,
@@ -26,28 +17,15 @@ pub struct EnrollmentReport {
 pub async fn generate_report(state: &ProxyState) -> AppResult<EnrollmentReport> {
     debug!("Generating enrollment report");
 
-    // 1. Fetch Users from Keycloak
+    // 1. Acquire token
     let token = acquire_oauth_token(state).await?.ok_or_else(|| {
-        wazuh_cert_oauth2_model::models::errors::AppError::UpstreamError(
-            "OAuth2 not configured, cannot audit users".to_string(),
-        )
+        AppError::UpstreamError("OAuth2 not configured, cannot audit users".to_string())
     })?;
 
-    let admin_url = state.keycloak_admin_base_url.as_ref().ok_or_else(|| {
-        wazuh_cert_oauth2_model::models::errors::AppError::UpstreamError(
-            "KEYCLOAK_ADMIN_BASE_URL not configured. This is required for enrollment auditing."
-                .to_string(),
-        )
-    })?;
+    // 2. Fetch users via IdP adapter
+    let idp_users = state.idp.fetch_users(&token).await?;
 
-    // Use a large max as a stopgap for non-trivial deployments.
-    // Real fix would involve cursor/offset pagination.
-    let users_url = format!("{}/users?max=5000", admin_url.trim_end_matches('/'));
-
-    debug!("Fetching users from Keycloak: {}", users_url);
-    let users: Vec<KeycloakUser> = state.http.fetch_json_auth(&users_url, &token).await?;
-
-    // 2. Fetch Active Certs from Server
+    // 3. Fetch active certs from the server
     let server_url = format!(
         "{}/api/ledger/active",
         state.server_base_url.trim_end_matches('/')
@@ -55,21 +33,20 @@ pub async fn generate_report(state: &ProxyState) -> AppResult<EnrollmentReport> 
     debug!("Fetching active certs from server: {}", server_url);
     let certs: Vec<LedgerEntry> = state.http.fetch_json_auth(&server_url, &token).await?;
 
-    // 3. Correlate
-    // Note: This assumes the certificate subject field stores the Keycloak user UUID (u.id).
+    // 4. Correlate
     let enrolled_subs: std::collections::HashSet<String> =
         certs.into_iter().map(|c| c.subject).collect();
 
-    if enrolled_subs.is_empty() && !users.is_empty() {
+    if enrolled_subs.is_empty() && !idp_users.is_empty() {
         debug!(
-            "Correlation set is empty despite having users; verify that certificate subjects match Keycloak IDs"
+            "Correlation set is empty despite having users; verify that certificate subjects match IdP user IDs"
         );
     }
 
     let mut missing = Vec::new();
     let mut enrolled_count = 0;
 
-    for u in users.into_iter().filter(|u| u.enabled) {
+    for u in idp_users.into_iter().filter(|u| u.enabled) {
         if enrolled_subs.contains(&u.id) {
             enrolled_count += 1;
         } else {
@@ -84,11 +61,7 @@ pub async fn generate_report(state: &ProxyState) -> AppResult<EnrollmentReport> 
         missing_users: missing,
         generated_at_unix: std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .map_err(|_| {
-                wazuh_cert_oauth2_model::models::errors::AppError::UpstreamError(
-                    "System clock is before Unix epoch".to_string(),
-                )
-            })?
+            .map_err(|_| AppError::UpstreamError("System clock is before Unix epoch".to_string()))?
             .as_secs(),
     };
 

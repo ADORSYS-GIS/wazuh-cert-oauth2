@@ -1,8 +1,6 @@
 use crate::handlers::auth::WebhookAuth;
-use crate::handlers::webhook_util::{extract_user_id, prepare_github_issue};
-use crate::models::WebhookRequest;
+use crate::ports::idp::IdpEvent;
 use crate::state::ProxyState;
-use crate::state::core::EventAction;
 use crate::state::spool::{EvictRequest, GitHubTicket};
 use rocket::http::Status;
 use rocket::serde::json::Json;
@@ -12,36 +10,50 @@ use tracing::{debug, error, info, warn};
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 #[post("/webhook", format = "application/json", data = "<payload>")]
-#[tracing::instrument(skip(_auth, state, payload), fields(event_type = %payload.event_type, resource = ?payload.resource_path))]
+#[tracing::instrument(skip(auth, state, payload))]
 pub async fn send_webhook(
-    _auth: WebhookAuth,
+    auth: WebhookAuth<'_>,
     state: &State<ProxyState>,
-    payload: Json<WebhookRequest>,
+    payload: Json<serde_json::Value>,
 ) -> Result<Status, Status> {
     let p = payload.into_inner();
-    debug!("received webhook: {:?}", p);
-    let et_lower = p.event_type.to_ascii_lowercase();
-    let action = state.is_allowed_event(&et_lower, &p);
+    debug!("received webhook: {}", p);
+
+    let action = state.idp_parse_event(auth.0, &p);
 
     match action {
-        EventAction::Ignore => {
-            info!(
-                "ignored webhook event type={} resourcePath={:?}",
-                p.event_type, p.resource_path
-            );
+        IdpEvent::Ignore => {
+            info!("ignored webhook event");
             Ok(Status::Ok)
         }
-        EventAction::Revoke => handle_revoke(state, p).await,
-        EventAction::CreateTicket => handle_create_ticket(state, p).await,
+        IdpEvent::UserRevoke { subject } => handle_revoke(state, &p, subject).await,
+        IdpEvent::UserCreate { .. } => handle_create_ticket(state, &p).await,
     }
 }
 
-#[tracing::instrument(skip(state, p), fields(event_type = %p.event_type))]
 async fn handle_create_ticket(
     state: &State<ProxyState>,
-    p: WebhookRequest,
+    p: &serde_json::Value,
 ) -> Result<Status, Status> {
-    let (title, body) = prepare_github_issue(&p);
+    let user = match state.idp_extract_user(p) {
+        Ok(u) => u,
+        Err(e) => {
+            warn!(
+                "failed to extract user from webhook for ticket creation: {}",
+                e
+            );
+            return Ok(Status::Ok);
+        }
+    };
+
+    let title = format!(
+        "[IDP] User Created: {}",
+        user.username.as_deref().unwrap_or("unknown")
+    );
+    let body = format!(
+        "ID: {:?}\nUsername: {:?}\nEmail: {:?}\nEnabled: {}",
+        user.id, user.username, user.email, user.enabled
+    );
     let ticket = GitHubTicket { title, body };
 
     if let Err(e) = state.forward_github_ticket_with_retry(ticket.clone()).await {
@@ -60,20 +72,19 @@ async fn handle_create_ticket(
     Ok(Status::Ok)
 }
 
-#[tracing::instrument(skip(state), fields(event_type = %p.event_type))]
-async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<Status, Status> {
-    let subject = extract_user_id(&p);
-    if subject.is_none() {
-        warn!(
-            "webhook event missing userId; type={} details={:?} resource={:?}",
-            p.event_type, p.details, p.resource_path
-        );
+async fn handle_revoke(
+    state: &State<ProxyState>,
+    p: &serde_json::Value,
+    subject: String,
+) -> Result<Status, Status> {
+    // Subject should be provided by the adapter in IdpEvent::UserRevoke
+    if subject.is_empty() {
+        warn!("webhook event missing subject; ignoring. payload={}", p);
         return Ok(Status::Ok);
     }
-    let subject = subject.unwrap();
-    let reason = state.revoke_reason();
 
-    let reason_str = reason.as_deref().unwrap_or("");
+    let reason = state.revoke_reason();
+    let reason_str = reason.as_str();
 
     // Fetch the active ledger entry *before* forwarding the revoke so the
     // wazuh_agent_name is still present on the active entry.
@@ -82,8 +93,7 @@ async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
             match state.fetch_ledger_by_subject(&subject).await {
                 Ok(entries) => entries
                     .iter()
-                    .filter(|e| !e.revoked && e.wazuh_agent_name.is_some())
-                    .last()
+                    .rfind(|e| !e.revoked && e.wazuh_agent_name.is_some())
                     .and_then(|e| e.wazuh_agent_name.clone()),
                 Err(e) => {
                     warn!(subject = %subject, "Failed to fetch ledger from server: {}", e);
@@ -97,7 +107,7 @@ async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
     let req = RevokeRequest {
         serial_hex: None,
         subject: Some(subject.clone()),
-        reason: reason.clone(),
+        reason: Some(reason.clone()),
     };
     match state.forward_revoke_with_retry(req.clone()).await {
         Ok(()) => {}

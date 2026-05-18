@@ -22,6 +22,9 @@ pub enum AppError {
     #[error("Serialization error: {0}")]
     Serialization(String),
 
+    #[error("Configuration error: {0}")]
+    Configuration(String),
+
     #[error("Anyhow error: {0}")]
     Anyhow(#[from] anyhow::Error),
 

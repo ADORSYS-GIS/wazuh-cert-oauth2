@@ -1,6 +1,6 @@
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::wazuh::{ArOutcome, WazuhClient};
 
@@ -9,34 +9,38 @@ use crate::state::spool::{ArPendingRequest, EvictRequest};
 #[derive(Clone)]
 pub struct WazuhApiClient {
     pub(crate) client: WazuhClient,
-    pub(crate) ar_command: String,
+    pub(crate) ar_command_unix: String,
+    pub(crate) ar_command_windows: String,
     pub(crate) grace_seconds: u64,
     pub(crate) ar_spool_ttl_seconds: u64,
 }
 
 impl WazuhApiClient {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         manager_url: String,
         user: Option<String>,
         password: Option<String>,
         static_token: Option<String>,
-        ar_command: String,
+        ar_command_unix: String,
+        ar_command_windows: String,
         grace_seconds: u64,
         ar_spool_ttl_seconds: u64,
     ) -> Self {
         Self {
             client: WazuhClient::new(manager_url, user, password, static_token),
-            ar_command,
+            ar_command_unix,
+            ar_command_windows,
             grace_seconds,
             ar_spool_ttl_seconds,
         }
     }
 
     /// Send an active-response command to the agent.
-    #[tracing::instrument(skip(self), fields(agent_id = %agent_id))]
-    async fn send_active_response(&self, agent_id: &str) -> AppResult<ArOutcome> {
+    #[tracing::instrument(skip(self), fields(agent_id = %agent_id, command = %command))]
+    async fn send_active_response(&self, agent_id: &str, command: &str) -> AppResult<ArOutcome> {
         self.client
-            .send_active_response_raw(agent_id, &self.ar_command)
+            .send_active_response_raw(agent_id, command)
             .await
     }
 
@@ -44,12 +48,12 @@ impl WazuhApiClient {
     #[tracing::instrument(skip(self, req), fields(agent_name = %req.wazuh_agent_name.as_deref().unwrap_or(""), subject = %req.subject))]
     pub async fn run_eviction(&self, req: &EvictRequest) -> AppResult<Option<ArPendingRequest>> {
         // Step 1: resolve agent
-        let agent_id = match self
+        let agent = match self
             .client
-            .find_agent_id(req.wazuh_agent_name.as_deref(), &req.subject)
+            .find_agent(req.wazuh_agent_name.as_deref(), &req.subject)
             .await?
         {
-            Some(id) => id,
+            Some(a) => a,
             None => {
                 info!(
                     agent_name = ?req.wazuh_agent_name,
@@ -59,14 +63,33 @@ impl WazuhApiClient {
                 return Ok(None);
             }
         };
-        debug!(subject = %req.subject, agent_id = %agent_id, "Resolved Wazuh agent");
+        let agent_id = agent.id;
+        let platform = agent
+            .os
+            .ok_or_else(|| {
+                error!(
+                    subject = %req.subject,
+                    agent_id = %agent_id,
+                    "Wazuh agent has no OS information"
+                );
+                AppError::UpstreamError("Wazuh agent has no OS information".to_string())
+            })?
+            .platform
+            .to_lowercase();
+        debug!(subject = %req.subject, agent_id = %agent_id, platform = %platform, "Resolved Wazuh agent");
 
         let is_auto_rotate = req.reason.to_ascii_lowercase().starts_with("auto-rotate");
         let mut ar_pending = None;
 
         // Step 2: active response
         if !is_auto_rotate {
-            match self.send_active_response(&agent_id).await? {
+            let command = if platform.contains("windows") {
+                &self.ar_command_windows
+            } else {
+                &self.ar_command_unix
+            };
+
+            match self.send_active_response(&agent_id, command).await? {
                 ArOutcome::Sent => {
                     // Step 3: grace period
                     let grace = Duration::from_secs(self.grace_seconds);
@@ -86,6 +109,7 @@ impl WazuhApiClient {
                     ar_pending = Some(ArPendingRequest {
                         agent_id: agent_id.clone(),
                         subject: req.subject.clone(),
+                        command: command.clone(),
                         created_at_unix: SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .unwrap_or_default()
@@ -156,7 +180,10 @@ impl WazuhApiClient {
             return Ok(());
         }
 
-        match self.send_active_response(&req.agent_id).await? {
+        match self
+            .send_active_response(&req.agent_id, &req.command)
+            .await?
+        {
             ArOutcome::Sent => {
                 info!(
                     agent_id = %req.agent_id,

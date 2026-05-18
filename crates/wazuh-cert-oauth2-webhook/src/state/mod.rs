@@ -5,6 +5,9 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
+use crate::ports::idp::IdpProvider;
+use crate::ports::webhook_auth::WebhookAuthProvider;
+
 pub(crate) mod audit;
 mod builder;
 pub(crate) mod core;
@@ -30,13 +33,11 @@ pub struct ProxyState {
     pub(crate) static_bearer: Option<String>,
     pub(crate) oauth: Option<oauth::OAuthConfig>,
 
-    revoke_reason: String,
+    /// Pluggable Identity Provider adapter.
+    pub(crate) idp: Arc<dyn IdpProvider>,
 
-    webhook_basic_user: Option<String>,
-    webhook_basic_password: Option<String>,
-    webhook_api_key: Option<String>,
-    webhook_bearer_token: Option<String>,
-    pub(crate) keycloak_admin_base_url: Option<String>,
+    /// Pluggable inbound webhook authentication adapter.
+    pub(crate) webhook_auth: Arc<dyn WebhookAuthProvider>,
 
     pub(crate) github_token: Option<String>,
     pub(crate) github_repo_owner: Option<String>,

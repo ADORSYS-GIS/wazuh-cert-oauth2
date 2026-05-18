@@ -31,6 +31,7 @@ pub struct EvictRequest {
 pub struct ArPendingRequest {
     pub agent_id: String,
     pub subject: String,
+    pub command: String,
     pub created_at_unix: u64,
 }
 
@@ -177,6 +178,9 @@ mod tests {
     }
 
     fn build_state(spool_dir: PathBuf) -> ProxyState {
+        use crate::adapters::auth::default::DefaultWebhookAuthProvider;
+        use crate::adapters::idp::keycloak::KeycloakAdapter;
+        use std::sync::Arc;
         ProxyState::new(
             "https://server.example".to_string(),
             spool_dir,
@@ -191,27 +195,28 @@ mod tests {
             None,
             None,
             None,
-            "revoke".to_string(),
-            // webhook (4)
+            Arc::new(KeycloakAdapter {
+                admin_base_url: None,
+                revoke_reason: "revoke".to_string(),
+                http: HttpClient::new_with_defaults().expect("http"),
+            }),
+            Arc::new(DefaultWebhookAuthProvider::new(
+                None,
+                None,
+                None,
+                None,
+                std::collections::HashMap::new(),
+            )),
             None,
             None,
             None,
-            None,
-            // github (3)
-            None,
-            None,
-            None,
-            // keycloak_admin_base_url
-            None,
-            // wazuh: manager_url, api_user, api_password, api_token, ar_command
             None,
             None,
             None,
             None,
             "delete-cert.sh".to_string(),
-            // wazuh_eviction_grace_seconds
+            "delete-cert.ps1".to_string(),
             30,
-            // wazuh_ar_spool_ttl_seconds
             86400,
         )
         .expect("state should build")

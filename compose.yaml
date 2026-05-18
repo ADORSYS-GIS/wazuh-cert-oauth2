@@ -54,16 +54,22 @@ services:
       WEBHOOK_BASIC_USER: "user"
       WEBHOOK_BASIC_PASSWORD: "password"
       WEBHOOK_BEARER_TOKEN: ""
+      # Comma-separated KEY=VALUE pairs of custom headers the webhook sender must include.
+      # Example: "X-Hub-Signature=abc123,X-My-Header=val"
+      WEBHOOK_CUSTOM_HEADERS: "X-Webhook-Source=ferriskey"
 
       GITHUB_TOKEN: ""
       GITHUB_REPO_OWNER: ""
       GITHUB_REPO_NAME: ""
-      KEYCLOAK_ADMIN_BASE_URL: "http://keycloak:9100/admin/realms/dev"
+      IDP_ADMIN_BASE_URL: "http://keycloak:9100/admin/realms/dev"
+      IDP_TYPE: "keycloak"
+      IDP_REVOKE_REASON: "Keycloak event"
       WAZUH_MANAGER_URL: ""
       WAZUH_API_USER: ""
       WAZUH_API_PASSWORD: ""
       WAZUH_API_TOKEN: ""
-      WAZUH_AR_COMMAND: "delete-cert.sh"
+      WAZUH_AR_COMMAND_UNIX: "delete-cert.sh"
+      WAZUH_AR_COMMAND_WINDOWS: "delete-cert.ps1"
       WAZUH_EVICTION_GRACE_SECONDS: 30
       WAZUH_AR_SPOOL_TTL_SECONDS: 86400
     user: "${UID:-}:${GID:-}"
@@ -149,6 +155,47 @@ services:
       - webhook:/data/webhook
       - oauth2:/data/oauth2
 
+  ferriskey-db:
+    image: ${POSTGRES_IMAGE:-postgres:18.2}
+    environment:
+      PGUSER: ferriskey
+      POSTGRES_DB: ferriskey
+      POSTGRES_PASSWORD: ferriskey
+      POSTGRES_USER: ferriskey
+    ports:
+      - 5432:5432
+    volumes:
+      - type: volume
+        source: wazuh_ferriskey_pgdata
+        target: /var/lib/postgresql
+        volume: {}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready
+        - -d
+        - ferriskey
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+
+  ca:
+    image: ghcr.io/ferriskey/ferriskey-standalone
+    environment:
+      DATABASE_HOST: ferriskey-db
+      DATABASE_NAME: ferriskey
+      DATABASE_PASSWORD: ferriskey
+      DATABASE_USER: ferriskey
+      SERVER_ROOT_PATH: /api
+      ALLOWED_ORIGINS: http://localhost:8090
+      WEBAPP_URL: http://localhost:8090
+    ports:
+      - 8090:80
+    depends_on:
+      ferriskey-db:
+        condition: service_healthy
+
 volumes:
   spi:
   webhook:
@@ -163,3 +210,6 @@ volumes:
       type: "none"
       o: "bind"
       device: "./.docker/tmp"
+
+  wazuh_ferriskey_pgdata:
+    name: wazuh_ferriskey_pgdata

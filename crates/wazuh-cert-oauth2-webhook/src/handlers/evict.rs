@@ -11,7 +11,7 @@ use tracing::info;
 #[post("/internal/evict", format = "application/json", data = "<req>")]
 #[tracing::instrument(skip(_auth, state, req), fields(subject = %req.subject))]
 pub async fn internal_evict(
-    _auth: WebhookAuth,
+    _auth: WebhookAuth<'_>,
     state: &State<ProxyState>,
     req: Json<EvictRequest>,
 ) -> Result<Status, Status> {

@@ -5,6 +5,9 @@ use tokio::sync::RwLock;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
+use crate::ports::idp::IdpProvider;
+use crate::ports::webhook_auth::WebhookAuthProvider;
+
 use super::{ProxyState, WazuhApiClient, oauth, utils};
 
 impl ProxyState {
@@ -23,20 +26,17 @@ impl ProxyState {
         oauth_client_secret: Option<String>,
         oauth_scope: Option<String>,
         oauth_audience: Option<String>,
-        keycloak_revoke_reason: String,
-        webhook_basic_user: Option<String>,
-        webhook_basic_password: Option<String>,
-        webhook_api_key: Option<String>,
-        webhook_bearer_token: Option<String>,
+        idp: Arc<dyn IdpProvider>,
+        webhook_auth: Arc<dyn WebhookAuthProvider>,
         github_token: Option<String>,
         github_repo_owner: Option<String>,
         github_repo_name: Option<String>,
-        keycloak_admin_base_url: Option<String>,
         wazuh_manager_url: Option<String>,
         wazuh_api_user: Option<String>,
         wazuh_api_password: Option<String>,
         wazuh_api_token: Option<String>,
-        wazuh_ar_command: String,
+        wazuh_ar_command_unix: String,
+        wazuh_ar_command_windows: String,
         wazuh_eviction_grace_seconds: u64,
         ar_spool_ttl_seconds: u64,
     ) -> AppResult<Self> {
@@ -54,7 +54,8 @@ impl ProxyState {
                 wazuh_api_user,
                 wazuh_api_password,
                 wazuh_api_token,
-                wazuh_ar_command.clone(),
+                wazuh_ar_command_unix,
+                wazuh_ar_command_windows,
                 wazuh_eviction_grace_seconds,
                 ar_spool_ttl_seconds,
             )
@@ -69,15 +70,11 @@ impl ProxyState {
             spool_interval,
             static_bearer,
             oauth,
-            revoke_reason: keycloak_revoke_reason,
-            webhook_basic_user,
-            webhook_basic_password,
-            webhook_api_key,
-            webhook_bearer_token,
+            idp,
+            webhook_auth,
             github_token,
             github_repo_owner,
             github_repo_name,
-            keycloak_admin_base_url,
             token_cache: Arc::new(RwLock::new(None)),
             wazuh_api,
         })
