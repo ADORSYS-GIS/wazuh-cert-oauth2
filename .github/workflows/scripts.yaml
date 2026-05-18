@@ -68,7 +68,7 @@ jobs:
           cat checksums.sha256
           
       - name: Generate full CHANGELOG.md
-        uses: orhun/git-cliff-action@c93ef52f3d0ddcdcc9bd5447d98d458a11cd4f72
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5
         with:
           config: cliff.toml
           args: --output CHANGELOG.md
