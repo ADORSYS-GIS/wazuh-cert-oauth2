@@ -83,8 +83,14 @@ pub struct Opt {
     pub wazuh_api_password: Option<String>,
     #[arg(long, env = "WAZUH_API_TOKEN")]
     pub wazuh_api_token: Option<String>,
-    #[arg(long, env = "WAZUH_AR_COMMAND", default_value = "delete-cert.sh")]
-    pub wazuh_ar_command: String,
+    #[arg(long, env = "WAZUH_AR_COMMAND_UNIX", default_value = "delete-cert.sh")]
+    pub wazuh_ar_command_unix: String,
+    #[arg(
+        long,
+        env = "WAZUH_AR_COMMAND_WINDOWS",
+        default_value = "delete-cert.ps1"
+    )]
+    pub wazuh_ar_command_windows: String,
     #[arg(long, env = "WAZUH_EVICTION_GRACE_SECONDS", default_value_t = 30)]
     pub wazuh_eviction_grace_seconds: u64,
     #[arg(long, env = "WAZUH_AR_SPOOL_TTL_SECONDS", default_value_t = 86400)]

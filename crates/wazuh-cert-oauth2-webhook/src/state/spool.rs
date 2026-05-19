@@ -31,6 +31,7 @@ pub struct EvictRequest {
 pub struct ArPendingRequest {
     pub agent_id: String,
     pub subject: String,
+    pub command: String,
     pub created_at_unix: u64,
 }
 
@@ -209,6 +210,7 @@ mod tests {
             None,
             None,
             "delete-cert.sh".to_string(),
+            "delete-cert.ps1".to_string(),
             // wazuh_eviction_grace_seconds
             30,
             // wazuh_ar_spool_ttl_seconds
