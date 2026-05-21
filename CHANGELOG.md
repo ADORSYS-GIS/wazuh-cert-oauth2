@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[6801930](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6801930a348eb6feb5355474e4cb198cfdd073ba)...[04014b8](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/04014b8381eb7b8d6d3c40d58259c18c30a227f5)
+[6801930](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6801930a348eb6feb5355474e4cb198cfdd073ba)...[3681ccc](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3681ccce9f44a4f86781edcffe8795ee65eab461)
 
 ### Bug Fixes
 
@@ -16,12 +16,15 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`22201af`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/22201af40b160e5d7743a0b4b61f801a7629ee8f))
 - Update CHANGELOG.md and checksums [skip ci] ([`0abd406`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0abd4064878fc7f36a2c4ccbdcaed55f33f78451))
 - Update CHANGELOG.md and checksums [skip ci] ([`5500be1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5500be105347c8fe06fbf6ed5ef42d43cac0cbf1))
+- Update CHANGELOG.md and checksums [skip ci] ([`7719ec8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7719ec87471908e0633dd70219289274728bd392))
+- Update CHANGELOG.md and checksums [skip ci] ([`b92f8fc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b92f8fc71eb9e22b75dc38d4c0646b75e71208f7))
 
 ### Features
 
 - Add default AR_BIN_DIR variable for active-response scripts ([`4052226`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/40522268c059f0c5f0f8e241bdf4a55e41f73482))
 - Add AR_BIN_DIR variable and remove active-response script during uninstallation ([`b03a27e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b03a27e67f9cb9f8815733eabad68e059fd99bbd))
 - Add AR_BIN_DIR variable and remove active-response script during uninstallation ([`69b5e7a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/69b5e7a0039c67d2df6414c56b0b392dbe3910d7))
+- Support platform-specific active response commands by detecting agent OS and adding Windows/Unix configuration options ([`3681ccc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3681ccce9f44a4f86781edcffe8795ee65eab461))
 
 ## 0.4.3-rc.3 - 2026-05-15
 
