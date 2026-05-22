@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 
 # Default log level and application details
 $APP_NAME = if ($null -ne $env:APP_NAME) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
-$DEFAULT_WOPS_VERSION = "0.4.3-rc.3"
+$DEFAULT_WOPS_VERSION = "0.4.3"
 $WOPS_VERSION = if ($null -ne $env:WOPS_VERSION) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($null -ne $env:OSSEC_CONF_PATH) { $env:OSSEC_CONF_PATH } else { "C:\Program Files (x86)\ossec-agent\ossec.conf" }
 $USER = "root"
@@ -217,12 +217,12 @@ icacls "$BIN_DIR\$APP_NAME.exe" /grant "*S-1-5-32-545:(RX)"
 # Step 3: Install active-response script
 $AR_BIN_DIR = "$BIN_DIR\active-response\bin"
 PrintStep 3 "Installing active-response script to $AR_BIN_DIR..."
-$AR_SCRIPT_URL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/windows/delete-cert.ps1"
+$AR_SCRIPT_URL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/windows/delete-cert.cmd"
 New-Item -ItemType Directory -Path $AR_BIN_DIR -Force
 $AR_TEMP = New-TemporaryFile
 Invoke-WebRequest -Uri $AR_SCRIPT_URL -OutFile $AR_TEMP -UseBasicParsing -ErrorAction Stop
-Move-Item -Force -Path $AR_TEMP -Destination "$AR_BIN_DIR\delete-cert.ps1"
-icacls "$AR_BIN_DIR\delete-cert.ps1" /grant "*S-1-5-32-545:(RX)"
+Move-Item -Force -Path $AR_TEMP -Destination "$AR_BIN_DIR\delete-cert.cmd"
+icacls "$AR_BIN_DIR\delete-cert.cmd" /grant "*S-1-5-32-545:(RX)"
 
 # Step 4: Configure agent certificates
 PrintStep 4 "Configuring Wazuh agent certificates..."

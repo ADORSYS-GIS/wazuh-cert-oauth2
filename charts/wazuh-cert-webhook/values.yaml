@@ -112,7 +112,8 @@ webhook:
             #       name: wazuh-api-credentials
             #       key: password
             WAZUH_API_TOKEN: ""
-            WAZUH_AR_COMMAND: "delete-cert.sh"
+            WAZUH_AR_COMMAND_UNIX: "delete-cert.sh"
+            WAZUH_AR_COMMAND_WINDOWS: "delete-cert.cmd"
             WAZUH_EVICTION_GRACE_SECONDS: 30
             WAZUH_AR_SPOOL_TTL_SECONDS: 86400
 

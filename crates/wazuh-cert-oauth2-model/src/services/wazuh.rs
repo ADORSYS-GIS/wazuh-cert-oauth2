@@ -29,9 +29,16 @@ struct AgentsData {
 }
 
 #[derive(Deserialize, Debug)]
-struct AgentItem {
-    id: String,
-    name: String,
+pub struct AgentItem {
+    pub id: String,
+    pub name: String,
+    pub os: Option<OSInfo>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct OSInfo {
+    #[serde(default)]
+    pub platform: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -110,10 +117,10 @@ impl WazuhClient {
             });
         }
 
-        if let Some(cached) = (*self.token_cache.read().await).clone() {
-            if Instant::now() < cached.exp {
-                return Ok(cached.token);
-            }
+        if let Some(cached) = (*self.token_cache.read().await).clone()
+            && Instant::now() < cached.exp
+        {
+            return Ok(cached.token);
         }
 
         self.fetch_and_cache_token().await
@@ -265,13 +272,13 @@ impl WazuhClient {
         )))
     }
 
-    /// Returns the Wazuh agent ID for the given identifier (exact name or subject prefix).
-    #[tracing::instrument(skip(self), fields(agent_name = %agent_name.as_deref().unwrap_or(""), subject = %subject))]
-    pub async fn find_agent_id(
+    /// Returns the Wazuh agent details for the given identifier (exact name or subject prefix).
+    #[tracing::instrument(skip(self), fields(agent_name = %agent_name.unwrap_or(""), subject = %subject))]
+    pub async fn find_agent(
         &self,
         agent_name: Option<&str>,
         subject: &str,
-    ) -> AppResult<Option<String>> {
+    ) -> AppResult<Option<AgentItem>> {
         let name = match agent_name {
             Some(n) => n,
             None => return Ok(None),
@@ -308,7 +315,7 @@ impl WazuhClient {
         for item in body.data.affected_items {
             if item.name == name {
                 info!(agent_name = %name, agent_id = %item.id, "Found agent by name");
-                return Ok(Some(item.id));
+                return Ok(Some(item));
             }
         }
 
@@ -342,8 +349,8 @@ impl WazuhClient {
 
     /// Resolve and delete the agent.
     pub async fn delete_agent(&self, agent_name: Option<&str>, subject: &str) -> AppResult<()> {
-        if let Some(agent_id) = self.find_agent_id(agent_name, subject).await? {
-            self.execute_delete_agent(&agent_id, subject).await?;
+        if let Some(agent) = self.find_agent(agent_name, subject).await? {
+            self.execute_delete_agent(&agent.id, subject).await?;
         } else {
             info!(
                 subject,

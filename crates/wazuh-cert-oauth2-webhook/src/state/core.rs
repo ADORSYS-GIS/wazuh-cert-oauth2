@@ -329,6 +329,7 @@ mod tests {
             None,
             None,
             "delete-cert.sh".to_string(),
+            "delete-cert.ps1".to_string(),
             // wazuh_eviction_grace_seconds
             30,
             // wazuh_ar_spool_ttl_seconds
