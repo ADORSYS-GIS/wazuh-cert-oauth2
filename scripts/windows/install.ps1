@@ -217,12 +217,12 @@ icacls "$BIN_DIR\$APP_NAME.exe" /grant "*S-1-5-32-545:(RX)"
 # Step 3: Install active-response script
 $AR_BIN_DIR = "$BIN_DIR\active-response\bin"
 PrintStep 3 "Installing active-response script to $AR_BIN_DIR..."
-$AR_SCRIPT_URL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/windows/delete-cert.ps1"
+$AR_SCRIPT_URL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/windows/delete-cert.cmd"
 New-Item -ItemType Directory -Path $AR_BIN_DIR -Force
 $AR_TEMP = New-TemporaryFile
 Invoke-WebRequest -Uri $AR_SCRIPT_URL -OutFile $AR_TEMP -UseBasicParsing -ErrorAction Stop
-Move-Item -Force -Path $AR_TEMP -Destination "$AR_BIN_DIR\delete-cert.ps1"
-icacls "$AR_BIN_DIR\delete-cert.ps1" /grant "*S-1-5-32-545:(RX)"
+Move-Item -Force -Path $AR_TEMP -Destination "$AR_BIN_DIR\delete-cert.cmd"
+icacls "$AR_BIN_DIR\delete-cert.cmd" /grant "*S-1-5-32-545:(RX)"
 
 # Step 4: Configure agent certificates
 PrintStep 4 "Configuring Wazuh agent certificates..."
