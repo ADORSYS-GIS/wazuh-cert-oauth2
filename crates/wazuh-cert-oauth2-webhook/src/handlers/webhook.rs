@@ -82,8 +82,7 @@ async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
             match state.fetch_ledger_by_subject(&subject).await {
                 Ok(entries) => entries
                     .iter()
-                    .filter(|e| !e.revoked && e.wazuh_agent_name.is_some())
-                    .last()
+                    .rfind(|e| !e.revoked && e.wazuh_agent_name.is_some())
                     .and_then(|e| e.wazuh_agent_name.clone()),
                 Err(e) => {
                     warn!(subject = %subject, "Failed to fetch ledger from server: {}", e);
