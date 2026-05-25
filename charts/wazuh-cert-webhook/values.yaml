@@ -76,41 +76,17 @@ webhook:
             ROCKET_ADDRESS: '0.0.0.0'
 
             OAUTH_ISSUER: https://keycloak.login/realms/adorsys
-            OAUTH_CLIENT_ID:
-              valueFrom:
-                secretKeyRef:
-                  name: webhook-oauth2-client-credentials
-                  key: client-id
-            OAUTH_CLIENT_SECRET:
-              valueFrom:
-                secretKeyRef:
-                  name: webhook-oauth2-client-credentials
-                  key: client-secret
-            WEBHOOK_BASIC_USER:
-              valueFrom:
-                secretKeyRef:
-                  name: webhook-basic-credentials
-                  key: user
-            WEBHOOK_BASIC_PASSWORD:
-              valueFrom:
-                secretKeyRef:
-                  name: webhook-basic-credentials
-                  key: password
+            OAUTH_CLIENT_ID: ""
+            OAUTH_CLIENT_SECRET: ""
+            WEBHOOK_BASIC_USER: ""
+            WEBHOOK_BASIC_PASSWORD: ""
             GITHUB_TOKEN: ""
             GITHUB_REPO_OWNER: ""
             GITHUB_REPO_NAME: ""
             KEYCLOAK_ADMIN_BASE_URL: ""
             WAZUH_MANAGER_URL: ""
             WAZUH_API_USER: ""
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: wazuh-api-credentials
-            #       key: user
             WAZUH_API_PASSWORD: ""
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: wazuh-api-credentials
-            #       key: password
             WAZUH_API_TOKEN: ""
             WAZUH_AR_COMMAND_UNIX: "delete-cert.sh"
             WAZUH_AR_COMMAND_WINDOWS: "delete-cert.cmd"
