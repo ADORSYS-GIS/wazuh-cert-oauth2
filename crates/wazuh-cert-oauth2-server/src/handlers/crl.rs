@@ -49,13 +49,30 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for CrlResponse {
     }
 }
 
+pub enum CrlOrNotModified {
+    Crl(CrlResponse),
+    NotModified,
+}
+
+impl<'r, 'o: 'r> Responder<'r, 'o> for CrlOrNotModified {
+    fn respond_to(self, req: &'r Request<'_>) -> rocket::response::Result<'o> {
+        match self {
+            CrlOrNotModified::Crl(resp) => resp.respond_to(req),
+            CrlOrNotModified::NotModified => rocket::Response::build()
+                .status(Status::NotModified)
+                .raw_header("Cache-Control", "no-cache")
+                .ok(),
+        }
+    }
+}
+
 #[get("/crl/issuing.crl")]
 pub async fn get_crl(
     crl: &State<CrlState>,
     ledger: &State<Ledger>,
     ca: &State<CaProvider>,
     if_none_match: IfNoneMatch,
-) -> Result<CrlResponse, Status> {
+) -> Result<CrlOrNotModified, Status> {
     info!("GET /crl/issuing.crl requested");
 
     let client_etag = if_none_match.0;
@@ -77,11 +94,11 @@ pub async fn get_crl(
                 Ok(Ok(_)) => continue,
                 Ok(Err(_)) => {
                     debug!("Watch channel closed during long-poll; returning 304");
-                    return Err(Status::NotModified);
+                    return Ok(CrlOrNotModified::NotModified);
                 }
                 Err(_) => {
                     debug!("Long-poll timeout; returning 304");
-                    return Err(Status::NotModified);
+                    return Ok(CrlOrNotModified::NotModified);
                 }
             }
         }
@@ -110,7 +127,7 @@ pub async fn get_crl(
 
     let etag = crl.current_etag();
     debug!("CRL bytes length: {}, ETag: {}", bytes.len(), etag);
-    Ok(CrlResponse { etag, body: bytes })
+    Ok(CrlOrNotModified::Crl(CrlResponse { etag, body: bytes }))
 }
 
 /// Fetch the current revocation DB as JSON (admin/auth token recommended)
