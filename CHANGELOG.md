@@ -4,11 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[0408366](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0408366113b102f6cb266fe375647b8f8547a538)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[811d84b](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/811d84b912d4861cbc04da6ce38101bfb5d5ce14)
+
+### Documentation
+
+- Update CHANGELOG.md and checksums [skip ci] ([`55287cb`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/55287cbb3b6f4d45a9b7a4a7e269bf2c890eade3))
 
 ### Features
 
 - Implement CRL long-polling with ETag validation ([`0408366`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0408366113b102f6cb266fe375647b8f8547a538))
+
+### Refactor
+
+- Remove AR dependency, fix CRL ETag TOCTOU, harden eviction pipeline ([`811d84b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/811d84b912d4861cbc04da6ce38101bfb5d5ce14))
 
 ## wazuh-cert-webhook-0.4.3 - 2026-05-22
 
