@@ -4,16 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[c950994](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c9509940a5078df5894173952b0b4a1aaf653c34)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[0052cd7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0052cd7b09fba58183f460e895cb5261f6990084)
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`55287cb`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/55287cbb3b6f4d45a9b7a4a7e269bf2c890eade3))
 - Update CHANGELOG.md and checksums [skip ci] ([`c950994`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c9509940a5078df5894173952b0b4a1aaf653c34))
+- Update CHANGELOG.md and checksums [skip ci] ([`06474a0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/06474a041adfd49a5c4f1a74a4a6f3cc9cf5171f))
 
 ### Features
 
 - Implement CRL long-polling with ETag validation ([`0408366`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0408366113b102f6cb266fe375647b8f8547a538))
+- Added nginx sidecar docker file and image builds ([`0052cd7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0052cd7b09fba58183f460e895cb5261f6990084))
 
 ### Refactor
 
