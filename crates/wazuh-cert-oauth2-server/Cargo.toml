@@ -19,6 +19,7 @@ clap.workspace = true
 openssl-sys.workspace = true
 foreign-types.workspace = true
 url.workspace = true
+sha2.workspace = true
 
 [dependencies.wazuh-cert-oauth2-model]
 features = ["rocket", "openssl"]

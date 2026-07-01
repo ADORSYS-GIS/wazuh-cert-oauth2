@@ -1,5 +1,7 @@
 use rocket::State;
 use rocket::http::{ContentType, Status};
+use rocket::request::{FromRequest, Outcome, Request};
+use rocket::response::Responder;
 
 use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
@@ -9,18 +11,97 @@ use crate::shared::ledger::Ledger;
 use openssl::asn1::Asn1Time;
 use openssl::x509::X509Crl;
 use rocket::serde::json::Json;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::io::Cursor;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tokio::time;
 use tracing::{debug, error, info};
+
+const LONG_POLL_TIMEOUT_SECS: u64 = 25;
+
+pub struct IfNoneMatch(pub Option<String>);
+
+#[rocket::async_trait]
+impl<'r> FromRequest<'r> for IfNoneMatch {
+    type Error = ();
+
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let etag = req.headers().get_one("If-None-Match").map(|s| {
+            s.trim()
+                .trim_start_matches("W/")
+                .trim_matches('"')
+                .to_string()
+        });
+        Outcome::Success(IfNoneMatch(etag))
+    }
+}
+
+pub struct CrlResponse {
+    etag: String,
+    body: Vec<u8>,
+}
+
+impl<'r, 'o: 'r> Responder<'r, 'o> for CrlResponse {
+    fn respond_to(self, _req: &'r Request<'_>) -> rocket::response::Result<'o> {
+        rocket::Response::build()
+            .header(ContentType::new("application", "pkix-crl"))
+            .raw_header("ETag", format!("\"{}\"", self.etag))
+            .raw_header("Cache-Control", "no-cache")
+            .sized_body(self.body.len(), Cursor::new(self.body))
+            .ok()
+    }
+}
+
+pub enum CrlOrNotModified {
+    Crl(CrlResponse),
+    NotModified,
+}
+
+impl<'r, 'o: 'r> Responder<'r, 'o> for CrlOrNotModified {
+    fn respond_to(self, req: &'r Request<'_>) -> rocket::response::Result<'o> {
+        match self {
+            CrlOrNotModified::Crl(resp) => resp.respond_to(req),
+            CrlOrNotModified::NotModified => rocket::Response::build()
+                .status(Status::NotModified)
+                .raw_header("Cache-Control", "no-cache")
+                .ok(),
+        }
+    }
+}
 
 #[get("/crl/issuing.crl")]
 pub async fn get_crl(
     crl: &State<CrlState>,
     ledger: &State<Ledger>,
     ca: &State<CaProvider>,
-) -> Result<(ContentType, Vec<u8>), Status> {
+    if_none_match: IfNoneMatch,
+) -> Result<CrlOrNotModified, Status> {
     info!("GET /crl/issuing.crl requested");
 
     // Try read existing CRL
+    let client_etag = if_none_match.0;
+
+    if let Some(ref ctag) = client_etag {
+        let mut rx = crl.subscribe_rebuild();
+        loop {
+            let current = rx.borrow().clone();
+            if ctag != &current {
+                info!("Client ETag stale; serving fresh CRL");
+                break;
+            }
+            match time::timeout(Duration::from_secs(LONG_POLL_TIMEOUT_SECS), rx.changed()).await {
+                Ok(Ok(_)) => continue,
+                Ok(Err(_)) => {
+                    debug!("Watch channel closed during long-poll; returning 304");
+                    return Ok(CrlOrNotModified::NotModified);
+                }
+                Err(_) => {
+                    debug!("Long-poll timeout; returning 304");
+                    return Ok(CrlOrNotModified::NotModified);
+                }
+            }
+        }
+    }
+
     let mut bytes = crl.read_crl_file().await.unwrap_or_else(|_| Vec::new());
 
     // If missing or expired, rebuild via mpsc and re-read
@@ -44,8 +125,9 @@ pub async fn get_crl(
         })?;
     }
 
-    debug!("CRL bytes length: {}", bytes.len());
-    Ok((ContentType::new("application", "pkix-crl"), bytes))
+    let etag = crl.current_etag();
+    debug!("CRL bytes length: {}, ETag: {}", bytes.len(), etag);
+    Ok(CrlOrNotModified::Crl(CrlResponse { etag, body: bytes }))
 }
 
 /// Fetch the current revocation DB as JSON (admin/auth token recommended)
@@ -82,4 +164,39 @@ fn is_crl_expired(bytes: &[u8]) -> bool {
     // Consider expired if nextUpdate <= now
     // Use ordering if available; fall back to not-expired on panic
     next <= now_asn1.as_ref()
+}
+
+#[cfg(test)]
+mod tests {
+    fn strip_etag(raw: &str) -> Option<String> {
+        raw.trim()
+            .trim_start_matches("W/")
+            .trim_matches('"')
+            .to_string()
+            .into()
+    }
+
+    #[test]
+    fn strips_quoted_etag() {
+        let input = "\"abc123def456\"";
+        assert_eq!(strip_etag(input), Some("abc123def456".to_string()));
+    }
+
+    #[test]
+    fn strips_weak_validator_prefix() {
+        let input = "W/\"abc123def456\"";
+        assert_eq!(strip_etag(input), Some("abc123def456".to_string()));
+    }
+
+    #[test]
+    fn passes_through_unquoted_etag() {
+        let input = "abc123def456";
+        assert_eq!(strip_etag(input), Some("abc123def456".to_string()));
+    }
+
+    #[test]
+    fn handles_whitespace() {
+        let input = "  \"abc123\"  ";
+        assert_eq!(strip_etag(input), Some("abc123".to_string()));
+    }
 }
