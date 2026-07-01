@@ -6,7 +6,7 @@ This document describes the high-level architecture of the `wazuh-cert-oauth2` p
 
 1.  **Wazuh Agent CLI (`wazuh-cert-oauth2-client`)**: A CLI tool run on the Wazuh agent host. It handles user authentication via OIDC, CSR generation, and submission to the backend.
 2.  **Certificate Server (`wazuh-cert-oauth2-server`)**: The central backend that validates OIDC tokens, signs CSRs using a Root CA, and manages the Certificate Revocation List (CRL).
-3.  **Webhook Proxy (`wazuh-cert-oauth2-webhook`)**: A specialized service that listens for events from the Identity Provider (e.g., Keycloak). It features persistent disk-backed spooling for reliable delivery of revocations, GitHub issue creation, and Wazuh agent evictions.
+3.  **Webhook Proxy (`wazuh-cert-oauth2-webhook`)**: A specialized service that listens for events from the Identity Provider (e.g., Keycloak). It features persistent disk-backed spooling for reliable delivery of revocations, GitHub issue creation, and Wazuh agent evictions via the Wazuh Manager REST API.
 4.  **Keycloak (IdP)**: The Identity Provider responsible for user authentication and triggering webhook events when user states change.
 
 ---
@@ -116,50 +116,80 @@ sequenceDiagram
     end
 ```
 
-### 4. Internal Eviction Flow (Server-to-Webhook)
+### 4. Agent Eviction Flow
 
-When the Certificate Server detects a re-enrollment that overrides an active certificate, it notifies the Webhook Proxy to perform an agent eviction in Wazuh.
+When a certificate is revoked, the corresponding Wazuh agent must be removed from the manager. The eviction pipeline resolves the agent by name via the Wazuh Manager REST API and deletes it directly.
+
+#### 4a. Keycloak-Triggered Eviction (User Delete/Update)
+
+When Keycloak fires a user-delete or user-update event, the webhook revokes the certificate and then queues an eviction request.
 
 ```mermaid
 sequenceDiagram
     autonumber
 
-    participant Server as Certificate Server (wazuh-cert-oauth2-server)
-    participant Webhook as Webhook Proxy (wazuh-cert-oauth2-webhook)
+    participant Keycloak as Keycloak (IdP)
+    participant Webhook as Webhook Proxy
+    participant Server as Certificate Server
     participant Wazuh as Wazuh Manager API
 
-    Server->>Webhook: POST /api/internal/evict (Subject, Agent Name, Reason)
-    
-    Note right of Webhook: Immediate Eviction Attempt
-    
-    alt Reason: "auto-rotate"
-        Webhook->>Wazuh: DELETE /agents/{agent_id}
-    else Standard Reason
-        Webhook->>Wazuh: PUT /active-response (delete-cert)
-        alt AR Outcome: "Sent"
-            Webhook->>Webhook: Wait Grace Period (default 30s)
-            Webhook->>Wazuh: DELETE /agents/{agent_id}
-        else AR Outcome: "AgentOffline"
-            Webhook->>Webhook: Spool AR Command to Disk
-            Note over Webhook: Spool Processor Loop
-            loop Until "Sent" or "TTL Expired"
-                Webhook->>Wazuh: Retry PUT /active-response
-            end
-            Webhook->>Wazuh: DELETE /agents/{agent_id}
-        end
-    end
+    Keycloak->>Webhook: POST /webhook (User Deleted/Updated)
+    Webhook->>Webhook: Extract subject (userId)
+    Webhook->>Server: GET /api/ledger/subject/{subject} (fetch agent name)
+    Server-->>Webhook: Ledger entries (with wazuh_agent_name)
+    Webhook->>Server: POST /api/revoke (revoke certificate)
+    Server-->>Webhook: 204 No Content
+    Server->>Server: Mark cert revoked, rebuild CRL
 
-    alt Network Failure
-        Webhook->>Webhook: Spool Eviction to Disk
-        Webhook->>Webhook: Retry in background from Spool
-    else Success / TTL Expired
-        Webhook->>Webhook: Done
+    Note right of Webhook: Queue eviction for agent
+    Webhook->>Webhook: Spool EvictRequest to disk
+
+    Note right of Webhook: Spool Processor
+    Webhook->>Wazuh: GET /agents?search={agent_name} (resolve agent)
+    Wazuh-->>Webhook: Agent ID
+    Note right of Webhook: Wait grace period (default 30s)
+    Webhook->>Wazuh: DELETE /agents/{agent_id}
+    Wazuh-->>Webhook: 200 OK
+
+    alt Wazuh API Unreachable
+        Webhook->>Webhook: Keep EvictRequest in spool, retry later
     end
 ```
 
-#### Webhook Details:
-- **Resiliency**: The Webhook Proxy includes a persistent spooling mechanism and automatic retries with exponential backoff for all upstream requests (Certificate Server and GitHub API).
-- **Hardened Eviction**: The eviction pipeline delays agent deletion if the agent is offline, ensuring the certificate deletion command is spooled and delivered when the agent reconnects.
+#### 4b. Auto-Rotate Eviction (Server-Triggered)
+
+When the Certificate Server detects a re-enrollment that overrides an active certificate, it notifies the Webhook Proxy to evict the old agent immediately — no grace period.
+
+```mermaid
+sequenceDiagram
+    autonumber
+
+    participant Agent as Wazuh Agent CLI
+    participant Server as Certificate Server
+    participant Webhook as Webhook Proxy
+    participant Wazuh as Wazuh Manager API
+
+    Agent->>Server: POST /api/register-agent (re-enrollment)
+    Server->>Server: Detect active cert for same subject
+    Server->>Server: Revoke old cert, rebuild CRL
+    Server->>Webhook: POST /api/internal/evict (subject, agent_name, "auto-rotate")
+
+    Webhook->>Wazuh: GET /agents?search={agent_name} (resolve agent)
+    Wazuh-->>Webhook: Agent ID
+    Note right of Webhook: Grace period skipped for auto-rotate
+    Webhook->>Wazuh: DELETE /agents/{agent_id}
+    Wazuh-->>Webhook: 200 OK
+
+    alt Wazuh API Unreachable
+        Webhook->>Webhook: Spool EvictRequest, retry later
+    end
+```
+
+#### Eviction Details:
+- **Direct API**: The eviction pipeline resolves agents by name via `GET /agents?search=` and deletes them via `DELETE /agents/{id}` using the Wazuh Manager REST API.
+- **Grace Period**: For Keycloak-triggered revocations, the webhook waits `WAZUH_EVICTION_GRACE_SECONDS` (default 30s) before deleting the agent, giving it time to receive the updated CRL and disconnect gracefully. This delay is skipped for auto-rotate revocations.
+- **Resiliency**: If the Wazuh API is unreachable, the EvictRequest is persisted to the spool directory and retried in the background with exponential backoff.
+- **Double-Failure Safety**: If both the direct eviction call and the spool queue fail, the `/api/internal/evict` endpoint returns `500 Internal Server Error` so the caller (cert-server) knows the request was lost and can retry.
 - **Filtering**: The proxy identifies revoke-eligible events (`USER-DELETE`/`USER-UPDATE`) and ticket-eligible events (`REGISTER`/`USER-CREATE`).
 - **GitHub Integration**: For registration events, the proxy automatically creates a tracking issue in the configured GitHub repository.
 
@@ -171,5 +201,5 @@ sequenceDiagram
 | :--- | :--- |
 | **Client** | CSR Generation, OIDC Auth, Local Config Management |
 | **Server** | Token Validation, CSR Signing (CA), CRL Generation, Ledger Persistence |
-| **Webhook** | Event Transformation, Persistent Spooling, Wazuh Agent Eviction |
+| **Webhook** | Event Transformation, Persistent Spooling, Wazuh Agent Eviction (via REST API) |
 | **Model** | Shared Data Structures & Centralized Wazuh API Client |

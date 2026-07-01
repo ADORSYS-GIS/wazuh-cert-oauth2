@@ -20,11 +20,18 @@ pub struct RevocationEntry {
     pub revoked_at_unix: u64,
 }
 
+/// Compute a SHA-256 ETag from arbitrary bytes.
+pub fn compute_etag(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!("{:x}", hasher.finalize())
+}
+
 #[derive(Clone)]
 pub struct CrlState {
     crl_file_path: PathBuf,
     tx: mpsc::Sender<worker::Command>,
-    rebuild_notify: Arc<watch::Sender<String>>,
+    rebuild_notify: watch::Sender<String>,
 }
 
 impl CrlState {
@@ -43,7 +50,7 @@ impl CrlState {
         Ok(Self {
             crl_file_path,
             tx,
-            rebuild_notify: Arc::new(rebuild_tx),
+            rebuild_notify: rebuild_tx,
         })
     }
 
@@ -59,21 +66,11 @@ impl CrlState {
         self.rebuild_notify.subscribe()
     }
 
-    pub fn current_etag(&self) -> String {
-        self.rebuild_notify.borrow().clone()
-    }
-
     async fn compute_etag_from_file(path: &PathBuf) -> String {
         match fs::read(path).await {
-            Ok(bytes) => Self::compute_etag(&bytes),
+            Ok(bytes) => compute_etag(&bytes),
             Err(_) => String::new(),
         }
-    }
-
-    fn compute_etag(bytes: &[u8]) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(bytes);
-        format!("{:x}", hasher.finalize())
     }
 
     #[tracing::instrument(skip(self, ca_cert, ca_key, entries_snapshot))]
@@ -98,7 +95,7 @@ impl CrlState {
                     e
                 ))
             })?;
-        let _etag = rx_done.await.map_err(|e| {
+        rx_done.await.map_err(|e| {
             wazuh_cert_oauth2_model::models::errors::AppError::UpstreamError(format!(
                 "crl worker closed: {}",
                 e

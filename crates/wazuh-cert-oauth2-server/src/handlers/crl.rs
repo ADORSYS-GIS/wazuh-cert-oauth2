@@ -7,6 +7,7 @@ use crate::handlers::middle::JwtToken;
 use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
 use crate::shared::crl::RevocationEntry;
+use crate::shared::crl::compute_etag;
 use crate::shared::ledger::Ledger;
 use openssl::asn1::Asn1Time;
 use openssl::x509::X509Crl;
@@ -15,6 +16,7 @@ use std::io::Cursor;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time;
 use tracing::{debug, error, info};
+use wazuh_cert_oauth2_model::models::errors::AppError;
 
 const LONG_POLL_TIMEOUT_SECS: u64 = 25;
 
@@ -102,7 +104,14 @@ pub async fn get_crl(
         }
     }
 
-    let mut bytes = crl.read_crl_file().await.unwrap_or_else(|_| Vec::new());
+    let mut bytes = match crl.read_crl_file().await {
+        Ok(b) => b,
+        Err(AppError::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => {
+            error!("Failed to read CRL file: {}", e);
+            return Err(Status::InternalServerError);
+        }
+    };
 
     // If missing or expired, rebuild via mpsc and re-read
     if bytes.is_empty() || is_crl_expired(&bytes) {
@@ -125,7 +134,7 @@ pub async fn get_crl(
         })?;
     }
 
-    let etag = crl.current_etag();
+    let etag = compute_etag(&bytes);
     debug!("CRL bytes length: {}, ETag: {}", bytes.len(), etag);
     Ok(CrlOrNotModified::Crl(CrlResponse { etag, body: bytes }))
 }

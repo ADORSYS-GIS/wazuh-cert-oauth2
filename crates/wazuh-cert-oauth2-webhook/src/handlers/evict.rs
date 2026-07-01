@@ -26,7 +26,11 @@ pub async fn internal_evict(
     if let Err(e) = state.run_eviction_from_state(req.clone()).await {
         tracing::warn!(subject = %req.subject, "Eviction failed, queuing for retry: {}", e);
         if let Err(qe) = state.queue_evict(req).await {
-            tracing::error!("Failed to queue eviction as fallback: {}", qe);
+            tracing::error!(
+                "Eviction failed AND spool queue failed — request lost: {}",
+                qe
+            );
+            return Err(Status::InternalServerError);
         }
     }
 

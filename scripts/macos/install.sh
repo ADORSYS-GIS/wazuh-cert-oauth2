@@ -13,7 +13,6 @@ WOPS_VERSION=${WOPS_VERSION:-"0.4.3"}
 WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERSION}"}
 WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
 WAZUH_CERT_OAUTH2_RELEASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v${WOPS_VERSION}"
-AR_BIN_DIR=${AR_BIN_DIR:-"/Library/Ossec/active-response/bin"}
 # Create a secure temporary directory for utilities
 UTILS_TMP=$(mktemp -d)
 trap 'rm -rf "$UTILS_TMP"' EXIT
@@ -168,14 +167,7 @@ maybe_sudo mkdir -p "$BIN_DIR" || error_exit "Failed to create directory $BIN_DI
 maybe_sudo mv "$TEMP_DIR/$BIN_NAME" "$BIN_DIR/$APP_NAME" || error_exit "Failed to move binary to $BIN_DIR"
 maybe_sudo chmod 750 "$BIN_DIR/$APP_NAME" || error_exit "Failed to set executable permissions on the binary"
 
-# Step 3: Install active-response script
-print_step 3 "Installing active-response script..."
-maybe_sudo mkdir -p "$AR_BIN_DIR" || error_exit "Failed to create directory $AR_BIN_DIR"
-download_and_verify_file "${WAZUH_CERT_OAUTH2_REPO_URL}/scripts/macos/delete-cert.sh" "$TEMP_DIR/delete-cert.sh" "scripts/macos/delete-cert.sh" "delete-cert.sh" "${WAZUH_CERT_OAUTH2_RELEASE_URL}/checksums.sha256"
-maybe_sudo mv "$TEMP_DIR/delete-cert.sh" "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to install delete-cert.sh"
-maybe_sudo chmod 750 "$AR_BIN_DIR/delete-cert.sh" || error_exit "Failed to set permissions on delete-cert.sh"
-
-# Step 4: Configure agent certificates
+# Step 3: Configure agent certificates
 print_step 4 "Configuring Wazuh agent certificates..."
 
 ## If OSSEC_CONF_PATH exist, then configure agent
@@ -185,7 +177,7 @@ else
     warn_message "Wazuh agent configuration file not found at $OSSEC_CONF_PATH. Skipping agent certificate configuration."
 fi
 
-# Step 5: Validate installation and configuration
+# Step 4: Validate installation and configuration
 print_step 5 "Validating installation and configuration..."
 validate_installation
 

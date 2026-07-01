@@ -3,13 +3,13 @@ use std::sync::Arc;
 
 use openssl::pkey::{PKey, Private};
 use openssl::x509::X509;
-use sha2::{Digest, Sha256};
 use tokio::fs;
 use tokio::sync::{mpsc, oneshot, watch};
 use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 use super::RevocationEntry;
+use super::compute_etag;
 use super::ffi;
 
 pub(super) enum Command {
@@ -17,7 +17,7 @@ pub(super) enum Command {
         ca_cert: Arc<X509>,
         ca_key: Arc<PKey<Private>>,
         entries_snapshot: Vec<RevocationEntry>,
-        respond_to: oneshot::Sender<AppResult<String>>,
+        respond_to: oneshot::Sender<AppResult<()>>,
     },
 }
 
@@ -51,7 +51,7 @@ async fn apply_rebuild(
     ca_key: &PKey<Private>,
     entries_snapshot: Vec<RevocationEntry>,
     rebuild_notify: &watch::Sender<String>,
-) -> AppResult<String> {
+) -> AppResult<()> {
     info!(
         "Rebuilding CRL with {} revocation entries",
         entries_snapshot.len()
@@ -74,9 +74,7 @@ async fn apply_rebuild(
     fs::write(&tmp, &bytes).await?;
     fs::rename(tmp, path).await?;
 
-    let mut hasher = Sha256::new();
-    hasher.update(&bytes);
-    let etag = format!("{:x}", hasher.finalize());
+    let etag = compute_etag(&bytes);
 
     info!(
         "CRL updated at {} (took {:?}, etag={})",
@@ -85,7 +83,7 @@ async fn apply_rebuild(
         etag
     );
 
-    rebuild_notify.send_replace(etag.clone());
+    rebuild_notify.send_replace(etag);
 
-    Ok(etag)
+    Ok(())
 }

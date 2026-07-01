@@ -41,38 +41,6 @@ pub struct OSInfo {
     pub platform: String,
 }
 
-#[derive(Deserialize, Debug)]
-struct ArResponse {
-    data: ArData,
-    #[serde(default)]
-    error: u32,
-}
-
-#[derive(Deserialize, Debug, Default)]
-struct ArData {
-    #[serde(default)]
-    total_affected_items: u32,
-    #[serde(default)]
-    failed_items: Vec<ArFailedItem>,
-}
-
-#[derive(Deserialize, Debug)]
-struct ArFailedItem {
-    error: ArFailedItemError,
-}
-
-#[derive(Deserialize, Debug)]
-struct ArFailedItemError {
-    code: u32,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum ArOutcome {
-    Sent,
-    AgentOffline,
-    AgentGone,
-}
-
 #[derive(Clone)]
 struct CachedToken {
     token: String,
@@ -214,62 +182,6 @@ impl WazuhClient {
             }
         }
         unreachable!("retry loop exhausted")
-    }
-
-    #[tracing::instrument(skip(self), fields(agent_id = %agent_id))]
-    pub async fn send_active_response_raw(
-        &self,
-        agent_id: &str,
-        command: &str,
-    ) -> AppResult<ArOutcome> {
-        let url = format!(
-            "{}/active-response?agents_list={}",
-            self.manager_url.trim_end_matches('/'),
-            agent_id
-        );
-        let payload = serde_json::json!({
-            "command": format!("!{}", command),
-            "arguments": []
-        });
-
-        let resp = self
-            .with_retry(|token| {
-                let url = url.clone();
-                let payload = payload.clone();
-                async move { Ok(self.http.put(&url).bearer_auth(token).json(&payload)) }
-            })
-            .await?;
-
-        let status = resp.status();
-        let body_bytes = resp
-            .bytes()
-            .await
-            .map_err(|e| AppError::UpstreamError(format!("AR response body read failed: {e}")))?;
-
-        let ar_resp: ArResponse = serde_json::from_slice(&body_bytes).map_err(|e| {
-            AppError::UpstreamError(format!(
-                "AR response parse failed (status={}): {}",
-                status, e
-            ))
-        })?;
-
-        // Check for specific Wazuh error codes in failed_items
-        if let Some(failed) = ar_resp.data.failed_items.first() {
-            match failed.error.code {
-                1707 => return Ok(ArOutcome::AgentOffline),
-                1701 => return Ok(ArOutcome::AgentGone),
-                _ => {}
-            }
-        }
-
-        if ar_resp.data.total_affected_items > 0 {
-            return Ok(ArOutcome::Sent);
-        }
-
-        Err(AppError::UpstreamError(format!(
-            "AR command failed with status {} and error code {}",
-            status, ar_resp.error
-        )))
     }
 
     /// Returns the Wazuh agent details for the given identifier (exact name or subject prefix).
