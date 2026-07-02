@@ -8,5 +8,6 @@ RUN apk add --no-cache curl openssl \
     && chown -R nginx:nginx /var/log/nginx \
     && chown -R nginx:nginx /run \
     && touch /var/run/nginx.pid && chown nginx:nginx /var/run/nginx.pid \
+    && mkdir -p /opt/sidecar/scripts && chown nginx:nginx /opt/sidecar/scripts \
     && sed -i 's/^user  nginx;/#user  nginx;/' /etc/nginx/nginx.conf
 USER nginx
