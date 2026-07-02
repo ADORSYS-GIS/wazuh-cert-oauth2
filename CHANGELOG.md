@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[214268d](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/214268d3b1ccf279d5cde842957e447f0571a920)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[238d9c8](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/238d9c85057917ad2406bd6052bb14644c549921)
 
 ### Bug Fixes
 
@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`5093767`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5093767eb0c6eb1b8370d974ac8b1cfa38b64d48))
 - Update CHANGELOG.md and checksums [skip ci] ([`605b1d5`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/605b1d5ee322788f77503bd2d45149e959d55646))
 - Update CHANGELOG.md and checksums [skip ci] ([`9daa265`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9daa265a9559d115680fc6a674657fb90b2175ef))
+- Update CHANGELOG.md and checksums [skip ci] ([`a102319`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a1023198489412a0ad2c4cb4d20f77ecc215e29d))
 
 ### Features
 
@@ -30,6 +31,7 @@ All notable changes to this project will be documented in this file.
 ### Miscellaneous Tasks
 
 - Add trailing newline to build workflow file ([`b156658`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b1566586a2d7dc4f6865ca015cdc0c0ad7a9143b))
+- Update nginx directory permissions and create pid file for non-root execution ([`238d9c8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/238d9c85057917ad2406bd6052bb14644c549921))
 
 ### Refactor
 
