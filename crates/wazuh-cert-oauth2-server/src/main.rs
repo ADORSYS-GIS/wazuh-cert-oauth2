@@ -4,6 +4,7 @@ extern crate rocket;
 use std::time::Duration;
 
 use crate::handlers::crl::{get_crl, get_revocations};
+use crate::handlers::crl_fairing::CrlEtagFairing;
 use crate::handlers::health::health;
 use crate::handlers::ledger::{
     get_active_ledger, get_all_ledger, get_ledger_by_subject, get_revoked_ledger,
@@ -83,6 +84,7 @@ async fn main() -> AppResult<()> {
         .manage(Ledger::new(ledger_path.into()).await?)
         .manage(CrlState::new(crl_path.into()).await?)
         .manage(webhook_notifier)
+        .attach(CrlEtagFairing)
         .mount("/", routes![health, get_crl])
         .mount(
             "/api",

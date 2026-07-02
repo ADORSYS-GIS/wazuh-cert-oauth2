@@ -4,15 +4,25 @@ Purpose
 
 - Receives webhooks from the OIDC/IdP (e.g., Keycloak) and translates them into certificate revocations.
 - Forwards revocation requests to the server with retry and persistent spooling.
+- Evicts Wazuh agents via the Wazuh Manager REST API when certificates are revoked.
 - Supports multiple inbound auth options for the webhook endpoint (Basic, Bearer, API key, or anonymous when none configured).
 - Can acquire an OAuth2 client-credentials token (or use a static bearer) to call the server.
-- Future: optionally disable Wazuh agent on revoke (not yet implemented).
 
 Endpoints
 
 - `GET /health`: liveness probe.
-- `POST /api/webhook`: receives IdP event payloads; will ignore, revoke, or cancel queued revokes depending on event type/body.
-- `POST /api/internal/evict`: internal endpoint for the cert server to trigger agent eviction.
+- `POST /api/webhook`: receives IdP event payloads; will ignore, revoke, or create a GitHub ticket depending on event type.
+- `POST /api/internal/evict`: internal endpoint for the cert server to trigger agent eviction after auto-rotate override.
+
+Eviction Pipeline
+
+When a certificate is revoked, the webhook evicts the corresponding Wazuh agent:
+
+1. **Keycloak-triggered** (user-delete/user-update): The webhook fetches the agent name from the ledger, revokes the cert, then queues an `EvictRequest`. The spool processor resolves the agent by name via the Wazuh API, waits the grace period (`WAZUH_EVICTION_GRACE_SECONDS`, default 30s), then deletes the agent.
+
+2. **Auto-rotate** (server-triggered): The cert-server calls `/api/internal/evict` when a re-enrollment overrides an active cert. The grace period is skipped. The old agent is deleted immediately.
+
+If the Wazuh API is unreachable, the `EvictRequest` is persisted to the spool directory and retried with exponential backoff. If both the direct eviction and the spool queue fail, the endpoint returns `500 Internal Server Error`.
 
 Configuration
 
@@ -37,9 +47,7 @@ Configuration
 - `--wazuh-api-user` (`WAZUH_API_USER`): Wazuh API user (optional).
 - `--wazuh-api-password` (`WAZUH_API_PASSWORD`): Wazuh API password (optional).
 - `--wazuh-api-token` (`WAZUH_API_TOKEN`): Wazuh API static token (optional).
-- `--wazuh-ar-command` (`WAZUH_AR_COMMAND`, default `delete-cert.sh`): Active-response command to run.
-- `--wazuh-eviction-grace-seconds` (`WAZUH_EVICTION_GRACE_SECONDS`, default 30): Grace period before agent deletion.
-- `--wazuh-ar-spool-ttl-seconds` (`WAZUH_AR_SPOOL_TTL_SECONDS`, default 86400): TTL for pending AR commands (e.g. 24h) before forcing agent deletion.
+- `--wazuh-eviction-grace-seconds` (`WAZUH_EVICTION_GRACE_SECONDS`, default 30): Grace period before agent deletion (skipped for auto-rotate).
 - Inbound webhook auth (any set are accepted):
   - `--webhook-basic-user` (`WEBHOOK_BASIC_USER`)
   - `--webhook-basic-password` (`WEBHOOK_BASIC_PASSWORD`)

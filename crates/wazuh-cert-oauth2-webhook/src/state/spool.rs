@@ -26,21 +26,11 @@ pub struct EvictRequest {
     pub triggered_at_unix: u64,
 }
 
-/// Represents a pending active-response command that couldn't be delivered.
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ArPendingRequest {
-    pub agent_id: String,
-    pub subject: String,
-    pub command: String,
-    pub created_at_unix: u64,
-}
-
 #[derive(Serialize, Deserialize)]
 enum SpoolItem {
     RevokeRequest { req: RevokeRequest },
     GitHubTicket { ticket: GitHubTicket },
     EvictRequest { req: EvictRequest },
-    ArPendingRequest { req: ArPendingRequest },
 }
 
 #[tracing::instrument(skip(state, item))]
@@ -81,13 +71,6 @@ pub async fn queue_github_ticket_to_spool_dir(
 
 pub async fn queue_evict_to_spool_dir(state: &ProxyState, req: EvictRequest) -> AppResult<()> {
     queue_item_to_spool_dir(state, SpoolItem::EvictRequest { req }, "evict").await
-}
-
-pub async fn queue_ar_pending_to_spool_dir(
-    state: &ProxyState,
-    req: ArPendingRequest,
-) -> AppResult<()> {
-    queue_item_to_spool_dir(state, SpoolItem::ArPendingRequest { req }, "ar-pending").await
 }
 
 #[tracing::instrument(skip(state))]
@@ -131,9 +114,6 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
                             state.forward_github_ticket_with_retry(ticket).await
                         }
                         SpoolItem::EvictRequest { req } => state.run_eviction_from_state(req).await,
-                        SpoolItem::ArPendingRequest { req } => {
-                            state.run_ar_pending_from_state(req).await
-                        }
                     };
 
                     match res {
@@ -204,17 +184,13 @@ mod tests {
             None,
             // keycloak_admin_base_url
             None,
-            // wazuh: manager_url, api_user, api_password, api_token, ar_command
+            // wazuh: manager_url, api_user, api_password, api_token
             None,
             None,
             None,
             None,
-            "delete-cert.sh".to_string(),
-            "delete-cert.ps1".to_string(),
             // wazuh_eviction_grace_seconds
             30,
-            // wazuh_ar_spool_ttl_seconds
-            86400,
         )
         .expect("state should build")
     }

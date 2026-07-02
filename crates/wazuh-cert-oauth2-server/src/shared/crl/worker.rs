@@ -4,11 +4,13 @@ use std::sync::Arc;
 use openssl::pkey::{PKey, Private};
 use openssl::x509::X509;
 use tokio::fs;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
+use super::CrlWatchValue;
 use super::RevocationEntry;
+use super::compute_etag;
 use super::ffi;
 
 pub(super) enum Command {
@@ -20,7 +22,11 @@ pub(super) enum Command {
     },
 }
 
-pub(super) fn spawn_crl_worker(path: PathBuf, mut rx: mpsc::Receiver<Command>) {
+pub(super) fn spawn_crl_worker(
+    path: PathBuf,
+    mut rx: mpsc::Receiver<Command>,
+    rebuild_notify: watch::Sender<CrlWatchValue>,
+) {
     tokio::spawn(async move {
         while let Some(cmd) = rx.recv().await {
             match cmd {
@@ -30,7 +36,9 @@ pub(super) fn spawn_crl_worker(path: PathBuf, mut rx: mpsc::Receiver<Command>) {
                     entries_snapshot,
                     respond_to,
                 } => {
-                    let res = apply_rebuild(&path, &ca_cert, &ca_key, entries_snapshot).await;
+                    let res =
+                        apply_rebuild(&path, &ca_cert, &ca_key, entries_snapshot, &rebuild_notify)
+                            .await;
                     let _ = respond_to.send(res);
                 }
             }
@@ -43,6 +51,7 @@ async fn apply_rebuild(
     ca_cert: &X509,
     ca_key: &PKey<Private>,
     entries_snapshot: Vec<RevocationEntry>,
+    rebuild_notify: &watch::Sender<CrlWatchValue>,
 ) -> AppResult<()> {
     info!(
         "Rebuilding CRL with {} revocation entries",
@@ -65,10 +74,17 @@ async fn apply_rebuild(
     );
     fs::write(&tmp, &bytes).await?;
     fs::rename(tmp, path).await?;
+
+    let etag = compute_etag(&bytes);
+
     info!(
-        "CRL updated at {} (took {:?})",
+        "CRL updated at {} (took {:?}, etag={})",
         path.display(),
-        started.elapsed()
+        started.elapsed(),
+        etag
     );
+
+    rebuild_notify.send_replace((etag, Some(Arc::new(bytes))));
+
     Ok(())
 }

@@ -63,10 +63,7 @@ services:
       WAZUH_API_USER: ""
       WAZUH_API_PASSWORD: ""
       WAZUH_API_TOKEN: ""
-      WAZUH_AR_COMMAND_WINDOWS: "delete-cert.cmd"
-      WAZUH_AR_COMMAND_UNIX: "delete-cert.sh"
       WAZUH_EVICTION_GRACE_SECONDS: 30
-      WAZUH_AR_SPOOL_TTL_SECONDS: 86400
     user: "${UID:-}:${GID:-}"
     volumes:
       - webhook:/data/spool
