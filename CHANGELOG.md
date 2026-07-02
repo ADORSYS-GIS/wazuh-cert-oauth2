@@ -4,12 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[b156658](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b1566586a2d7dc4f6865ca015cdc0c0ad7a9143b)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[214268d](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/214268d3b1ccf279d5cde842957e447f0571a920)
 
 ### Bug Fixes
 
 - Restore long-poll, use fairing for ETag extraction, harden error paths ([`eb5eb6e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/eb5eb6e0546d643e22ba36c2f67e82f9b5ec4110))
 - Add non-root USER to nginx sidecar Dockerfile (Trivy DS-0002) ([`0e53462`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0e53462a01fecf084cd21da0e7dda6150975597c))
+- Create nginx cache dirs and chown /run before USER switch ([`214268d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/214268d3b1ccf279d5cde842957e447f0571a920))
 
 ### Documentation
 
@@ -19,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`e78dcf7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e78dcf73e38537d19076b339995fce0699080d72))
 - Update CHANGELOG.md and checksums [skip ci] ([`5093767`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5093767eb0c6eb1b8370d974ac8b1cfa38b64d48))
 - Update CHANGELOG.md and checksums [skip ci] ([`605b1d5`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/605b1d5ee322788f77503bd2d45149e959d55646))
+- Update CHANGELOG.md and checksums [skip ci] ([`9daa265`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9daa265a9559d115680fc6a674657fb90b2175ef))
 
 ### Features
 
