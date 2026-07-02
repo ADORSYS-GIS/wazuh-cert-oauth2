@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[0e53462](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0e53462a01fecf084cd21da0e7dda6150975597c)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[b156658](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b1566586a2d7dc4f6865ca015cdc0c0ad7a9143b)
 
 ### Bug Fixes
 
@@ -18,11 +18,16 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`06474a0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/06474a041adfd49a5c4f1a74a4a6f3cc9cf5171f))
 - Update CHANGELOG.md and checksums [skip ci] ([`e78dcf7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e78dcf73e38537d19076b339995fce0699080d72))
 - Update CHANGELOG.md and checksums [skip ci] ([`5093767`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5093767eb0c6eb1b8370d974ac8b1cfa38b64d48))
+- Update CHANGELOG.md and checksums [skip ci] ([`605b1d5`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/605b1d5ee322788f77503bd2d45149e959d55646))
 
 ### Features
 
 - Implement CRL long-polling with ETag validation ([`0408366`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0408366113b102f6cb266fe375647b8f8547a538))
 - Added nginx sidecar docker file and image builds ([`0052cd7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0052cd7b09fba58183f460e895cb5261f6990084))
+
+### Miscellaneous Tasks
+
+- Add trailing newline to build workflow file ([`b156658`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b1566586a2d7dc4f6865ca015cdc0c0ad7a9143b))
 
 ### Refactor
 
