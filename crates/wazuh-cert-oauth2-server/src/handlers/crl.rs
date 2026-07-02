@@ -132,7 +132,7 @@ pub async fn get_crl(
         loop {
             let remaining = deadline.saturating_duration_since(time::Instant::now());
             if remaining.is_zero() {
-                warn!("Long-poll timeout for ETag {}", &etag);
+                debug!("Long-poll timeout for ETag {}", &etag);
                 return Ok(CrlOrNotModified::NotModified(etag));
             }
 
@@ -170,7 +170,7 @@ pub async fn get_crl(
                 }
                 Err(_) => {
                     // Timeout elapsed.
-                    warn!("Long-poll timeout for ETag {}", &etag);
+                    debug!("Long-poll timeout for ETag {}", &etag);
                     return Ok(CrlOrNotModified::NotModified(etag));
                 }
             }
