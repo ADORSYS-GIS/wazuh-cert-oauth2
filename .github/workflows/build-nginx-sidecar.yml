@@ -30,6 +30,16 @@ jobs:
           fetch-depth: "0"
           persist-credentials: 'false'
 
+      - name: Dockerfile scan (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: 'config'
+          scan-ref: './docker/nginx-sidecar'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          hide-progress: true
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
 
@@ -62,6 +72,14 @@ jobs:
             type=sha,format=long,prefix={{branch}}
           images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}
 
+      - name: Cache Docker layers
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-nginx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-nginx-
+
       - name: Build and push
         id: build
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
@@ -75,4 +93,11 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      # Prevent unbounded cache growth: rotate cache directory
+      - name: Rotate buildx cache
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true

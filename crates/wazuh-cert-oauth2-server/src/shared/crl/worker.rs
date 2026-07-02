@@ -8,6 +8,7 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
+use super::CrlWatchValue;
 use super::RevocationEntry;
 use super::compute_etag;
 use super::ffi;
@@ -24,7 +25,7 @@ pub(super) enum Command {
 pub(super) fn spawn_crl_worker(
     path: PathBuf,
     mut rx: mpsc::Receiver<Command>,
-    rebuild_notify: watch::Sender<String>,
+    rebuild_notify: watch::Sender<CrlWatchValue>,
 ) {
     tokio::spawn(async move {
         while let Some(cmd) = rx.recv().await {
@@ -50,7 +51,7 @@ async fn apply_rebuild(
     ca_cert: &X509,
     ca_key: &PKey<Private>,
     entries_snapshot: Vec<RevocationEntry>,
-    rebuild_notify: &watch::Sender<String>,
+    rebuild_notify: &watch::Sender<CrlWatchValue>,
 ) -> AppResult<()> {
     info!(
         "Rebuilding CRL with {} revocation entries",
@@ -83,7 +84,7 @@ async fn apply_rebuild(
         etag
     );
 
-    rebuild_notify.send_replace(etag);
+    rebuild_notify.send_replace((etag, Some(Arc::new(bytes))));
 
     Ok(())
 }

@@ -25,7 +25,6 @@ impl WazuhApiClient {
     }
 
     /// Run the eviction pipeline for a given EvictRequest.
-    /// Resolves the agent by name, waits the grace period, then deletes the agent.
     #[tracing::instrument(skip(self, req), fields(agent_name = %req.wazuh_agent_name.as_deref().unwrap_or(""), subject = %req.subject))]
     pub async fn run_eviction(&self, req: &EvictRequest) -> AppResult<()> {
         // Step 1: resolve agent

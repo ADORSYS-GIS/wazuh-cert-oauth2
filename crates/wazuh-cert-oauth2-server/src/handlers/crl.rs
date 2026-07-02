@@ -1,9 +1,10 @@
 use rocket::State;
 use rocket::http::{ContentType, Status};
-use rocket::request::{FromRequest, Outcome, Request};
+use rocket::request::Request;
 use rocket::response::Responder;
+use rocket::serde::json::Json;
 
-use crate::handlers::middle::JwtToken;
+use crate::handlers::crl_fairing::ExtractedClientEtag;
 use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
 use crate::shared::crl::RevocationEntry;
@@ -11,31 +12,15 @@ use crate::shared::crl::compute_etag;
 use crate::shared::ledger::Ledger;
 use openssl::asn1::Asn1Time;
 use openssl::x509::X509Crl;
-use rocket::serde::json::Json;
 use std::io::Cursor;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use wazuh_cert_oauth2_model::models::errors::AppError;
 
+/// Maximum time (seconds) the server holds a long-poll connection open while
+/// waiting for the CRL to change.
 const LONG_POLL_TIMEOUT_SECS: u64 = 25;
-
-pub struct IfNoneMatch(pub Option<String>);
-
-#[rocket::async_trait]
-impl<'r> FromRequest<'r> for IfNoneMatch {
-    type Error = ();
-
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let etag = req.headers().get_one("If-None-Match").map(|s| {
-            s.trim()
-                .trim_start_matches("W/")
-                .trim_matches('"')
-                .to_string()
-        });
-        Outcome::Success(IfNoneMatch(etag))
-    }
-}
 
 pub struct CrlResponse {
     etag: String,
@@ -53,17 +38,19 @@ impl<'r, 'o: 'r> Responder<'r, 'o> for CrlResponse {
     }
 }
 
+/// Either serve the current CRL or respond with `304 Not Modified`.
 pub enum CrlOrNotModified {
     Crl(CrlResponse),
-    NotModified,
+    NotModified(String),
 }
 
 impl<'r, 'o: 'r> Responder<'r, 'o> for CrlOrNotModified {
-    fn respond_to(self, req: &'r Request<'_>) -> rocket::response::Result<'o> {
+    fn respond_to(self, _req: &'r Request<'_>) -> rocket::response::Result<'o> {
         match self {
-            CrlOrNotModified::Crl(resp) => resp.respond_to(req),
-            CrlOrNotModified::NotModified => rocket::Response::build()
+            Self::Crl(r) => r.respond_to(_req),
+            Self::NotModified(etag) => rocket::Response::build()
                 .status(Status::NotModified)
+                .raw_header("ETag", format!("\"{}\"", etag))
                 .raw_header("Cache-Control", "no-cache")
                 .ok(),
         }
@@ -75,74 +62,129 @@ pub async fn get_crl(
     crl: &State<CrlState>,
     ledger: &State<Ledger>,
     ca: &State<CaProvider>,
-    if_none_match: IfNoneMatch,
+    client_etag: ExtractedClientEtag,
 ) -> Result<CrlOrNotModified, Status> {
     info!("GET /crl/issuing.crl requested");
 
-    // Try read existing CRL
-    let client_etag = if_none_match.0;
+    let client_etag = &client_etag.0;
 
-    if let Some(ref ctag) = client_etag {
-        let mut rx = crl.subscribe_rebuild();
-        loop {
-            let current = rx.borrow().clone();
-            if ctag != &current {
-                info!("Client ETag stale; serving fresh CRL");
-                break;
-            }
-            match time::timeout(Duration::from_secs(LONG_POLL_TIMEOUT_SECS), rx.changed()).await {
-                Ok(Ok(_)) => continue,
-                Ok(Err(_)) => {
-                    debug!("Watch channel closed during long-poll; returning 304");
-                    return Ok(CrlOrNotModified::NotModified);
-                }
-                Err(_) => {
-                    debug!("Long-poll timeout; returning 304");
-                    return Ok(CrlOrNotModified::NotModified);
-                }
-            }
+    let mut rx = crl.subscribe_rebuild();
+
+    let cached_body = rx.borrow().1.clone();
+    let mut bytes: Vec<u8> = match cached_body {
+        Some(cached) => {
+            debug!("Serving CRL from in-memory cache ({} bytes)", cached.len());
+            cached.to_vec()
         }
-    }
-
-    let mut bytes = match crl.read_crl_file().await {
-        Ok(b) => b,
-        Err(AppError::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
-        Err(e) => {
-            error!("Failed to read CRL file: {}", e);
-            return Err(Status::InternalServerError);
+        None => {
+            debug!("No cached CRL; reading from disk");
+            match crl.read_crl_file().await {
+                Ok(b) => b,
+                Err(AppError::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+                Err(e) => {
+                    error!("Failed to read CRL file: {}", e);
+                    return Err(Status::InternalServerError);
+                }
+            }
         }
     };
 
     // If missing or expired, rebuild via mpsc and re-read
     if bytes.is_empty() || is_crl_expired(&bytes) {
         info!("CRL missing or expired; triggering on-demand rebuild");
-        let (ca_cert, ca_key) = ca.get().await.map_err(|e| {
-            error!("Failed to load CA for CRL rebuild: {}", e);
-            Status::InternalServerError
-        })?;
+        let (ca_cert, ca_key) = match ca.get().await {
+            Ok(v) => v,
+            Err(e) => {
+                error!("Failed to load CA for CRL rebuild: {}", e);
+                return Err(Status::InternalServerError);
+            }
+        };
         let revs = ledger.revoked_as_revocations().await;
-        crl.request_rebuild(ca_cert, ca_key, revs)
-            .await
-            .map_err(|e| {
-                error!("Failed to rebuild CRL: {}", e);
-                Status::InternalServerError
-            })?;
-        // Re-read after successful rebuild
-        bytes = crl.read_crl_file().await.map_err(|e| {
-            error!("Failed to read CRL file after rebuild: {}", e);
-            Status::NotFound
-        })?;
+        if let Err(e) = crl.request_rebuild(ca_cert, ca_key, revs).await {
+            error!("Failed to rebuild CRL: {}", e);
+            return Err(Status::InternalServerError);
+        }
+        // Read updated state, marking it as seen to avoid a spurious wakeup
+        // from our own rebuild when we enter the long-poll loop below.
+        bytes = {
+            let borrow = rx.borrow_and_update();
+            match borrow.1.as_ref() {
+                Some(b) => b.to_vec(),
+                None => {
+                    error!("CRL cache empty after rebuild");
+                    return Err(Status::InternalServerError);
+                }
+            }
+        };
     }
 
     let etag = compute_etag(&bytes);
     debug!("CRL bytes length: {}, ETag: {}", bytes.len(), etag);
+
+    // --- Long-poll negotiation ---
+    if !client_etag.is_empty() && *client_etag == etag {
+        info!(
+            "Client ETag ({}) matches current; entering long-poll ({}s)",
+            &etag, LONG_POLL_TIMEOUT_SECS
+        );
+        let deadline = time::Instant::now() + Duration::from_secs(LONG_POLL_TIMEOUT_SECS);
+
+        loop {
+            let remaining = deadline.saturating_duration_since(time::Instant::now());
+            if remaining.is_zero() {
+                warn!("Long-poll timeout for ETag {}", &etag);
+                return Ok(CrlOrNotModified::NotModified(etag));
+            }
+
+            match time::timeout(remaining, rx.changed()).await {
+                Ok(Ok(())) => {
+                    // Channel updated — borrow once and check ETag first.
+                    let (new_etag, new_body) = {
+                        let borrow = rx.borrow();
+                        (borrow.0.clone(), borrow.1.clone())
+                    };
+                    if new_etag != etag {
+                        info!(
+                            "CRL changed during long-poll (old={} new={}); serving new body",
+                            &etag, &new_etag
+                        );
+                        let body = match new_body {
+                            Some(b) => b.to_vec(),
+                            None => {
+                                error!("New CRL body is None during long-poll");
+                                return Err(Status::InternalServerError);
+                            }
+                        };
+                        return Ok(CrlOrNotModified::Crl(CrlResponse {
+                            etag: new_etag,
+                            body,
+                        }));
+                    }
+                    // Same ETag (e.g. spool update without CRL change) — keep waiting.
+                    debug!("Watch notified but ETag unchanged; continuing long-poll");
+                }
+                Ok(Err(_)) => {
+                    // Watch channel closed — worker died. Return 304.
+                    warn!("CRL watch channel closed during long-poll");
+                    return Ok(CrlOrNotModified::NotModified(etag));
+                }
+                Err(_) => {
+                    // Timeout elapsed.
+                    warn!("Long-poll timeout for ETag {}", &etag);
+                    return Ok(CrlOrNotModified::NotModified(etag));
+                }
+            }
+        }
+    }
+
+    // --- No matching ETag or different — serve immediately ---
     Ok(CrlOrNotModified::Crl(CrlResponse { etag, body: bytes }))
 }
 
 /// Fetch the current revocation DB as JSON (admin/auth token recommended)
 #[get("/revocations")]
 pub async fn get_revocations(
-    _token: JwtToken,
+    _token: crate::handlers::middle::JwtToken,
     ledger: &State<Ledger>,
 ) -> Json<Vec<RevocationEntry>> {
     info!("GET /api/revocations requested");
@@ -177,35 +219,11 @@ fn is_crl_expired(bytes: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    fn strip_etag(raw: &str) -> Option<String> {
-        raw.trim()
-            .trim_start_matches("W/")
-            .trim_matches('"')
-            .to_string()
-            .into()
-    }
+    use super::*;
 
     #[test]
-    fn strips_quoted_etag() {
-        let input = "\"abc123def456\"";
-        assert_eq!(strip_etag(input), Some("abc123def456".to_string()));
-    }
-
-    #[test]
-    fn strips_weak_validator_prefix() {
-        let input = "W/\"abc123def456\"";
-        assert_eq!(strip_etag(input), Some("abc123def456".to_string()));
-    }
-
-    #[test]
-    fn passes_through_unquoted_etag() {
-        let input = "abc123def456";
-        assert_eq!(strip_etag(input), Some("abc123def456".to_string()));
-    }
-
-    #[test]
-    fn handles_whitespace() {
-        let input = "  \"abc123\"  ";
-        assert_eq!(strip_etag(input), Some("abc123".to_string()));
+    fn expired_crl_detected() {
+        // An empty / unparseable CRL should be treated as expired
+        assert!(is_crl_expired(&[]));
     }
 }

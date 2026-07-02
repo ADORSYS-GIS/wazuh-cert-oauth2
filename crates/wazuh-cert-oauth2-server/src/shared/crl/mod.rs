@@ -10,6 +10,10 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
+/// ETag string paired with an optional cached CRL body.
+/// `None` means no valid CRL is loaded (cold start or failed rebuild).
+type CrlWatchValue = (String, Option<Arc<Vec<u8>>>);
+
 mod ffi;
 mod worker;
 
@@ -31,7 +35,7 @@ pub fn compute_etag(bytes: &[u8]) -> String {
 pub struct CrlState {
     crl_file_path: PathBuf,
     tx: mpsc::Sender<worker::Command>,
-    rebuild_notify: watch::Sender<String>,
+    rebuild_notify: watch::Sender<CrlWatchValue>,
 }
 
 impl CrlState {
@@ -43,8 +47,8 @@ impl CrlState {
         );
         let (tx, rx) = mpsc::channel::<worker::Command>(32);
 
-        let initial_etag = Self::compute_etag_from_file(&crl_file_path).await;
-        let (rebuild_tx, _) = watch::channel(initial_etag);
+        let (initial_etag, initial_body) = Self::compute_initial_from_file(&crl_file_path).await;
+        let (rebuild_tx, _) = watch::channel((initial_etag, initial_body));
         worker::spawn_crl_worker(crl_file_path.clone(), rx, rebuild_tx.clone());
 
         Ok(Self {
@@ -62,14 +66,20 @@ impl CrlState {
         Ok(bytes)
     }
 
-    pub fn subscribe_rebuild(&self) -> watch::Receiver<String> {
+    /// Subscribe to CRL rebuild notifications.
+    ///
+    /// Returns a [`watch::Receiver`] that is notified whenever the CRL is
+    /// rebuilt (whether triggered by a long-poll client or a revocation
+    /// request). The long-poll handler uses this to hold the connection open
+    /// until the ETag changes or a timeout elapses.
+    pub fn subscribe_rebuild(&self) -> watch::Receiver<CrlWatchValue> {
         self.rebuild_notify.subscribe()
     }
 
-    async fn compute_etag_from_file(path: &PathBuf) -> String {
+    async fn compute_initial_from_file(path: &PathBuf) -> CrlWatchValue {
         match fs::read(path).await {
-            Ok(bytes) => compute_etag(&bytes),
-            Err(_) => String::new(),
+            Ok(bytes) => (compute_etag(&bytes), Some(Arc::new(bytes))),
+            Err(_) => (String::new(), None),
         }
     }
 
