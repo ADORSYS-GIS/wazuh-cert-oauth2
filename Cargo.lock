@@ -2134,9 +2134,9 @@ dependencies = [
 
 [[package]]
 name = "rand"
-version = "0.10.1"
+version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
+checksum = "c7f5fa3a058cd35567ef9bfa5e75732bee0f9e4c55fa90477bef2dfcdbc4be80"
 dependencies = [
  "chacha20",
  "getrandom 0.4.1",
@@ -3462,7 +3462,7 @@ dependencies = [
  "mid",
  "oauth2",
  "openssl",
- "rand 0.10.1",
+ "rand 0.10.2",
  "tokio",
  "url",
  "wazuh-cert-oauth2-model",
@@ -3488,7 +3488,7 @@ dependencies = [
  "jsonwebtoken",
  "oauth2",
  "openssl",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rand_core 0.10.1",
  "reqwest",
  "rocket",
@@ -3511,7 +3511,7 @@ dependencies = [
  "mimalloc",
  "openssl",
  "openssl-sys",
- "rand 0.10.1",
+ "rand 0.10.2",
  "rocket",
  "serde",
  "tokio",
@@ -3528,7 +3528,7 @@ dependencies = [
  "clap",
  "mimalloc",
  "oauth2",
- "rand 0.10.1",
+ "rand 0.10.2",
  "reqwest",
  "rocket",
  "serde",
