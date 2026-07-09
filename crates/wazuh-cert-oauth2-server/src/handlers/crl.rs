@@ -15,7 +15,7 @@ use openssl::x509::X509Crl;
 use std::io::Cursor;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use wazuh_cert_oauth2_model::models::errors::AppError;
 
 /// Maximum time (seconds) the server holds a long-poll connection open while
@@ -164,9 +164,24 @@ pub async fn get_crl(
                     debug!("Watch notified but ETag unchanged; continuing long-poll");
                 }
                 Ok(Err(_)) => {
-                    // Watch channel closed — worker died. Return 304.
-                    warn!("CRL watch channel closed during long-poll");
-                    return Ok(CrlOrNotModified::NotModified(etag));
+                    // Watch channel closed — worker died. The notification
+                    // mechanism has failed, but the CRL on disk may still be
+                    // valid. Read fresh from disk to serve the latest state,
+                    // while still alerting the operator via the error log.
+                    error!("CRL watch channel closed during long-poll; falling back to disk read");
+                    bytes = crl
+                        .read_crl_file()
+                        .await
+                        .map_err(|_| Status::InternalServerError)?;
+                    let fresh_etag = compute_etag(&bytes);
+                    return if fresh_etag == etag {
+                        Ok(CrlOrNotModified::NotModified(etag))
+                    } else {
+                        Ok(CrlOrNotModified::Crl(CrlResponse {
+                            etag: fresh_etag,
+                            body: bytes,
+                        }))
+                    };
                 }
                 Err(_) => {
                     // Timeout elapsed.

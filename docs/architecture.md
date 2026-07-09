@@ -147,8 +147,9 @@ sequenceDiagram
     Note right of Webhook: Spool Processor
     Webhook->>Wazuh: GET /agents?search={agent_name} (resolve agent)
     Wazuh-->>Webhook: Agent ID
-    Note right of Webhook: Wait grace period (default 30s)
-    Webhook->>Wazuh: DELETE /agents/{agent_id}
+    Note right of Webhook: Non-blocking grace period (default 30s)
+    Note right of Webhook: EvictRequest re-spooled with deadline
+    Webhook->>Wazuh: DELETE /agents/{agent_id} (when due)
     Wazuh-->>Webhook: 200 OK
 
     alt Wazuh API Unreachable
@@ -187,8 +188,8 @@ sequenceDiagram
 
 #### Eviction Details:
 - **Direct API**: The eviction pipeline resolves agents by name via `GET /agents?search=` and deletes them via `DELETE /agents/{id}` using the Wazuh Manager REST API.
-- **Grace Period**: For Keycloak-triggered revocations, the webhook waits `WAZUH_EVICTION_GRACE_SECONDS` (default 30s) before deleting the agent, giving it time to receive the updated CRL and disconnect gracefully. This delay is skipped for auto-rotate revocations.
-- **Resiliency**: If the Wazuh API is unreachable, the EvictRequest is persisted to the spool directory and retried in the background with exponential backoff.
+- **Non-blocking Grace Period**: For Keycloak-triggered revocations, the spool processor sets a grace deadline (`delete_after_unix`) and re-writes the `EvictRequest` to disk instead of blocking. The item is skipped on subsequent scans until the deadline elapses, allowing other spool items to be processed concurrently. The grace period defaults to `WAZUH_EVICTION_GRACE_SECONDS` (30s) and is skipped entirely for auto-rotate evictions.
+- **Resiliency**: If the Wazuh API is unreachable, the `EvictRequest` is persisted to the spool directory and retried in the background with exponential backoff.
 - **Double-Failure Safety**: If both the direct eviction call and the spool queue fail, the `/api/internal/evict` endpoint returns `500 Internal Server Error` so the caller (cert-server) knows the request was lost and can retry.
 - **Filtering**: The proxy identifies revoke-eligible events (`USER-DELETE`/`USER-UPDATE`) and ticket-eligible events (`REGISTER`/`USER-CREATE`).
 - **GitHub Integration**: For registration events, the proxy automatically creates a tracking issue in the configured GitHub repository.

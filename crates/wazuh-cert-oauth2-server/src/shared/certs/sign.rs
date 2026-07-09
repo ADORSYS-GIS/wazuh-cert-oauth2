@@ -44,6 +44,14 @@ pub async fn sign_csr(
     crl: &CrlState,
     webhook: Option<&WebhookNotifier>,
 ) -> AppResult<SignedCertResponse> {
+    // Validate wazuh_agent_name if provided — it is client-supplied and later
+    // interpolated into Wazuh API URLs during eviction. Reject characters that
+    // could break URL parsing even though reqwest .query() encodes them, as
+    // defense-in-depth against revocation-evasion via crafted agent names.
+    if let Some(ref name) = dto.wazuh_agent_name {
+        validate_agent_name(name)?;
+    }
+
     let csr = X509Req::from_pem(dto.csr_pem.as_bytes())?;
     let csr_pubkey = csr
         .public_key()
@@ -126,9 +134,38 @@ fn sign_csr_with_ca(
     Ok(builder.build())
 }
 
+/// Validate that a Wazuh agent name contains only safe characters.
+///
+/// Wazuh agent names are client-supplied at enrollment and later used in
+/// Wazuh API URL queries during eviction. We allow alphanumeric characters,
+/// hyphens, underscores, dots, and spaces — covering typical agent naming
+/// conventions. This is defense-in-depth alongside reqwest's `.query()`
+/// URL-encoding.
+fn validate_agent_name(name: &str) -> AppResult<()> {
+    if name.is_empty() {
+        return Err(AppError::ValidationError(
+            "wazuh_agent_name must not be empty".into(),
+        ));
+    }
+    if name.len() > 128 {
+        return Err(AppError::ValidationError(
+            "wazuh_agent_name must not exceed 128 characters".into(),
+        ));
+    }
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_' || c == '.' || c == ' ')
+    {
+        return Err(AppError::ValidationError(format!(
+            "wazuh_agent_name contains invalid characters: {name}"
+        )));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::extract_realm_from_issuer;
+    use super::{extract_realm_from_issuer, validate_agent_name};
 
     #[test]
     fn extracts_realm_when_realms_segment_exists() {
@@ -149,5 +186,33 @@ mod tests {
             extract_realm_from_issuer("https://auth.example/protocol/openid-connect"),
             None
         );
+    }
+
+    #[test]
+    fn valid_agent_names_pass_validation() {
+        assert!(validate_agent_name("DevOps-SRE-123").is_ok());
+        assert!(validate_agent_name("agent_name").is_ok());
+        assert!(validate_agent_name("node.example.com").is_ok());
+        assert!(validate_agent_name("Web Server 01").is_ok());
+    }
+
+    #[test]
+    fn empty_agent_name_rejected() {
+        assert!(validate_agent_name("").is_err());
+    }
+
+    #[test]
+    fn agent_name_with_url_breaking_chars_rejected() {
+        assert!(validate_agent_name("agent&evil").is_err());
+        assert!(validate_agent_name("agent?param").is_err());
+        assert!(validate_agent_name("agent#frag").is_err());
+        assert!(validate_agent_name("agent/path").is_err());
+        assert!(validate_agent_name("agent%20").is_err());
+    }
+
+    #[test]
+    fn overly_long_agent_name_rejected() {
+        let name = "a".repeat(129);
+        assert!(validate_agent_name(&name).is_err());
     }
 }

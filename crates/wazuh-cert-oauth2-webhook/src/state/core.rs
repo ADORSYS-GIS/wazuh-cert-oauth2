@@ -3,6 +3,7 @@ use super::oauth;
 use super::spool;
 use crate::models::WebhookRequest;
 use crate::state::spool::{EvictRequest, GitHubTicket};
+use crate::state::wazuh_api::EvictionOutcome;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
@@ -233,7 +234,7 @@ impl ProxyState {
     }
 
     /// Delegates eviction to the WazuhApiClient if configured, otherwise logs a warning.
-    pub async fn run_eviction_from_state(&self, req: EvictRequest) -> AppResult<()> {
+    pub async fn run_eviction_from_state(&self, req: EvictRequest) -> AppResult<EvictionOutcome> {
         match &self.wazuh_api {
             Some(client) => client.run_eviction(&req).await,
             None => {
@@ -241,7 +242,7 @@ impl ProxyState {
                     subject = %req.subject,
                     "Eviction requested but WAZUH_MANAGER_URL is not configured; skipping"
                 );
-                Ok(())
+                Ok(EvictionOutcome::Done)
             }
         }
     }
@@ -308,6 +309,9 @@ mod tests {
             None,
             // wazuh_eviction_grace_seconds
             30,
+            // wazuh_api_tls_verify, wazuh_api_ca_bundle
+            false,
+            None,
         )
         .expect("state should build")
     }

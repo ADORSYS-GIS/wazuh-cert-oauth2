@@ -126,6 +126,8 @@ async fn handle_revoke(state: &State<ProxyState>, p: WebhookRequest) -> Result<S
             wazuh_agent_name,
             reason: reason_str.to_string(),
             triggered_at_unix,
+            agent_id: None,
+            delete_after_unix: None,
         };
         info!(
             subject = %subject,

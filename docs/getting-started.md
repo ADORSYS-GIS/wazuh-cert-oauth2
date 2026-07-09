@@ -201,6 +201,8 @@ The client will attempt to open the authorization URL in your system's default b
 | `--wazuh-api-password`| `WAZUH_API_PASSWORD`| (Optional) | Wazuh API password. |
 | `--wazuh-api-token` | `WAZUH_API_TOKEN` | (Optional) | Wazuh API static token. |
 | `--wazuh-eviction-grace-seconds`| `WAZUH_EVICTION_GRACE_SECONDS`| `30` | Grace period before agent deletion (skipped for auto-rotate). |
+| `--wazuh-api-tls-verify` | `WAZUH_API_TLS_VERIFY` | `false` | Enable TLS cert verification for the Wazuh Manager API. |
+| `--wazuh-api-ca-bundle` | `WAZUH_API_CA_BUNDLE` | (Optional) | Path to a PEM CA bundle for the Wazuh Manager API. |
 
 ### Client Flags
 | Flag | Env Variable | Default | Purpose |

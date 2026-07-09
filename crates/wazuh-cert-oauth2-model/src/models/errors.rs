@@ -19,6 +19,9 @@ pub enum AppError {
     #[error("Conflict: {0}")]
     Conflict(String),
 
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+
     #[error("Serialization error: {0}")]
     Serialization(String),
 
@@ -134,7 +137,8 @@ impl<'r> Responder<'r, 'static> for AppError {
             | AppError::KeyPolicyRsaTooSmall { .. }
             | AppError::KeyPolicyUnsupportedEcCurve { .. }
             | AppError::KeyPolicyUnknownEcCurve
-            | AppError::KeyPolicyUnsupportedKeyType { .. } => Status::BadRequest,
+            | AppError::KeyPolicyUnsupportedKeyType { .. }
+            | AppError::ValidationError(_) => Status::BadRequest,
             _ => Status::InternalServerError,
         };
 

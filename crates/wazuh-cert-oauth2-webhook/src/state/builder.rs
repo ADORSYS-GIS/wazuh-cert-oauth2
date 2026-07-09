@@ -37,6 +37,8 @@ impl ProxyState {
         wazuh_api_password: Option<String>,
         wazuh_api_token: Option<String>,
         wazuh_eviction_grace_seconds: u64,
+        wazuh_api_tls_verify: bool,
+        wazuh_api_ca_bundle: Option<PathBuf>,
     ) -> AppResult<Self> {
         utils::ensure_spool_dir(&spool_dir);
         let oauth = oauth::build_oauth(
@@ -53,6 +55,8 @@ impl ProxyState {
                 wazuh_api_password,
                 wazuh_api_token,
                 wazuh_eviction_grace_seconds,
+                wazuh_api_tls_verify,
+                wazuh_api_ca_bundle,
             )
         });
         Ok(Self {

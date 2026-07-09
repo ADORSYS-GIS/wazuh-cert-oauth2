@@ -1,8 +1,21 @@
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::info;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::wazuh::WazuhClient;
 
 use crate::state::spool::EvictRequest;
+
+/// Outcome of an eviction attempt — used by the spool processor to decide
+/// whether to remove, re-write, or skip the spool file.
+#[derive(Debug)]
+pub enum EvictionOutcome {
+    /// Agent deleted (or not found / no Wazuh configured) — remove spool file.
+    Done,
+    /// Grace period started — re-write spool file with updated `agent_id` and
+    /// `delete_after_unix`. The file is NOT removed.
+    Pending(EvictRequest),
+}
 
 #[derive(Clone)]
 pub struct WazuhApiClient {
@@ -17,51 +30,72 @@ impl WazuhApiClient {
         password: Option<String>,
         static_token: Option<String>,
         grace_seconds: u64,
+        tls_verify: bool,
+        ca_bundle: Option<PathBuf>,
     ) -> Self {
         Self {
-            client: WazuhClient::new(manager_url, user, password, static_token),
+            client: WazuhClient::with_tls_options(
+                manager_url,
+                user,
+                password,
+                static_token,
+                tls_verify,
+                ca_bundle,
+            ),
             grace_seconds,
         }
     }
 
     /// Run the eviction pipeline for a given EvictRequest.
+    ///
+    /// Instead of blocking the spool processor with `tokio::sleep(grace)`,
+    /// this method sets `delete_after_unix` on the request and returns
+    /// `EvictionOutcome::Pending`. The spool processor re-writes the file
+    /// and skips it until the grace period elapses, allowing other spool
+    /// items to be processed in the meantime.
     #[tracing::instrument(skip(self, req), fields(agent_name = %req.wazuh_agent_name.as_deref().unwrap_or(""), subject = %req.subject))]
-    pub async fn run_eviction(&self, req: &EvictRequest) -> AppResult<()> {
-        // Step 1: resolve agent
-        let agent = match self
-            .client
-            .find_agent(req.wazuh_agent_name.as_deref(), &req.subject)
-            .await?
-        {
-            Some(a) => a,
-            None => {
-                info!(
-                    agent_name = ?req.wazuh_agent_name,
-                    subject = %req.subject,
-                    "No Wazuh agent found; skipping eviction"
-                );
-                return Ok(());
-            }
-        };
-        let agent_id = agent.id;
-
+    pub async fn run_eviction(&self, req: &EvictRequest) -> AppResult<EvictionOutcome> {
         let is_auto_rotate = req.reason.to_ascii_lowercase().starts_with("auto-rotate");
 
-        if !is_auto_rotate {
-            // Step 2: grace period before deletion
-            let grace = std::time::Duration::from_secs(self.grace_seconds);
+        // Step 1: resolve agent (skip if already resolved from a previous cycle)
+        let agent_id = match &req.agent_id {
+            Some(id) => id.clone(),
+            None => match self
+                .client
+                .find_agent(req.wazuh_agent_name.as_deref(), &req.subject)
+                .await?
+            {
+                Some(a) => a.id,
+                None => {
+                    info!(
+                        agent_name = ?req.wazuh_agent_name,
+                        subject = %req.subject,
+                        "No Wazuh agent found; skipping eviction"
+                    );
+                    return Ok(EvictionOutcome::Done);
+                }
+            },
+        };
+
+        // Step 2: handle grace period
+        if !is_auto_rotate && req.delete_after_unix.is_none() {
+            // First time processing — set the grace deadline and return Pending.
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let delete_after = now + self.grace_seconds;
             info!(
                 subject = %req.subject,
                 agent_id = %agent_id,
                 grace_seconds = self.grace_seconds,
-                "Waiting grace period before agent deletion"
+                "Grace period started; eviction will proceed after {} (unix {})",
+                delete_after, delete_after
             );
-            tokio::time::sleep(grace).await;
-        } else {
-            info!(
-                subject = %req.subject,
-                "Skipping grace period for auto-rotate reason"
-            );
+            let mut updated = req.clone();
+            updated.agent_id = Some(agent_id);
+            updated.delete_after_unix = Some(delete_after);
+            return Ok(EvictionOutcome::Pending(updated));
         }
 
         // Step 3: delete agent
@@ -79,6 +113,6 @@ impl WazuhApiClient {
             agent_id = %agent_id,
             "Eviction complete"
         );
-        Ok(())
+        Ok(EvictionOutcome::Done)
     }
 }

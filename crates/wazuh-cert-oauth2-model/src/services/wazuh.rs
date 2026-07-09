@@ -1,6 +1,7 @@
 use reqwest::Client;
 use serde::Deserialize;
 use std::future::Future;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::RwLock;
@@ -64,17 +65,63 @@ impl WazuhClient {
         password: Option<String>,
         static_token: Option<String>,
     ) -> Self {
+        // Backward-compatible constructor: TLS verification disabled by default
+        // to preserve existing behavior.
+        Self::with_tls_options(manager_url, user, password, static_token, false, None)
+    }
+
+    /// Create a `WazuhClient` with explicit TLS verification controls.
+    ///
+    /// - `tls_verify`: when `true`, the client validates the Wazuh Manager's
+    ///   TLS certificate against the system trust store (or `ca_bundle` if
+    ///   provided). When `false`, invalid certs are accepted (insecure).
+    /// - `ca_bundle`: optional path to a PEM file containing additional CA
+    ///   certificates to trust (e.g. for self-signed Wazuh managers).
+    pub fn with_tls_options(
+        manager_url: String,
+        user: Option<String>,
+        password: Option<String>,
+        static_token: Option<String>,
+        tls_verify: bool,
+        ca_bundle: Option<PathBuf>,
+    ) -> Self {
+        let mut builder = Client::builder().timeout(Duration::from_secs(30));
+
+        if !tls_verify {
+            builder = builder.danger_accept_invalid_certs(true);
+        }
+
+        if let Some(ref ca_path) = ca_bundle {
+            match std::fs::read(ca_path) {
+                Ok(pem) => match reqwest::Certificate::from_pem(&pem) {
+                    Ok(cert) => {
+                        builder = builder.add_root_certificate(cert);
+                    }
+                    Err(e) => {
+                        warn!(
+                            path = %ca_path.display(),
+                            error = %e,
+                            "Failed to parse CA bundle; falling back to system trust store"
+                        );
+                    }
+                },
+                Err(e) => {
+                    warn!(
+                        path = %ca_path.display(),
+                        error = %e,
+                        "Failed to read CA bundle file; falling back to system trust store"
+                    );
+                }
+            }
+        }
+
         Self {
             manager_url,
             user,
             password,
             static_token,
             token_cache: Arc::new(RwLock::new(None)),
-            http: Client::builder()
-                .danger_accept_invalid_certs(true)
-                .timeout(Duration::from_secs(30))
-                .build()
-                .expect("reqwest client"),
+            http: builder.build().expect("reqwest client"),
         }
     }
 
@@ -195,15 +242,20 @@ impl WazuhClient {
             Some(n) => n,
             None => return Ok(None),
         };
-        let url = format!(
-            "{}/agents?search={}",
-            self.manager_url.trim_end_matches('/'),
-            name
-        );
+        // Use reqwest's .query() for proper URL-encoding of the agent name,
+        let base = format!("{}/agents", self.manager_url.trim_end_matches('/'));
+        let name = name.to_string();
         let resp = self
             .with_retry(|token| {
-                let url = url.clone();
-                async move { Ok(self.http.get(&url).bearer_auth(token)) }
+                let base = base.clone();
+                let name = name.clone();
+                async move {
+                    Ok(self
+                        .http
+                        .get(&base)
+                        .query(&[("search", name.as_str())])
+                        .bearer_auth(token))
+                }
             })
             .await?;
 
@@ -237,15 +289,24 @@ impl WazuhClient {
     /// Remove the agent from the Wazuh manager.
     #[tracing::instrument(skip(self), fields(subject = %subject, agent_id = %agent_id))]
     pub async fn execute_delete_agent(&self, agent_id: &str, subject: &str) -> AppResult<()> {
-        let url = format!(
-            "{}/agents?agents_list={}&status=all&older_than=0s",
-            self.manager_url.trim_end_matches('/'),
-            agent_id
-        );
+        // Use reqwest's .query() for proper URL-encoding.
+        let base = format!("{}/agents", self.manager_url.trim_end_matches('/'));
+        let agent_id = agent_id.to_string();
         let resp = self
             .with_retry(|token| {
-                let url = url.clone();
-                async move { Ok(self.http.delete(&url).bearer_auth(token)) }
+                let base = base.clone();
+                let agent_id = agent_id.clone();
+                async move {
+                    Ok(self
+                        .http
+                        .delete(&base)
+                        .query(&[
+                            ("agents_list", agent_id.as_str()),
+                            ("status", "all"),
+                            ("older_than", "0s"),
+                        ])
+                        .bearer_auth(token))
+                }
             })
             .await?;
 

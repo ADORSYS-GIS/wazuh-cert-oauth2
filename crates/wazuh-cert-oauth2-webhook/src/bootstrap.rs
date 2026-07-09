@@ -40,6 +40,8 @@ pub fn build_state(opt: &Opt) -> AppResult<ProxyState> {
         opt.wazuh_api_password.clone(),
         opt.wazuh_api_token.clone(),
         opt.wazuh_eviction_grace_seconds,
+        opt.wazuh_api_tls_verify,
+        opt.wazuh_api_ca_bundle.clone(),
     )?;
     Ok(state)
 }
