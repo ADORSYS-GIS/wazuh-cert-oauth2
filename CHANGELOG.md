@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[8031f97](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8031f97226ca4ee54ea8645c8e017226bd8f6e69)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[90ca9cb](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/90ca9cbb3a76afb710534b9eaf7b2341a26c09aa)
 
 ### Bug Fixes
 
@@ -23,17 +23,20 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`9daa265`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9daa265a9559d115680fc6a674657fb90b2175ef))
 - Update CHANGELOG.md and checksums [skip ci] ([`a102319`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a1023198489412a0ad2c4cb4d20f77ecc215e29d))
 - Update CHANGELOG.md and checksums [skip ci] ([`a8f4f38`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a8f4f381a677235649467f5e2c98d0c0994c62e2))
+- Update CHANGELOG.md and checksums [skip ci] ([`8eead7d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8eead7d5027fbe28f1230eacfd5cdd7ce738404f))
 
 ### Features
 
 - Implement CRL long-polling with ETag validation ([`0408366`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0408366113b102f6cb266fe375647b8f8547a538))
 - Added nginx sidecar docker file and image builds ([`0052cd7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0052cd7b09fba58183f460e895cb5261f6990084))
 - Add and configure directory for sidecar scripts in nginx Dockerfile ([`8031f97`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8031f97226ca4ee54ea8645c8e017226bd8f6e69))
+- Add TLS verification options for Wazuh API and improve eviction handling ([`90ca9cb`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/90ca9cbb3a76afb710534b9eaf7b2341a26c09aa))
 
 ### Miscellaneous Tasks
 
 - Add trailing newline to build workflow file ([`b156658`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b1566586a2d7dc4f6865ca015cdc0c0ad7a9143b))
 - Update nginx directory permissions and create pid file for non-root execution ([`238d9c8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/238d9c85057917ad2406bd6052bb14644c549921))
+- Reduce log level for CRL long-poll timeouts from warn to debug ([`d27e28c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/d27e28c0d1e66fef6d319f039a7f83f55a740133))
 
 ### Refactor
 
