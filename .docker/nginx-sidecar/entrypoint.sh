@@ -1,17 +1,18 @@
 #!/bin/sh
 set -e
 
-# Defaults (can be overridden via environment variables)
-LOG_LEVEL="${LOG_LEVEL:-debug}"
-WORKER_CONNECTIONS="${WORKER_CONNECTIONS:-1024}"
-LISTEN_PORT="${LISTEN_PORT:-1515}"
-AUTHD_UPSTREAM_HOST="${AUTHD_UPSTREAM_HOST:-127.0.0.1}"
-AUTHD_UPSTREAM_PORT="${AUTHD_UPSTREAM_PORT:-15151}"
-SSL_CERT_PATH="${SSL_CERT_PATH:-/etc/ssl/certs/server.pem}"
-SSL_KEY_PATH="${SSL_KEY_PATH:-/etc/ssl/certs/server-key.pem}"
-SSL_CA_PATH="${SSL_CA_PATH:-/etc/ssl/certs/ca.pem}"
-CRL_FILE="${CRL_FILE:-/etc/nginx/crl/crl.pem}"
-CRL_ENABLED="${CRL_ENABLED:-true}"
+# Defaults — export so envsubst (which reads the process env, not shell
+# variables) can substitute them in the template.
+export LOG_LEVEL="${LOG_LEVEL:-debug}"
+export WORKER_CONNECTIONS="${WORKER_CONNECTIONS:-1024}"
+export LISTEN_PORT="${LISTEN_PORT:-1515}"
+export AUTHD_UPSTREAM_HOST="${AUTHD_UPSTREAM_HOST:-127.0.0.1}"
+export AUTHD_UPSTREAM_PORT="${AUTHD_UPSTREAM_PORT:-15151}"
+export SSL_CERT_PATH="${SSL_CERT_PATH:-/etc/ssl/certs/server.pem}"
+export SSL_KEY_PATH="${SSL_KEY_PATH:-/etc/ssl/certs/server-key.pem}"
+export SSL_CA_PATH="${SSL_CA_PATH:-/etc/ssl/certs/ca.pem}"
+export CRL_FILE="${CRL_FILE:-/etc/nginx/crl/crl.pem}"
+export CRL_ENABLED="${CRL_ENABLED:-true}"
 
 # Create required directories
 mkdir -p /etc/nginx/crl /var/log/nginx
