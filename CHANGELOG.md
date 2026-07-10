@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[6572544](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/657254428087b9b9567bcc81ab060e7d5b33f2b5)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[2ce36ae](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2ce36ae881da1204c8a558691ce41b00e0081245)
 
 ### Bug Fixes
 
@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`a47b019`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a47b01983f413635a32e7b79fd56920fa53a7e84))
 - Update CHANGELOG.md and checksums [skip ci] ([`7debfb7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7debfb75f52698488337e24c8bf85ce7fc5cae58))
 - Update CHANGELOG.md and checksums [skip ci] ([`7d8dc7d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d8dc7dbcb57d589ac8265e034df7c12077ffbb4))
+- Update CHANGELOG.md and checksums [skip ci] ([`4361039`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4361039f510b7fa3a264b892adf34fd2a3c630ae))
 
 ### Features
 
@@ -36,6 +37,7 @@ All notable changes to this project will be documented in this file.
 - Add and configure directory for sidecar scripts in nginx Dockerfile ([`8031f97`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8031f97226ca4ee54ea8645c8e017226bd8f6e69))
 - Add TLS verification options for Wazuh API and improve eviction handling ([`90ca9cb`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/90ca9cbb3a76afb710534b9eaf7b2341a26c09aa))
 - Complete nginx sidecar image and consolidate under .docker/ ([`f2df4b4`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f2df4b41ecc32117d99eb5948e2c626bbc55b31d))
+- Add documentation for nginx sidecar image and its configuration ([`2ce36ae`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2ce36ae881da1204c8a558691ce41b00e0081245))
 
 ### Miscellaneous Tasks
 
