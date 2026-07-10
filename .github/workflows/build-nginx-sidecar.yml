@@ -8,7 +8,7 @@ on:
       - 'v*'
     paths:
       - '.github/workflows/build-nginx-sidecar.yml'
-      - 'docker/nginx-sidecar/**'
+      - '.docker/nginx-sidecar/**'
 
 env:
   REGISTRY: ghcr.io
@@ -33,7 +33,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           scan-type: 'config'
-          scan-ref: './docker/nginx-sidecar'
+          scan-ref: './.docker/nginx-sidecar'
           format: 'table'
           severity: 'CRITICAL,HIGH'
           exit-code: '1'
@@ -85,7 +85,7 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           pull: true
-          context: ./docker/nginx-sidecar
+          context: ./.docker/nginx-sidecar
           push: "true"
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
