@@ -4,13 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[f2df4b4](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f2df4b41ecc32117d99eb5948e2c626bbc55b31d)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[6572544](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/657254428087b9b9567bcc81ab060e7d5b33f2b5)
 
 ### Bug Fixes
 
 - Restore long-poll, use fairing for ETag extraction, harden error paths ([`eb5eb6e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/eb5eb6e0546d643e22ba36c2f67e82f9b5ec4110))
 - Add non-root USER to nginx sidecar Dockerfile (Trivy DS-0002) ([`0e53462`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0e53462a01fecf084cd21da0e7dda6150975597c))
 - Create nginx cache dirs and chown /run before USER switch ([`214268d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/214268d3b1ccf279d5cde842957e447f0571a920))
+- Export env var defaults so envsubst can substitute them ([`6572544`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/657254428087b9b9567bcc81ab060e7d5b33f2b5))
 
 ### Documentation
 
@@ -26,6 +27,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`8eead7d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8eead7d5027fbe28f1230eacfd5cdd7ce738404f))
 - Update CHANGELOG.md and checksums [skip ci] ([`a47b019`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a47b01983f413635a32e7b79fd56920fa53a7e84))
 - Update CHANGELOG.md and checksums [skip ci] ([`7debfb7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7debfb75f52698488337e24c8bf85ce7fc5cae58))
+- Update CHANGELOG.md and checksums [skip ci] ([`7d8dc7d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d8dc7dbcb57d589ac8265e034df7c12077ffbb4))
 
 ### Features
 
