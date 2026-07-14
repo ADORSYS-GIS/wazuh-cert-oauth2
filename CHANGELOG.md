@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[af89285](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/af89285e003cf06d4266c79d1b109bf021e476fa)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[5199248](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/51992483f5257e1a9a1efcf72be84a5c136dd1f8)
 
 ### Bug Fixes
 
@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Add non-root USER to nginx sidecar Dockerfile (Trivy DS-0002) ([`0e53462`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0e53462a01fecf084cd21da0e7dda6150975597c))
 - Create nginx cache dirs and chown /run before USER switch ([`214268d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/214268d3b1ccf279d5cde842957e447f0571a920))
 - Export env var defaults so envsubst can substitute them ([`6572544`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/657254428087b9b9567bcc81ab060e7d5b33f2b5))
+- Skip eviction for user-update events when user is being enabled ([`5199248`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/51992483f5257e1a9a1efcf72be84a5c136dd1f8))
 
 ### Documentation
 
@@ -30,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`7d8dc7d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d8dc7dbcb57d589ac8265e034df7c12077ffbb4))
 - Update CHANGELOG.md and checksums [skip ci] ([`4361039`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4361039f510b7fa3a264b892adf34fd2a3c630ae))
 - Update CHANGELOG.md and checksums [skip ci] ([`fbb736f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fbb736f224790b8f83ec4d89fb1c6217988e91e3))
+- Update CHANGELOG.md and checksums [skip ci] ([`985d5d0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/985d5d0243ecb15a1f2a043e54f23172ad2ee58c))
 
 ### Features
 
