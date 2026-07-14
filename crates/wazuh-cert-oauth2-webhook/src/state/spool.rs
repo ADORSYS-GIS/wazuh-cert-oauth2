@@ -175,7 +175,9 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
                                                     tmp.display(),
                                                     e
                                                 );
-                                            } else if let Err(e) = tokio::fs::rename(&tmp, &path).await {
+                                            } else if let Err(e) =
+                                                tokio::fs::rename(&tmp, &path).await
+                                            {
                                                 error!(
                                                     "failed to rename temp spool file {} -> {}: {}",
                                                     tmp.display(),

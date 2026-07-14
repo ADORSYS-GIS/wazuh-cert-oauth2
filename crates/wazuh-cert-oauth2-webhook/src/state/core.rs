@@ -156,6 +156,17 @@ impl ProxyState {
                 return EventAction::Ignore;
             }
 
+            // For user-update, only revoke when the user is being disabled
+            // (enabled: false). When enabled: true (user being re-enabled),
+            // there is nothing to revoke.
+            if t == "user-update"
+                && let Ok(rep) = webhook_request.get_simple_user_representation()
+                && rep.enabled
+            {
+                return EventAction::Ignore;
+            }
+            // If representation is missing or unparseable, fail-safe: revoke.
+
             return EventAction::Revoke;
         }
 
@@ -379,5 +390,40 @@ mod tests {
 
         let action = state.is_allowed_event("user-create", &req);
         assert_eq!(action, EventAction::CreateTicket);
+    }
+
+    #[test]
+    fn user_update_with_enabled_false_is_revoked() {
+        let state = build_state(None, None, None, None);
+        let req = webhook_request(
+            "user-update",
+            Some("admin/realms/x/users/u1"),
+            Some(r#"{"id":"u1","enabled":false,"username":"alice"}"#),
+        );
+
+        let action = state.is_allowed_event("user-update", &req);
+        assert_eq!(action, EventAction::Revoke);
+    }
+
+    #[test]
+    fn user_update_with_enabled_true_is_ignored() {
+        let state = build_state(None, None, None, None);
+        let req = webhook_request(
+            "user-update",
+            Some("admin/realms/x/users/u1"),
+            Some(r#"{"id":"u1","enabled":true,"username":"alice"}"#),
+        );
+
+        let action = state.is_allowed_event("user-update", &req);
+        assert_eq!(action, EventAction::Ignore);
+    }
+
+    #[test]
+    fn user_update_without_representation_fails_safe_to_revoke() {
+        let state = build_state(None, None, None, None);
+        let req = webhook_request("user-update", Some("admin/realms/x/users/u1"), None);
+
+        let action = state.is_allowed_event("user-update", &req);
+        assert_eq!(action, EventAction::Revoke);
     }
 }
