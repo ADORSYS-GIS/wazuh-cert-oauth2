@@ -18,11 +18,11 @@ Eviction Pipeline
 
 When a certificate is revoked, the webhook evicts the corresponding Wazuh agent:
 
-1. **Keycloak-triggered** (user-delete/user-update): The webhook fetches the agent name from the ledger, revokes the cert, then queues an `EvictRequest`. The spool processor resolves the agent by name via the Wazuh API. For non-auto-rotate evictions, the processor sets a grace deadline (`delete_after_unix`) and re-writes the spool file instead of blocking: the item is skipped until the deadline elapses, allowing other spool items to be processed concurrently. Once due, the agent is deleted via the Wazuh API.
+1. **Keycloak-triggered** (user-delete/user-update): The webhook fetches the agent name from the ledger, revokes the cert, then queues an `EvictRequest`. For `user-update` events, the webhook representation is parsed and revocation is only triggered when `enabled: false` (user being disabled); `enabled: true` (user re-enabled) is ignored. Missing/unparseable representation fails safe to revocation. The spool processor resolves the agent by name via the Wazuh API (exact match using `q=name=`). For non-auto-rotate evictions, the processor sets a grace deadline (`delete_after_unix`) and re-writes the spool file atomically (temp-file + rename) instead of blocking: the item is skipped until the deadline elapses, allowing other spool items to be processed concurrently. Once due, the agent is deleted via the Wazuh API.
 
 2. **Auto-rotate** (server-triggered): The cert-server calls `/api/internal/evict` when a re-enrollment overrides an active cert. The grace period is skipped. The old agent is deleted immediately.
 
-If the Wazuh API is unreachable, the `EvictRequest` is persisted to the spool directory and retried with exponential backoff. If both the direct eviction call and the spool queue reject the request, the endpoint returns `500 Internal Server Error`.
+If the Wazuh API is unreachable, the `EvictRequest` is persisted to the spool directory and retried with exponential backoff. Eviction spool items older than 24 hours are force-deleted (dead-lettered) to prevent unbounded retry of poison messages. If both the direct eviction call and the spool queue reject the request, the endpoint returns `500 Internal Server Error`.
 
 Configuration
 
@@ -48,7 +48,7 @@ Configuration
 - `--wazuh-api-password` (`WAZUH_API_PASSWORD`): Wazuh API password (optional).
 - `--wazuh-api-token` (`WAZUH_API_TOKEN`): Wazuh API static token (optional).
 - `--wazuh-eviction-grace-seconds` (`WAZUH_EVICTION_GRACE_SECONDS`, default 30): Grace period before agent deletion (skipped for auto-rotate).
-- `--wazuh-api-tls-verify` (`WAZUH_API_TLS_VERIFY`, default false): Enable TLS certificate verification for the Wazuh Manager API.
+- `--wazuh-api-tls-verify` (`WAZUH_API_TLS_VERIFY`, default true): Enable TLS certificate verification for the Wazuh Manager API. Set to `false` only for testing or self-signed certificates without a configured CA bundle.
 - `--wazuh-api-ca-bundle` (`WAZUH_API_CA_BUNDLE`): Path to a PEM file containing additional CA certificates to trust for the Wazuh Manager API (e.g. for self-signed managers).
 - Inbound webhook auth (any set are accepted):
   - `--webhook-basic-user` (`WEBHOOK_BASIC_USER`)
