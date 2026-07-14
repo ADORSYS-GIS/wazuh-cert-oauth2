@@ -147,7 +147,7 @@ sequenceDiagram
     Webhook->>Webhook: Spool EvictRequest to disk
 
     Note right of Webhook: Spool Processor
-    Webhook->>Wazuh: GET /agents?q=name:{agent_name} (resolve agent, exact match)
+    Webhook->>Wazuh: GET /agents?q=name={agent_name} (resolve agent, exact match)
     Wazuh-->>Webhook: Agent ID
     Note right of Webhook: Non-blocking grace period (default 30s)
     Note right of Webhook: EvictRequest re-spooled with deadline
@@ -177,7 +177,7 @@ sequenceDiagram
     Server->>Server: Revoke old cert, rebuild CRL
     Server->>Webhook: POST /api/internal/evict (subject, agent_name, "auto-rotate")
 
-    Webhook->>Wazuh: GET /agents?q=name:{agent_name} (resolve agent, exact match)
+    Webhook->>Wazuh: GET /agents?q=name={agent_name} (resolve agent, exact match)
     Wazuh-->>Webhook: Agent ID
     Note right of Webhook: Grace period skipped for auto-rotate
     Webhook->>Wazuh: DELETE /agents/{agent_id}
@@ -192,7 +192,7 @@ sequenceDiagram
 - **Direct API**: The eviction pipeline resolves agents by name via `GET /agents?q=name=` (exact match) and deletes them via `DELETE /agents/{id}` using the Wazuh Manager REST API.
 - **Non-blocking Grace Period**: For Keycloak-triggered revocations, the spool processor sets a grace deadline (`delete_after_unix`) and re-writes the `EvictRequest` to disk instead of blocking. The item is skipped on subsequent scans until the deadline elapses, allowing other spool items to be processed concurrently. The grace period defaults to `WAZUH_EVICTION_GRACE_SECONDS` (30s) and is skipped entirely for auto-rotate evictions.
 - **Resiliency**: If the Wazuh API is unreachable, the `EvictRequest` is persisted to the spool directory and retried in the background with exponential backoff. Spool file rewrites are atomic (temp-file + rename) to prevent corruption on crash.
-- **TTL Dead-Letter**: Eviction spool items older than 24 hours are force-deleted with an `error!` log, preventing unbounded retry of poison messages.
+- **TTL Dead-Letter**: Eviction spool items older than the configured TTL (`SPOOL_EVICT_TTL_SECS`, default 86400s / 24h) are moved to the dead-letter directory (`SPOOL_DEAD_LETTER_DIR`, default `dead-letter/` sibling of `SPOOL_DIR`) with an `error!` log, preventing unbounded retry of poison messages while preserving the item for operator inspection or replay. The dead-letter directory must not be the same as `SPOOL_DIR` and should live on the same filesystem/volume to ensure atomic rename.
 - **Double-Failure Safety**: If both the direct eviction call and the spool queue fail, the `/api/internal/evict` endpoint returns `500 Internal Server Error` so the caller (cert-server) knows the request was lost and can retry.
 - **Filtering**: The proxy identifies revoke-eligible events and ticket-eligible events. For `USER-DELETE`, revocation is always triggered. For `USER-UPDATE`, the webhook representation is parsed and revocation is only triggered when `enabled: false` (user being disabled). When `enabled: true` (user being re-enabled), the event is ignored. If the representation is missing or unparseable, the proxy fails safe to revocation.
 - **GitHub Integration**: For registration events, the proxy automatically creates a tracking issue in the configured GitHub repository.

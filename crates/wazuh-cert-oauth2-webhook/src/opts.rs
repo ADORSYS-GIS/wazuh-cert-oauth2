@@ -94,4 +94,14 @@ pub struct Opt {
     /// for the Wazuh Manager API (e.g. for self-signed managers).
     #[arg(long, env = "WAZUH_API_CA_BUNDLE")]
     pub wazuh_api_ca_bundle: Option<std::path::PathBuf>,
+
+    /// Maximum age (in seconds) an eviction request stays in the spool before
+    /// being moved to the dead-letter directory. Defaults to 24h (86400).
+    #[arg(long, env = "SPOOL_EVICT_TTL_SECS", default_value_t = 86_400)]
+    pub spool_evict_ttl_secs: u64,
+
+    /// Directory where expired eviction spool items are quarantined for
+    /// operator inspection/replay.
+    #[arg(long, env = "SPOOL_DEAD_LETTER_DIR")]
+    pub spool_dead_letter_dir: Option<PathBuf>,
 }

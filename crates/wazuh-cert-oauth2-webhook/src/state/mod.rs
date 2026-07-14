@@ -26,6 +26,8 @@ pub struct ProxyState {
     pub(crate) retry_base: Duration,
     pub(crate) retry_max: Duration,
     pub(crate) spool_interval: Duration,
+    pub(crate) spool_evict_ttl: Duration,
+    pub(crate) spool_dead_letter_dir: PathBuf,
 
     pub(crate) static_bearer: Option<String>,
     pub(crate) oauth: Option<oauth::OAuthConfig>,

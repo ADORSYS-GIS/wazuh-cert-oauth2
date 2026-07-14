@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
-use wazuh_cert_oauth2_model::models::errors::AppResult;
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
 use super::{ProxyState, WazuhApiClient, oauth, utils};
@@ -17,6 +17,8 @@ impl ProxyState {
         retry_base: Duration,
         retry_max: Duration,
         spool_interval: Duration,
+        spool_evict_ttl: Duration,
+        spool_dead_letter_dir: PathBuf,
         static_bearer: Option<String>,
         oauth_issuer: Option<String>,
         oauth_client_id: Option<String>,
@@ -41,6 +43,14 @@ impl ProxyState {
         wazuh_api_ca_bundle: Option<PathBuf>,
     ) -> AppResult<Self> {
         utils::ensure_spool_dir(&spool_dir);
+        // Reject a DLQ path that collides with the spool directory.
+        if spool_dead_letter_dir == spool_dir {
+            return Err(AppError::ValidationError(format!(
+                "SPOOL_DEAD_LETTER_DIR ({}) must not be the same as SPOOL_DIR ({})",
+                spool_dead_letter_dir.display(),
+                spool_dir.display(),
+            )));
+        }
         let oauth = oauth::build_oauth(
             oauth_issuer,
             oauth_client_id,
@@ -67,6 +77,8 @@ impl ProxyState {
             retry_base,
             retry_max,
             spool_interval,
+            spool_evict_ttl,
+            spool_dead_letter_dir,
             static_bearer,
             oauth,
             revoke_reason: keycloak_revoke_reason,

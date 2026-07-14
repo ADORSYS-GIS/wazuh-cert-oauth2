@@ -186,10 +186,16 @@ The client will attempt to open the authorization URL in your system's default b
 | `--webhook-bearer-token`| `WEBHOOK_BEARER_TOKEN`| (Optional) | Bearer token for the Webhook Proxy. |
 
 ### Webhook Flags
+
+> [!WARNING]
+> **Breaking change:** `WAZUH_API_TLS_VERIFY` now defaults to `true`. If your Wazuh Manager uses a self-signed certificate and you do not have `WAZUH_API_CA_BUNDLE` configured, set `WAZUH_API_TLS_VERIFY=false` **before upgrading** to avoid eviction failures.
+
 | Flag | Env Variable | Default | Purpose |
 | :--- | :--- | :--- | :--- |
 | `--server-base-url` | `SERVER_BASE_URL` | (Required) | Base URL of the Certificate Server. |
 | `--spool-dir` | `SPOOL_DIR` | `/data/spool` | Directory for persistent retry spooling. |
+| `--spool-evict-ttl-secs` | `SPOOL_EVICT_TTL_SECS` | `86400` (24h) | Maximum age (in seconds) an eviction request stays in the spool before being moved to the dead-letter directory. Increase for environments prone to longer Wazuh outages. |
+| `--spool-dead-letter-dir` | `SPOOL_DEAD_LETTER_DIR` | `dead-letter/` sibling of `SPOOL_DIR` | Directory where expired eviction spool items are quarantined for operator inspection/replay. **Must not be the same as `SPOOL_DIR`.** Must live on the same filesystem/volume as `SPOOL_DIR` |
 | `--oauth-client-id` | `OAUTH_CLIENT_ID` | (Required) | Client ID to talk to the Server. |
 | `--oauth-client-secret`| `OAUTH_CLIENT_SECRET`| (Required) | Client Secret for the Server. |
 | `--github-token` | `GITHUB_TOKEN` | (Optional) | GitHub PAT for issue creation. |

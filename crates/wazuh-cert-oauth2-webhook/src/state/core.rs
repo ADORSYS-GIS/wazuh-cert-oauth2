@@ -297,6 +297,8 @@ mod tests {
             Duration::from_millis(5),
             Duration::from_millis(20),
             Duration::from_secs(1),
+            Duration::from_secs(86400),
+            std::path::PathBuf::from("/tmp/wazuh-webhook-dead-letter-test"),
             None,
             None,
             None,

@@ -40,6 +40,7 @@ if [ "${CRL_ENABLED}" = "true" ]; then
     # startup and potentially tripping readiness probes on container restart.
     # The background refresh loop re-enables long-polling after this first fetch.
     ETAG_FILE="${CRL_FILE}.etag"
+    rm -f "${ETAG_FILE}.bak"
     if [ -f "${ETAG_FILE}" ]; then
         mv "${ETAG_FILE}" "${ETAG_FILE}.bak"
     fi

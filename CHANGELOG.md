@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 [45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[5199248](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/51992483f5257e1a9a1efcf72be84a5c136dd1f8)
 
+### Breaking Changes
+
+- **`WAZUH_API_TLS_VERIFY` now defaults to `true`.** Existing deployments using self-signed Wazuh Manager certificates without a configured `WAZUH_API_CA_BUNDLE` must either set `WAZUH_API_TLS_VERIFY=false` or provide a CA bundle **before upgrading**, otherwise every Wazuh API call will fail the TLS handshake and no agent will be evicted. See `docs/getting-started.md` for the migration note.
+
 ### Bug Fixes
 
 - Restore long-poll, use fairing for ETag extraction, harden error paths ([`eb5eb6e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/eb5eb6e0546d643e22ba36c2f67e82f9b5ec4110))

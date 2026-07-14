@@ -102,6 +102,7 @@ jobs:
 
       - name: Set canonical image ref
         id: img
+        if: github.event_name != 'pull_request'
         env:
           IMAGE: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}${{ matrix.suffix }}
           DIGEST: ${{ steps.build.outputs.digest }}
@@ -115,6 +116,7 @@ jobs:
 
       - name: Vulnerability scan (Trivy)
         id: trivy
+        if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: ${{ steps.img.outputs.ref }}
@@ -125,7 +127,9 @@ jobs:
           ignore-unfixed: true
 
       - name: Install Cosign
+        if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
 
       - name: Sign image (Cosign keyless)
+        if: github.event_name != 'pull_request'
         run: cosign sign --yes ${{ steps.img.outputs.ref }}
