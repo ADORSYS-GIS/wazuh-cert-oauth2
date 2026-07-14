@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::info;
+use tracing::{error, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::services::wazuh::WazuhClient;
 
@@ -67,7 +67,7 @@ impl WazuhApiClient {
             {
                 Some(a) => a.id,
                 None => {
-                    info!(
+                    error!(
                         agent_name = ?req.wazuh_agent_name,
                         subject = %req.subject,
                         "No Wazuh agent found; skipping eviction"

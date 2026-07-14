@@ -11,6 +11,10 @@ use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 use super::ProxyState;
 use super::wazuh_api::EvictionOutcome;
 
+/// Maximum time (in seconds) an EvictRequest stays in the spool before being
+/// force-deleted as a dead-letter. Prevents unbounded retry of poison items.
+const EVICT_SPOOL_TTL_SECS: u64 = 24 * 60 * 60;
+
 /// Represents a pending GitHub ticket.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GitHubTicket {
@@ -150,6 +154,10 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
                                 }
                             }
 
+                            // Capture fields needed for TTL check before `req` is moved.
+                            let triggered_at = req.triggered_at_unix;
+                            let req_subject = req.subject.clone();
+
                             match state.run_eviction_from_state(req).await {
                                 Ok(EvictionOutcome::Done) => {
                                     debug!("eviction complete; removing {}", path.display());
@@ -160,9 +168,17 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
                                     let updated = SpoolItem::EvictRequest { req: updated_req };
                                     match serde_json::to_vec(&updated) {
                                         Ok(data) => {
-                                            if let Err(e) = tokio::fs::write(&path, data).await {
+                                            let tmp = path.with_extension("json.tmp");
+                                            if let Err(e) = tokio::fs::write(&tmp, &data).await {
                                                 error!(
-                                                    "failed to re-write spool file {}: {}",
+                                                    "failed to write temp spool file {}: {}",
+                                                    tmp.display(),
+                                                    e
+                                                );
+                                            } else if let Err(e) = tokio::fs::rename(&tmp, &path).await {
+                                                error!(
+                                                    "failed to rename temp spool file {} -> {}: {}",
+                                                    tmp.display(),
                                                     path.display(),
                                                     e
                                                 );
@@ -174,7 +190,30 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
                                     }
                                 }
                                 Err(e) => {
-                                    warn!("eviction still failing for {}: {}", path.display(), e)
+                                    let now = SystemTime::now()
+                                        .duration_since(UNIX_EPOCH)
+                                        .unwrap_or_default()
+                                        .as_secs();
+                                    let age = now.saturating_sub(triggered_at);
+                                    if age > EVICT_SPOOL_TTL_SECS {
+                                        error!(
+                                            subject = %req_subject,
+                                            path = %path.display(),
+                                            age_secs = age,
+                                            error = %e,
+                                            "Eviction spool item exceeded TTL ({}s); dead-lettering (removing)",
+                                            EVICT_SPOOL_TTL_SECS
+                                        );
+                                        let _ = tokio::fs::remove_file(&path).await;
+                                    } else {
+                                        warn!(
+                                            "eviction still failing for {} (age {}s, TTL {}s): {}",
+                                            path.display(),
+                                            age,
+                                            EVICT_SPOOL_TTL_SECS,
+                                            e
+                                        );
+                                    }
                                 }
                             }
                         }
