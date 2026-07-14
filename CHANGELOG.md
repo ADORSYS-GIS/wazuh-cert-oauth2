@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[2ce36ae](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2ce36ae881da1204c8a558691ce41b00e0081245)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[af89285](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/af89285e003cf06d4266c79d1b109bf021e476fa)
 
 ### Bug Fixes
 
@@ -29,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`7debfb7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7debfb75f52698488337e24c8bf85ce7fc5cae58))
 - Update CHANGELOG.md and checksums [skip ci] ([`7d8dc7d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d8dc7dbcb57d589ac8265e034df7c12077ffbb4))
 - Update CHANGELOG.md and checksums [skip ci] ([`4361039`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4361039f510b7fa3a264b892adf34fd2a3c630ae))
+- Update CHANGELOG.md and checksums [skip ci] ([`fbb736f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fbb736f224790b8f83ec4d89fb1c6217988e91e3))
 
 ### Features
 
@@ -38,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - Add TLS verification options for Wazuh API and improve eviction handling ([`90ca9cb`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/90ca9cbb3a76afb710534b9eaf7b2341a26c09aa))
 - Complete nginx sidecar image and consolidate under .docker/ ([`f2df4b4`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f2df4b41ecc32117d99eb5948e2c626bbc55b31d))
 - Add documentation for nginx sidecar image and its configuration ([`2ce36ae`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2ce36ae881da1204c8a558691ce41b00e0081245))
+- Enable TLS verification by default and improve CRL handling logic ([`af89285`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/af89285e003cf06d4266c79d1b109bf021e476fa))
 
 ### Miscellaneous Tasks
 
