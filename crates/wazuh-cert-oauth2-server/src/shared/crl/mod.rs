@@ -4,10 +4,15 @@ use std::sync::Arc;
 use openssl::pkey::PKey;
 use openssl::x509::X509;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tokio::fs;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, oneshot, watch};
 use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
+
+/// ETag string paired with an optional cached CRL body.
+/// `None` means no valid CRL is loaded (cold start or failed rebuild).
+type CrlWatchValue = (String, Option<Arc<Vec<u8>>>);
 
 mod ffi;
 mod worker;
@@ -19,10 +24,18 @@ pub struct RevocationEntry {
     pub revoked_at_unix: u64,
 }
 
+/// Compute a SHA-256 ETag from arbitrary bytes.
+pub fn compute_etag(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    format!("{:x}", hasher.finalize())
+}
+
 #[derive(Clone)]
 pub struct CrlState {
     crl_file_path: PathBuf,
     tx: mpsc::Sender<worker::Command>,
+    rebuild_notify: watch::Sender<CrlWatchValue>,
 }
 
 impl CrlState {
@@ -33,8 +46,16 @@ impl CrlState {
             crl_file_path.display()
         );
         let (tx, rx) = mpsc::channel::<worker::Command>(32);
-        worker::spawn_crl_worker(crl_file_path.clone(), rx);
-        Ok(Self { crl_file_path, tx })
+
+        let (initial_etag, initial_body) = Self::compute_initial_from_file(&crl_file_path).await;
+        let (rebuild_tx, _) = watch::channel((initial_etag, initial_body));
+        worker::spawn_crl_worker(crl_file_path.clone(), rx, rebuild_tx.clone());
+
+        Ok(Self {
+            crl_file_path,
+            tx,
+            rebuild_notify: rebuild_tx,
+        })
     }
 
     #[tracing::instrument(skip(self))]
@@ -43,6 +64,23 @@ impl CrlState {
         let bytes = fs::read(&self.crl_file_path).await?;
         debug!("Read CRL file ({} bytes)", bytes.len());
         Ok(bytes)
+    }
+
+    /// Subscribe to CRL rebuild notifications.
+    ///
+    /// Returns a [`watch::Receiver`] that is notified whenever the CRL is
+    /// rebuilt (whether triggered by a long-poll client or a revocation
+    /// request). The long-poll handler uses this to hold the connection open
+    /// until the ETag changes or a timeout elapses.
+    pub fn subscribe_rebuild(&self) -> watch::Receiver<CrlWatchValue> {
+        self.rebuild_notify.subscribe()
+    }
+
+    async fn compute_initial_from_file(path: &PathBuf) -> CrlWatchValue {
+        match fs::read(path).await {
+            Ok(bytes) => (compute_etag(&bytes), Some(Arc::new(bytes))),
+            Err(_) => (String::new(), None),
+        }
     }
 
     #[tracing::instrument(skip(self, ca_cert, ca_key, entries_snapshot))]
@@ -73,6 +111,7 @@ impl CrlState {
                 e
             ))
         })??;
+
         Ok(())
     }
 }

@@ -3514,6 +3514,7 @@ dependencies = [
  "rand 0.10.2",
  "rocket",
  "serde",
+ "sha2",
  "tokio",
  "tracing",
  "url",

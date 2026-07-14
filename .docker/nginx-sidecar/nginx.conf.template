@@ -1,0 +1,53 @@
+worker_processes auto;
+error_log /var/log/nginx/error.log ${LOG_LEVEL};
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections ${WORKER_CONNECTIONS};
+}
+
+stream {
+    # Custom log format for stream connections
+    log_format streamlog '$remote_addr [$time_local] $protocol $status $bytes_sent $bytes_received $session_time '
+              '"$ssl_client_s_dn" "$ssl_protocol/$ssl_cipher"';
+
+    # Upstream for Wazuh manager authd
+    upstream authd {
+        server ${AUTHD_UPSTREAM_HOST}:${AUTHD_UPSTREAM_PORT};
+    }
+
+    server {
+        listen ${LISTEN_PORT} ssl;
+
+        # Server certificate and key
+        ssl_certificate ${SSL_CERT_PATH};
+        ssl_certificate_key ${SSL_KEY_PATH};
+
+        # Client certificate verification (mutual TLS)
+        ssl_verify_client on;
+        ssl_client_certificate ${SSL_CA_PATH};
+        ssl_trusted_certificate ${SSL_CA_PATH};
+
+        # Certificate Revocation List
+        ssl_crl ${CRL_FILE};
+
+        # Access log
+        access_log /var/log/nginx/access.log streamlog;
+
+        # Proxy to authd (re-encrypt since authd speaks TLS)
+        proxy_pass authd;
+        proxy_ssl on;
+        proxy_ssl_certificate ${SSL_CERT_PATH};
+        proxy_ssl_certificate_key ${SSL_KEY_PATH};
+        proxy_ssl_trusted_certificate ${SSL_CA_PATH};
+        # proxy_ssl_verify is intentionally off because this is a same-pod
+        # localhost connection. The security boundary is at the edge (CRL
+        # check above). If the proxy target ever moves to a different pod,
+        # this MUST be changed to 'on' with proper CA verification.
+        proxy_ssl_verify off;
+        proxy_ssl_session_reuse on;
+
+        # Log denied connections
+        error_log /var/log/nginx/crl-denied.log ${LOG_LEVEL};
+    }
+}

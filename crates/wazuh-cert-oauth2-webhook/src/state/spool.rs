@@ -9,6 +9,7 @@ use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 use super::ProxyState;
+use super::wazuh_api::EvictionOutcome;
 
 /// Represents a pending GitHub ticket.
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -24,15 +25,13 @@ pub struct EvictRequest {
     pub wazuh_agent_name: Option<String>,
     pub reason: String,
     pub triggered_at_unix: u64,
-}
-
-/// Represents a pending active-response command that couldn't be delivered.
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ArPendingRequest {
-    pub agent_id: String,
-    pub subject: String,
-    pub command: String,
-    pub created_at_unix: u64,
+    /// Resolved Wazuh agent ID (set after first lookup to avoid re-querying).
+    #[serde(default)]
+    pub agent_id: Option<String>,
+    /// Unix timestamp after which the deletion may proceed (grace period end).
+    /// Set on first processing; the spool processor skips the item until due.
+    #[serde(default)]
+    pub delete_after_unix: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -40,7 +39,6 @@ enum SpoolItem {
     RevokeRequest { req: RevokeRequest },
     GitHubTicket { ticket: GitHubTicket },
     EvictRequest { req: EvictRequest },
-    ArPendingRequest { req: ArPendingRequest },
 }
 
 #[tracing::instrument(skip(state, item))]
@@ -83,13 +81,6 @@ pub async fn queue_evict_to_spool_dir(state: &ProxyState, req: EvictRequest) -> 
     queue_item_to_spool_dir(state, SpoolItem::EvictRequest { req }, "evict").await
 }
 
-pub async fn queue_ar_pending_to_spool_dir(
-    state: &ProxyState,
-    req: ArPendingRequest,
-) -> AppResult<()> {
-    queue_item_to_spool_dir(state, SpoolItem::ArPendingRequest { req }, "ar-pending").await
-}
-
 #[tracing::instrument(skip(state))]
 pub async fn spawn_spool_processor(state: ProxyState) -> AppResult<()> {
     info!(
@@ -123,25 +114,70 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
             Ok(bytes) => match serde_json::from_slice::<SpoolItem>(&bytes) {
                 Ok(item) => {
                     debug!("processing spool file: {}", path.display());
-                    let res = match item {
+                    match item {
                         SpoolItem::RevokeRequest { req } => {
-                            state.forward_revoke_with_retry(req).await
+                            match state.forward_revoke_with_retry(req).await {
+                                Ok(()) => {
+                                    debug!("successfully processed {}; removing", path.display());
+                                    let _ = tokio::fs::remove_file(&path).await;
+                                }
+                                Err(e) => warn!("still failing for {}: {}", path.display(), e),
+                            }
                         }
                         SpoolItem::GitHubTicket { ticket } => {
-                            state.forward_github_ticket_with_retry(ticket).await
+                            match state.forward_github_ticket_with_retry(ticket).await {
+                                Ok(()) => {
+                                    debug!("successfully processed {}; removing", path.display());
+                                    let _ = tokio::fs::remove_file(&path).await;
+                                }
+                                Err(e) => warn!("still failing for {}: {}", path.display(), e),
+                            }
                         }
-                        SpoolItem::EvictRequest { req } => state.run_eviction_from_state(req).await,
-                        SpoolItem::ArPendingRequest { req } => {
-                            state.run_ar_pending_from_state(req).await
-                        }
-                    };
+                        SpoolItem::EvictRequest { req } => {
+                            // Skip if grace period hasn't elapsed yet.
+                            if let Some(delete_after) = req.delete_after_unix {
+                                let now = SystemTime::now()
+                                    .duration_since(UNIX_EPOCH)
+                                    .unwrap_or_default()
+                                    .as_secs();
+                                if now < delete_after {
+                                    debug!(
+                                        "eviction for {} not yet due ({}s remaining)",
+                                        req.subject,
+                                        delete_after - now
+                                    );
+                                    continue;
+                                }
+                            }
 
-                    match res {
-                        Ok(()) => {
-                            debug!("successfully processed {}; removing", path.display());
-                            let _ = tokio::fs::remove_file(&path).await;
+                            match state.run_eviction_from_state(req).await {
+                                Ok(EvictionOutcome::Done) => {
+                                    debug!("eviction complete; removing {}", path.display());
+                                    let _ = tokio::fs::remove_file(&path).await;
+                                }
+                                Ok(EvictionOutcome::Pending(updated_req)) => {
+                                    // Re-write spool file with updated agent_id and delete_after_unix.
+                                    let updated = SpoolItem::EvictRequest { req: updated_req };
+                                    match serde_json::to_vec(&updated) {
+                                        Ok(data) => {
+                                            if let Err(e) = tokio::fs::write(&path, data).await {
+                                                error!(
+                                                    "failed to re-write spool file {}: {}",
+                                                    path.display(),
+                                                    e
+                                                );
+                                            }
+                                        }
+                                        Err(e) => {
+                                            error!("failed to serialize updated spool item: {}", e)
+                                        }
+                                    }
+                                }
+                                Err(e) => {
+                                    warn!("eviction still failing for {}: {}", path.display(), e)
+                                }
+                            }
                         }
-                        Err(e) => warn!("still failing for {}: {}", path.display(), e),
                     }
                 }
                 Err(e) => {
@@ -204,17 +240,16 @@ mod tests {
             None,
             // keycloak_admin_base_url
             None,
-            // wazuh: manager_url, api_user, api_password, api_token, ar_command
+            // wazuh: manager_url, api_user, api_password, api_token
             None,
             None,
             None,
             None,
-            "delete-cert.sh".to_string(),
-            "delete-cert.ps1".to_string(),
             // wazuh_eviction_grace_seconds
             30,
-            // wazuh_ar_spool_ttl_seconds
-            86400,
+            // wazuh_api_tls_verify, wazuh_api_ca_bundle
+            false,
+            None,
         )
         .expect("state should build")
     }
@@ -263,6 +298,8 @@ mod tests {
             wazuh_agent_name: Some("agent-name".to_string()),
             reason: "test-revocation".to_string(),
             triggered_at_unix: 1234567890,
+            agent_id: None,
+            delete_after_unix: None,
         };
 
         queue_evict_to_spool_dir(&state, req.clone())

@@ -1,0 +1,102 @@
+name: Build Nginx Sidecar Docker image
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+    paths:
+      - '.github/workflows/build-nginx-sidecar.yml'
+      - '.docker/nginx-sidecar/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ADORSYS-GIS/wazuh-cert-oauth2-nginx-sidecar
+
+jobs:
+  build:
+    name: Docker build for nginx-sidecar
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        name: Checkout repository
+        with:
+          fetch-depth: "0"
+          persist-credentials: 'false'
+
+      - name: Dockerfile scan (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: 'config'
+          scan-ref: './.docker/nginx-sidecar'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          hide-progress: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Login to the Docker registry
+        id: login
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: lowercase
+        name: Lowercase image name
+        uses: AsZc/change-string-case-action@ecd1412d078f2e06e9eedcbaa6fcd988151c3f82
+        with:
+          string: ${{ env.IMAGE_NAME }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf
+        with:
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{branch}}
+            type=schedule,pattern={{date 'YYYYMMDD-hhmmss' tz='Europe/Berlin'}}
+            type=sha,format=long
+            type=sha,format=long,prefix={{branch}}
+          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-nginx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-nginx-
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+        if: github.event_name != 'pull_request'
+        with:
+          pull: true
+          context: ./.docker/nginx-sidecar
+          push: "true"
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      # Prevent unbounded cache growth: rotate cache directory
+      - name: Rotate buildx cache
+        if: always()
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache || true

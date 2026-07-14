@@ -40,6 +40,7 @@ tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 tracing = { version = "0", features = ["attributes", "async-await", "std"] }
 
 mimalloc = "0"
+sha2 = "0.10"
 
 [profile.prod]
 inherits = "release"

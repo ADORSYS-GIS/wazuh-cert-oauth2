@@ -16,6 +16,7 @@ Rust workspace providing certificate-based auth for Wazuh integrated with OAuth2
 - Client CLI: obtains a token, generates key + CSR, and registers the agent — see `crates/wazuh-cert-oauth2-client/README.md`.
 - Webhook: consumes IdP events (e.g., Keycloak) and requests revocations — see `crates/wazuh-cert-oauth2-webhook/README.md`.
 - Shared model helpers — see `crates/wazuh-cert-oauth2-model/README.md`.
+- **Nginx sidecar image**: CRL-validating proxy for agent enrollment traffic, consumed by the Wazuh Helm chart — see `.docker/nginx-sidecar/` and [Getting Started](docs/getting-started.md#nginx-sidecar-image).
 
 Internal utilities: `wazuh-cert-oauth2-healthcheck`.
 

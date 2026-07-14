@@ -83,16 +83,13 @@ pub struct Opt {
     pub wazuh_api_password: Option<String>,
     #[arg(long, env = "WAZUH_API_TOKEN")]
     pub wazuh_api_token: Option<String>,
-    #[arg(long, env = "WAZUH_AR_COMMAND_UNIX", default_value = "delete-cert.sh")]
-    pub wazuh_ar_command_unix: String,
-    #[arg(
-        long,
-        env = "WAZUH_AR_COMMAND_WINDOWS",
-        default_value = "delete-cert.ps1"
-    )]
-    pub wazuh_ar_command_windows: String,
     #[arg(long, env = "WAZUH_EVICTION_GRACE_SECONDS", default_value_t = 30)]
     pub wazuh_eviction_grace_seconds: u64,
-    #[arg(long, env = "WAZUH_AR_SPOOL_TTL_SECONDS", default_value_t = 86400)]
-    pub wazuh_ar_spool_ttl_seconds: u64,
+    /// Enable TLS certificate verification for the Wazuh Manager API.
+    #[arg(long, env = "WAZUH_API_TLS_VERIFY", default_value_t = false)]
+    pub wazuh_api_tls_verify: bool,
+    /// Path to a PEM file containing additional CA certificates to trust
+    /// for the Wazuh Manager API (e.g. for self-signed managers).
+    #[arg(long, env = "WAZUH_API_CA_BUNDLE")]
+    pub wazuh_api_ca_bundle: Option<std::path::PathBuf>,
 }

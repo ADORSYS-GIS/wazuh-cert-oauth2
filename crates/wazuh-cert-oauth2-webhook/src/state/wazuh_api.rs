@@ -1,149 +1,109 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
+use tracing::info;
+use wazuh_cert_oauth2_model::models::errors::AppResult;
+use wazuh_cert_oauth2_model::services::wazuh::WazuhClient;
 
-use tracing::{debug, error, info, warn};
-use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
-use wazuh_cert_oauth2_model::services::wazuh::{ArOutcome, WazuhClient};
+use crate::state::spool::EvictRequest;
 
-use crate::state::spool::{ArPendingRequest, EvictRequest};
+/// Outcome of an eviction attempt — used by the spool processor to decide
+/// whether to remove, re-write, or skip the spool file.
+#[derive(Debug)]
+pub enum EvictionOutcome {
+    /// Agent deleted (or not found / no Wazuh configured) — remove spool file.
+    Done,
+    /// Grace period started — re-write spool file with updated `agent_id` and
+    /// `delete_after_unix`. The file is NOT removed.
+    Pending(EvictRequest),
+}
 
 #[derive(Clone)]
 pub struct WazuhApiClient {
     pub(crate) client: WazuhClient,
-    pub(crate) ar_command_unix: String,
-    pub(crate) ar_command_windows: String,
     pub(crate) grace_seconds: u64,
-    pub(crate) ar_spool_ttl_seconds: u64,
 }
 
 impl WazuhApiClient {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         manager_url: String,
         user: Option<String>,
         password: Option<String>,
         static_token: Option<String>,
-        ar_command_unix: String,
-        ar_command_windows: String,
         grace_seconds: u64,
-        ar_spool_ttl_seconds: u64,
+        tls_verify: bool,
+        ca_bundle: Option<PathBuf>,
     ) -> Self {
         Self {
-            client: WazuhClient::new(manager_url, user, password, static_token),
-            ar_command_unix,
-            ar_command_windows,
+            client: WazuhClient::with_tls_options(
+                manager_url,
+                user,
+                password,
+                static_token,
+                tls_verify,
+                ca_bundle,
+            ),
             grace_seconds,
-            ar_spool_ttl_seconds,
         }
-    }
-
-    /// Send an active-response command to the agent.
-    #[tracing::instrument(skip(self), fields(agent_id = %agent_id, command = %command))]
-    async fn send_active_response(&self, agent_id: &str, command: &str) -> AppResult<ArOutcome> {
-        self.client
-            .send_active_response_raw(agent_id, command)
-            .await
     }
 
     /// Run the eviction pipeline for a given EvictRequest.
+    ///
+    /// Instead of blocking the spool processor with `tokio::sleep(grace)`,
+    /// this method sets `delete_after_unix` on the request and returns
+    /// `EvictionOutcome::Pending`. The spool processor re-writes the file
+    /// and skips it until the grace period elapses, allowing other spool
+    /// items to be processed in the meantime.
     #[tracing::instrument(skip(self, req), fields(agent_name = %req.wazuh_agent_name.as_deref().unwrap_or(""), subject = %req.subject))]
-    pub async fn run_eviction(&self, req: &EvictRequest) -> AppResult<Option<ArPendingRequest>> {
-        // Step 1: resolve agent
-        let agent = match self
-            .client
-            .find_agent(req.wazuh_agent_name.as_deref(), &req.subject)
-            .await?
-        {
-            Some(a) => a,
-            None => {
-                info!(
-                    agent_name = ?req.wazuh_agent_name,
-                    subject = %req.subject,
-                    "No Wazuh agent found; skipping eviction"
-                );
-                return Ok(None);
-            }
-        };
-        let agent_id = agent.id;
-        let platform = agent
-            .os
-            .ok_or_else(|| {
-                error!(
-                    subject = %req.subject,
-                    agent_id = %agent_id,
-                    "Wazuh agent has no OS information"
-                );
-                AppError::UpstreamError("Wazuh agent has no OS information".to_string())
-            })?
-            .platform
-            .to_lowercase();
-        debug!(subject = %req.subject, agent_id = %agent_id, platform = %platform, "Resolved Wazuh agent");
-
+    pub async fn run_eviction(&self, req: &EvictRequest) -> AppResult<EvictionOutcome> {
         let is_auto_rotate = req.reason.to_ascii_lowercase().starts_with("auto-rotate");
-        let mut ar_pending = None;
 
-        // Step 2: active response
-        if !is_auto_rotate {
-            let command = if platform.contains("windows") {
-                &self.ar_command_windows
-            } else {
-                &self.ar_command_unix
-            };
-
-            match self.send_active_response(&agent_id, command).await? {
-                ArOutcome::Sent => {
-                    // Step 3: grace period
-                    let grace = Duration::from_secs(self.grace_seconds);
-                    debug!(
-                        subject = %req.subject,
-                        grace_seconds = self.grace_seconds,
-                        "Waiting grace period before agent deletion"
-                    );
-                    tokio::time::sleep(grace).await;
-                }
-                ArOutcome::AgentOffline => {
-                    warn!(
-                        subject = %req.subject,
-                        agent_id = %agent_id,
-                        "Wazuh agent is offline; spooling AR for retry and delaying deletion"
-                    );
-                    ar_pending = Some(ArPendingRequest {
-                        agent_id: agent_id.clone(),
-                        subject: req.subject.clone(),
-                        command: command.clone(),
-                        created_at_unix: SystemTime::now()
-                            .duration_since(UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_secs(),
-                    });
-                    // IMPORTANT: Return early to avoid deleting the agent yet
-                    return Ok(ar_pending);
-                }
-                ArOutcome::AgentGone => {
+        // Step 1: resolve agent (skip if already resolved from a previous cycle)
+        let agent_id = match &req.agent_id {
+            Some(id) => id.clone(),
+            None => match self
+                .client
+                .find_agent(req.wazuh_agent_name.as_deref(), &req.subject)
+                .await?
+            {
+                Some(a) => a.id,
+                None => {
                     info!(
+                        agent_name = ?req.wazuh_agent_name,
                         subject = %req.subject,
-                        agent_id = %agent_id,
-                        "Wazuh agent not found or already deleted; proceeding to clean up"
+                        "No Wazuh agent found; skipping eviction"
                     );
+                    return Ok(EvictionOutcome::Done);
                 }
-            }
+            },
+        };
 
-            // Step 4: actual deletion
+        // Step 2: handle grace period
+        if !is_auto_rotate && req.delete_after_unix.is_none() {
+            // First time processing — set the grace deadline and return Pending.
+            let now = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let delete_after = now + self.grace_seconds;
             info!(
                 subject = %req.subject,
                 agent_id = %agent_id,
-                "Deleting Wazuh agent from manager"
+                grace_seconds = self.grace_seconds,
+                "Grace period started; eviction will proceed after {} (unix {})",
+                delete_after, delete_after
             );
-            self.client
-                .execute_delete_agent(&agent_id, &req.subject)
-                .await?;
-        } else {
-            info!(
-                subject = %req.subject,
-                "Skipping active response for auto-rotate reason"
-            );
+            let mut updated = req.clone();
+            updated.agent_id = Some(agent_id);
+            updated.delete_after_unix = Some(delete_after);
+            return Ok(EvictionOutcome::Pending(updated));
         }
 
-        // Step 4: delete agent
+        // Step 3: delete agent
+        info!(
+            subject = %req.subject,
+            agent_id = %agent_id,
+            "Deleting Wazuh agent from manager"
+        );
         self.client
             .execute_delete_agent(&agent_id, &req.subject)
             .await?;
@@ -153,66 +113,6 @@ impl WazuhApiClient {
             agent_id = %agent_id,
             "Eviction complete"
         );
-        Ok(ar_pending)
-    }
-
-    /// Try to deliver a pending active-response command.
-    #[tracing::instrument(skip(self, req), fields(agent_id = %req.agent_id, subject = %req.subject))]
-    pub async fn run_ar_pending(&self, req: &ArPendingRequest) -> AppResult<()> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        let age_secs = now.saturating_sub(req.created_at_unix);
-
-        if age_secs > self.ar_spool_ttl_seconds {
-            warn!(
-                agent_id = %req.agent_id,
-                subject = %req.subject,
-                age_hours = age_secs / 3600,
-                ttl_hours = self.ar_spool_ttl_seconds / 3600,
-                "AR spool expired; forcing agent deletion"
-            );
-            // Force deletion even though AR command wasn't delivered
-            self.client
-                .execute_delete_agent(&req.agent_id, &req.subject)
-                .await?;
-            return Ok(());
-        }
-
-        match self
-            .send_active_response(&req.agent_id, &req.command)
-            .await?
-        {
-            ArOutcome::Sent => {
-                info!(
-                    agent_id = %req.agent_id,
-                    subject = %req.subject,
-                    "Spool retry: AR delivered successfully. Proceeding with agent deletion."
-                );
-                // Trigger the deletion now that AR succeeded
-                self.client
-                    .execute_delete_agent(&req.agent_id, &req.subject)
-                    .await?;
-                Ok(())
-            }
-            ArOutcome::AgentOffline => {
-                // Return error to keep the spool item alive for next retry
-                Err(AppError::UpstreamError(format!(
-                    "Agent {} still offline (spooled {}h ago)",
-                    req.agent_id,
-                    age_secs / 3600
-                )))
-            }
-            ArOutcome::AgentGone => {
-                // Agent no longer exists (likely deleted manually), prune the spool
-                info!(
-                    agent_id = %req.agent_id,
-                    subject = %req.subject,
-                    "Agent no longer exists in Wazuh; pruning stale AR spool"
-                );
-                Ok(())
-            }
-        }
+        Ok(EvictionOutcome::Done)
     }
 }
