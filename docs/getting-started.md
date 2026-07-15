@@ -186,10 +186,16 @@ The client will attempt to open the authorization URL in your system's default b
 | `--webhook-bearer-token`| `WEBHOOK_BEARER_TOKEN`| (Optional) | Bearer token for the Webhook Proxy. |
 
 ### Webhook Flags
+
+> [!WARNING]
+> **Breaking change:** `WAZUH_API_TLS_VERIFY` now defaults to `true`. If your Wazuh Manager uses a self-signed certificate and you do not have `WAZUH_API_CA_BUNDLE` configured, set `WAZUH_API_TLS_VERIFY=false` **before upgrading** to avoid eviction failures.
+
 | Flag | Env Variable | Default | Purpose |
 | :--- | :--- | :--- | :--- |
 | `--server-base-url` | `SERVER_BASE_URL` | (Required) | Base URL of the Certificate Server. |
 | `--spool-dir` | `SPOOL_DIR` | `/data/spool` | Directory for persistent retry spooling. |
+| `--spool-evict-ttl-secs` | `SPOOL_EVICT_TTL_SECS` | `86400` (24h) | Maximum age (in seconds) an eviction request stays in the spool before being moved to the dead-letter directory. Increase for environments prone to longer Wazuh outages. |
+| `--spool-dead-letter-dir` | `SPOOL_DEAD_LETTER_DIR` | `dead-letter/` sibling of `SPOOL_DIR` | Directory where expired eviction spool items are quarantined for operator inspection/replay. **Must not be the same as `SPOOL_DIR`.** Must live on the same filesystem/volume as `SPOOL_DIR` |
 | `--oauth-client-id` | `OAUTH_CLIENT_ID` | (Required) | Client ID to talk to the Server. |
 | `--oauth-client-secret`| `OAUTH_CLIENT_SECRET`| (Required) | Client Secret for the Server. |
 | `--github-token` | `GITHUB_TOKEN` | (Optional) | GitHub PAT for issue creation. |
@@ -201,7 +207,7 @@ The client will attempt to open the authorization URL in your system's default b
 | `--wazuh-api-password`| `WAZUH_API_PASSWORD`| (Optional) | Wazuh API password. |
 | `--wazuh-api-token` | `WAZUH_API_TOKEN` | (Optional) | Wazuh API static token. |
 | `--wazuh-eviction-grace-seconds`| `WAZUH_EVICTION_GRACE_SECONDS`| `30` | Grace period before agent deletion (skipped for auto-rotate). |
-| `--wazuh-api-tls-verify` | `WAZUH_API_TLS_VERIFY` | `false` | Enable TLS cert verification for the Wazuh Manager API. |
+| `--wazuh-api-tls-verify` | `WAZUH_API_TLS_VERIFY` | `true` | Enable TLS cert verification for the Wazuh Manager API. Set to `false` only for testing or self-signed certificates without a configured CA bundle. |
 | `--wazuh-api-ca-bundle` | `WAZUH_API_CA_BUNDLE` | (Optional) | Path to a PEM CA bundle for the Wazuh Manager API. |
 
 ### Client Flags
@@ -291,7 +297,7 @@ This produces an image based on `nginx:alpine` with `curl`, `openssl`, and `gett
 ### How It Works
 
 1. `entrypoint.sh` uses `envsubst` to render `nginx.conf.template` → `/etc/nginx/nginx.conf`
-2. Runs an initial CRL fetch via `fetch-crl.sh`
+2. Runs an initial CRL fetch via `fetch-crl.sh` (bypasses `If-None-Match` to avoid long-poll delay on startup)
 3. Starts a background CRL refresh loop (long-polling with ETag support)
 4. Launches nginx in the foreground
 

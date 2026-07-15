@@ -64,9 +64,14 @@ services:
       WAZUH_API_PASSWORD: ""
       WAZUH_API_TOKEN: ""
       WAZUH_EVICTION_GRACE_SECONDS: 30
+      WAZUH_API_TLS_VERIFY: "true"
+      WAZUH_API_CA_BUNDLE: ""
+      SPOOL_EVICT_TTL_SECS: "86400"
+      SPOOL_DEAD_LETTER_DIR: "/data/dead-letter"
     user: "${UID:-}:${GID:-}"
     volumes:
       - webhook:/data/spool
+      - webhook-dlq:/data/dead-letter
     healthcheck:
       test: ["CMD", "/app/healthcheck"]
       interval: 30s
@@ -155,6 +160,12 @@ volumes:
       type: "none"
       o: "bind"
       device: "./.docker/tmp"
+  webhook-dlq:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "./.docker/tmp-dlq"
   oauth2:
     driver: local
     driver_opts:

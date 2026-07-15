@@ -42,9 +42,10 @@ webhook:
             - |
               set -ex
 
-              # Ensure the directory exists
-              chown -R 1001:1001 /var/cache/wazuh-cert-oauth2-webhook/spool
-              chmod -R 775 /var/cache/wazuh-cert-oauth2-webhook/spool
+              # Ensure the spool and dead-letter directories exist
+              mkdir -p /var/cache/wazuh-cert-oauth2-webhook/spool /var/cache/wazuh-cert-oauth2-webhook/dead-letter
+              chown -R 1001:1001 /var/cache/wazuh-cert-oauth2-webhook/spool /var/cache/wazuh-cert-oauth2-webhook/dead-letter
+              chmod -R 775 /var/cache/wazuh-cert-oauth2-webhook/spool /var/cache/wazuh-cert-oauth2-webhook/dead-letter
           resources:
             requests:
               cpu: 50m
@@ -113,6 +114,10 @@ webhook:
             #       key: password
             WAZUH_API_TOKEN: ""
             WAZUH_EVICTION_GRACE_SECONDS: 30
+            WAZUH_API_TLS_VERIFY: "true"
+            WAZUH_API_CA_BUNDLE: ""
+            SPOOL_EVICT_TTL_SECS: "86400"
+            SPOOL_DEAD_LETTER_DIR: "/var/cache/wazuh-cert-oauth2-webhook/dead-letter"
 
           probes:
             startup:
@@ -178,5 +183,7 @@ webhook:
         app:
           permission-fix:
             - path: /var/cache/wazuh-cert-oauth2-webhook/spool
+            - path: /var/cache/wazuh-cert-oauth2-webhook/dead-letter
           app:
             - path: /var/cache/wazuh-cert-oauth2-webhook/spool
+            - path: /var/cache/wazuh-cert-oauth2-webhook/dead-letter

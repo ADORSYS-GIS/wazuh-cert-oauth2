@@ -20,6 +20,14 @@ pub fn build_state(opt: &Opt) -> AppResult<ProxyState> {
         Duration::from_millis(opt.retry_base_ms),
         Duration::from_millis(opt.retry_max_ms),
         Duration::from_secs(opt.spool_interval_secs),
+        Duration::from_secs(opt.spool_evict_ttl_secs),
+        opt.spool_dead_letter_dir.clone().unwrap_or_else(|| {
+            // Default: a `dead-letter/` sibling of the spool directory.
+            opt.spool_dir
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."))
+                .join("dead-letter")
+        }),
         opt.proxy_bearer_token.clone(),
         opt.oauth_issuer.clone(),
         opt.oauth_client_id.clone(),

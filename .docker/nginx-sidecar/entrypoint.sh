@@ -34,8 +34,25 @@ fi
 # Initial CRL fetch (MUST happen before nginx validation since ssl_crl requires the file)
 if [ "${CRL_ENABLED}" = "true" ]; then
     echo "Performing initial CRL fetch..."
+    # Temporarily move the persisted ETag aside so the initial fetch does NOT
+    # send If-None-Match.  Otherwise the server holds the connection for the
+    # full long-poll timeout (~25s) when the CRL is unchanged, delaying nginx
+    # startup and potentially tripping readiness probes on container restart.
+    # The background refresh loop re-enables long-polling after this first fetch.
+    ETAG_FILE="${CRL_FILE}.etag"
+    rm -f "${ETAG_FILE}.bak"
+    if [ -f "${ETAG_FILE}" ]; then
+        mv "${ETAG_FILE}" "${ETAG_FILE}.bak"
+    fi
     rc=0
     /opt/sidecar/fetch-crl.sh || rc=$?
+    # Restore the ETag for the background loop (unless fetch-crl.sh already
+    # wrote a new, non-empty one).
+    if [ -f "${ETAG_FILE}.bak" ] && [ ! -s "${ETAG_FILE}" ]; then
+        mv "${ETAG_FILE}.bak" "${ETAG_FILE}"
+    else
+        rm -f "${ETAG_FILE}.bak"
+    fi
     if [ "$rc" -eq 0 ] || [ "$rc" -eq 2 ]; then
         echo "Initial CRL fetch successful"
     else

@@ -65,9 +65,8 @@ impl WazuhClient {
         password: Option<String>,
         static_token: Option<String>,
     ) -> Self {
-        // Backward-compatible constructor: TLS verification disabled by default
-        // to preserve existing behavior.
-        Self::with_tls_options(manager_url, user, password, static_token, false, None)
+        // TLS verification enabled by default.
+        Self::with_tls_options(manager_url, user, password, static_token, true, None)
     }
 
     /// Create a `WazuhClient` with explicit TLS verification controls.
@@ -242,18 +241,20 @@ impl WazuhClient {
             Some(n) => n,
             None => return Ok(None),
         };
-        // Use reqwest's .query() for proper URL-encoding of the agent name,
+        // Use reqwest's .query() for proper URL-encoding of the agent name, and
+        // Wazuh query language (q=name=<exact>) for an exact match
         let base = format!("{}/agents", self.manager_url.trim_end_matches('/'));
         let name = name.to_string();
+        let query = format!("name={}", name);
         let resp = self
             .with_retry(|token| {
                 let base = base.clone();
-                let name = name.clone();
+                let query = query.clone();
                 async move {
                     Ok(self
                         .http
                         .get(&base)
-                        .query(&[("search", name.as_str())])
+                        .query(&[("q", query.as_str())])
                         .bearer_auth(token))
                 }
             })

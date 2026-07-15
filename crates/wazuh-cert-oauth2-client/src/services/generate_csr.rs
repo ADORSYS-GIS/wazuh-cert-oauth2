@@ -52,7 +52,7 @@ mod tests {
             .next()
             .expect("common name should exist")
             .data()
-            .as_utf8()
+            .to_string()
             .expect("cn should be utf8")
             .to_string();
         assert_eq!(cn, subject);

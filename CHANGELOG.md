@@ -4,7 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[2ce36ae](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2ce36ae881da1204c8a558691ce41b00e0081245)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[5199248](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/51992483f5257e1a9a1efcf72be84a5c136dd1f8)
+
+### Breaking Changes
+
+- **`WAZUH_API_TLS_VERIFY` now defaults to `true`.** Existing deployments using self-signed Wazuh Manager certificates without a configured `WAZUH_API_CA_BUNDLE` must either set `WAZUH_API_TLS_VERIFY=false` or provide a CA bundle **before upgrading**, otherwise every Wazuh API call will fail the TLS handshake and no agent will be evicted. See `docs/getting-started.md` for the migration note.
 
 ### Bug Fixes
 
@@ -12,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Add non-root USER to nginx sidecar Dockerfile (Trivy DS-0002) ([`0e53462`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0e53462a01fecf084cd21da0e7dda6150975597c))
 - Create nginx cache dirs and chown /run before USER switch ([`214268d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/214268d3b1ccf279d5cde842957e447f0571a920))
 - Export env var defaults so envsubst can substitute them ([`6572544`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/657254428087b9b9567bcc81ab060e7d5b33f2b5))
+- Skip eviction for user-update events when user is being enabled ([`5199248`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/51992483f5257e1a9a1efcf72be84a5c136dd1f8))
 
 ### Documentation
 
@@ -29,6 +34,8 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`7debfb7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7debfb75f52698488337e24c8bf85ce7fc5cae58))
 - Update CHANGELOG.md and checksums [skip ci] ([`7d8dc7d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d8dc7dbcb57d589ac8265e034df7c12077ffbb4))
 - Update CHANGELOG.md and checksums [skip ci] ([`4361039`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4361039f510b7fa3a264b892adf34fd2a3c630ae))
+- Update CHANGELOG.md and checksums [skip ci] ([`fbb736f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fbb736f224790b8f83ec4d89fb1c6217988e91e3))
+- Update CHANGELOG.md and checksums [skip ci] ([`985d5d0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/985d5d0243ecb15a1f2a043e54f23172ad2ee58c))
 
 ### Features
 
@@ -38,6 +45,7 @@ All notable changes to this project will be documented in this file.
 - Add TLS verification options for Wazuh API and improve eviction handling ([`90ca9cb`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/90ca9cbb3a76afb710534b9eaf7b2341a26c09aa))
 - Complete nginx sidecar image and consolidate under .docker/ ([`f2df4b4`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f2df4b41ecc32117d99eb5948e2c626bbc55b31d))
 - Add documentation for nginx sidecar image and its configuration ([`2ce36ae`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2ce36ae881da1204c8a558691ce41b00e0081245))
+- Enable TLS verification by default and improve CRL handling logic ([`af89285`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/af89285e003cf06d4266c79d1b109bf021e476fa))
 
 ### Miscellaneous Tasks
 

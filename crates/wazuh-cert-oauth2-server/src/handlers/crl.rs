@@ -70,7 +70,11 @@ pub async fn get_crl(
 
     let mut rx = crl.subscribe_rebuild();
 
-    let cached_body = rx.borrow().1.clone();
+    // Borrow both the cached ETag and body from the watch channel in one go.
+    let (cached_etag, cached_body) = {
+        let borrow = rx.borrow();
+        (borrow.0.clone(), borrow.1.clone())
+    };
     let mut bytes: Vec<u8> = match cached_body {
         Some(cached) => {
             debug!("Serving CRL from in-memory cache ({} bytes)", cached.len());
@@ -106,21 +110,45 @@ pub async fn get_crl(
         }
         // Read updated state, marking it as seen to avoid a spurious wakeup
         // from our own rebuild when we enter the long-poll loop below.
-        bytes = {
+        let (new_etag, new_body) = {
             let borrow = rx.borrow_and_update();
-            match borrow.1.as_ref() {
-                Some(b) => b.to_vec(),
-                None => {
-                    error!("CRL cache empty after rebuild");
-                    return Err(Status::InternalServerError);
-                }
+            (borrow.0.clone(), borrow.1.clone())
+        };
+        bytes = match new_body {
+            Some(b) => b.to_vec(),
+            None => {
+                error!("CRL cache empty after rebuild");
+                return Err(Status::InternalServerError);
             }
         };
+
+        // Use the ETag from the watch channel
+        let etag = new_etag;
+        debug!("CRL bytes length: {}, ETag: {}", bytes.len(), etag);
+        return serve_crl_or_long_poll(etag, bytes, client_etag, crl, &mut rx).await;
     }
 
-    let etag = compute_etag(&bytes);
+    // Use the cached ETag from the watch channel when available; only
+    // re-hash when we fell through to a disk read without a cached ETag.
+    let etag = if !cached_etag.is_empty() {
+        cached_etag
+    } else {
+        compute_etag(&bytes)
+    };
     debug!("CRL bytes length: {}, ETag: {}", bytes.len(), etag);
 
+    serve_crl_or_long_poll(etag, bytes, client_etag, crl, &mut rx).await
+}
+
+/// Serve the CRL immediately or enter the long-poll loop if the client's
+/// ETag matches the current one.
+async fn serve_crl_or_long_poll(
+    etag: String,
+    mut bytes: Vec<u8>,
+    client_etag: &str,
+    crl: &State<CrlState>,
+    rx: &mut tokio::sync::watch::Receiver<(String, Option<std::sync::Arc<Vec<u8>>>)>,
+) -> Result<CrlOrNotModified, Status> {
     // --- Long-poll negotiation ---
     if !client_etag.is_empty() && *client_etag == etag {
         info!(
