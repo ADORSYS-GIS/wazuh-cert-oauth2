@@ -71,7 +71,7 @@ services:
     user: "${UID:-}:${GID:-}"
     volumes:
       - webhook:/data/spool
-      - webhook:/data/dead-letter
+      - webhook-dlq:/data/dead-letter
     healthcheck:
       test: ["CMD", "/app/healthcheck"]
       interval: 30s
@@ -160,6 +160,12 @@ volumes:
       type: "none"
       o: "bind"
       device: "./.docker/tmp"
+  webhook-dlq:
+    driver: local
+    driver_opts:
+      type: "none"
+      o: "bind"
+      device: "./.docker/tmp-dlq"
   oauth2:
     driver: local
     driver_opts:

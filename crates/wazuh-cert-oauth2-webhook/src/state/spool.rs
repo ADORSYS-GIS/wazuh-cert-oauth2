@@ -189,6 +189,8 @@ async fn process_once(state: &ProxyState, dlq_dir: &Path) -> AppResult<()> {
                                                     path.display(),
                                                     e
                                                 );
+                                                // Clean up the orphaned temp file
+                                                let _ = tokio::fs::remove_file(&tmp).await;
                                             }
                                         }
                                         Err(e) => {
@@ -204,8 +206,13 @@ async fn process_once(state: &ProxyState, dlq_dir: &Path) -> AppResult<()> {
                                     let age = now.saturating_sub(triggered_at);
                                     let ttl = state.spool_evict_ttl.as_secs();
                                     if age > ttl {
-                                        let dlq_path =
-                                            dlq_dir.join(path.file_name().unwrap_or_default());
+                                        // Prefix with a timestamp to avoid DLQ filename collisions.
+                                        let dlq_filename = format!(
+                                            "{}-{}",
+                                            now,
+                                            path.file_name().unwrap_or_default().to_string_lossy()
+                                        );
+                                        let dlq_path = dlq_dir.join(&dlq_filename);
                                         error!(
                                             subject = %req_subject,
                                             path = %path.display(),

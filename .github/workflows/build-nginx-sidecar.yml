@@ -30,6 +30,16 @@ jobs:
           fetch-depth: "0"
           persist-credentials: 'false'
 
+      - name: Dockerfile scan (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: 'config'
+          scan-ref: './.docker/nginx-sidecar'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          hide-progress: true
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
 
@@ -138,4 +148,4 @@ jobs:
 
       - name: Sign image (Cosign keyless)
         if: github.event_name != 'pull_request'
-        run: cosign sign --yes ${{ steps.img.outputs.ref }}
+        run: cosign sign --yes --recursive ${{ steps.img.outputs.ref }}

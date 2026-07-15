@@ -47,8 +47,8 @@ if [ "${CRL_ENABLED}" = "true" ]; then
     rc=0
     /opt/sidecar/fetch-crl.sh || rc=$?
     # Restore the ETag for the background loop (unless fetch-crl.sh already
-    # wrote a new one).
-    if [ -f "${ETAG_FILE}.bak" ] && [ ! -f "${ETAG_FILE}" ]; then
+    # wrote a new, non-empty one).
+    if [ -f "${ETAG_FILE}.bak" ] && [ ! -s "${ETAG_FILE}" ]; then
         mv "${ETAG_FILE}.bak" "${ETAG_FILE}"
     else
         rm -f "${ETAG_FILE}.bak"
