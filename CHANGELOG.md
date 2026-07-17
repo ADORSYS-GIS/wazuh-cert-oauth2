@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[7f34fb8](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7f34fb83a131a2a12eb3f22ffc9337552bf2a4b0)
+[45d3fb7](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/45d3fb7f1d75890e3a455332241634800f35ed30)...[a77358a](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a77358af7e52266cf03697dc04131ea5fb89311c)
 
 ### Bug Fixes
 
@@ -36,6 +36,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`985d5d0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/985d5d0243ecb15a1f2a043e54f23172ad2ee58c))
 - Update CHANGELOG.md and checksums [skip ci] ([`62d34d4`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/62d34d46b084b59cddbe450c9d8c291904227e13))
 - Update README and architecture to clarify eviction logic and API interactions ([`fb528ea`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fb528ea67275120bc15efe800b7ae61d68578c45))
+- Update CHANGELOG.md and checksums [skip ci] ([`a77358a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a77358af7e52266cf03697dc04131ea5fb89311c))
 
 ### Features
 
