@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 
 # Default log level and application details
 $APP_NAME = if ($null -ne $env:APP_NAME) { $env:APP_NAME } else { "wazuh-cert-oauth2-client" }
-$DEFAULT_WOPS_VERSION = "0.4.3"
+$DEFAULT_WOPS_VERSION = "0.4.4"
 $WOPS_VERSION = if ($null -ne $env:WOPS_VERSION) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($null -ne $env:OSSEC_CONF_PATH) { $env:OSSEC_CONF_PATH } else { "C:\Program Files (x86)\ossec-agent\ossec.conf" }
 $USER = "root"

@@ -15,7 +15,7 @@ fi
 
 # Global variables with defaults
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.4.3"}
+WOPS_VERSION=${WOPS_VERSION:-"0.4.4"}
 WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERSION}"}
 WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
 WAZUH_CERT_OAUTH2_RELEASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v${WOPS_VERSION}"
