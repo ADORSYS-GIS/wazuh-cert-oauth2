@@ -4,6 +4,38 @@ entries:
   - annotations:
       category: Application
     apiVersion: v2
+    appVersion: 0.4.4
+    created: "2026-07-17T16:09:57.164689343Z"
+    dependencies:
+    - name: common
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - common
+      - bitnami-common
+      version: 2.x.x
+    - alias: cert
+      name: app-template
+      repository: https://bjw-s-labs.github.io/helm-charts
+      tags:
+      - bjw
+      - app
+      version: 4.0.1
+    description: A Helm chart for Kubernetes
+    digest: 92fdd12bd7b8ab50301c19dff926f0190eb49c36d5ddc9b9b6cd925190e6da93
+    home: https://github.com/ADORSYS-GIS/wazuh-cert-oauth2
+    maintainers:
+    - email: selastlambou@gmail.com
+      name: Stephane Segning Lambou
+    name: wazuh-cert-server
+    sources:
+    - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2
+    type: application
+    urls:
+    - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/wazuh-cert-server-0.4.4/wazuh-cert-server-0.4.4.tgz
+    version: 0.4.4
+  - annotations:
+      category: Application
+    apiVersion: v2
     appVersion: 0.4.3
     created: "2026-05-22T14:46:44.29392357Z"
     dependencies:
@@ -514,6 +546,38 @@ entries:
     - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/wazuh-cert-server-0.2.20-rc.1/wazuh-cert-server-0.2.20-rc.1.tgz
     version: 0.2.20-rc.1
   wazuh-cert-webhook:
+  - annotations:
+      category: Application
+    apiVersion: v2
+    appVersion: 0.4.4
+    created: "2026-07-17T16:09:57.368589004Z"
+    dependencies:
+    - name: common
+      repository: https://charts.bitnami.com/bitnami
+      tags:
+      - common
+      - bitnami-common
+      version: 2.x.x
+    - alias: webhook
+      name: app-template
+      repository: https://bjw-s-labs.github.io/helm-charts
+      tags:
+      - bjw
+      - app
+      version: 4.0.1
+    description: A Helm chart for Kubernetes
+    digest: e958c0a2e1cae2d27cb4ce185f9184bb995145f545833b58a1cfa8ed772eb575
+    home: https://github.com/ADORSYS-GIS/wazuh-cert-oauth2
+    maintainers:
+    - email: selastlambou@gmail.com
+      name: Stephane Segning Lambou
+    name: wazuh-cert-webhook
+    sources:
+    - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2
+    type: application
+    urls:
+    - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/wazuh-cert-webhook-0.4.4/wazuh-cert-webhook-0.4.4.tgz
+    version: 0.4.4
   - annotations:
       category: Application
     apiVersion: v2
@@ -1090,4 +1154,4 @@ entries:
     urls:
     - https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/wazuh-cert-webhook-0.2.20/wazuh-cert-webhook-0.2.20.tgz
     version: 0.2.20
-generated: "2026-05-25T17:27:37.317897469Z"
+generated: "2026-07-17T16:09:57.368791089Z"
