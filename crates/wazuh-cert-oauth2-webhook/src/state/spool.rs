@@ -225,14 +225,24 @@ async fn process_once(state: &ProxyState, dlq_dir: &Path) -> AppResult<()> {
                                         if let Err(rename_err) =
                                             tokio::fs::rename(&path, &dlq_path).await
                                         {
-                                            error!(
-                                                subject = %req_subject,
-                                                src = %path.display(),
-                                                dst = %dlq_path.display(),
-                                                error = %rename_err,
-                                                "Failed to move expired spool item to dead-letter directory; \
-                                                 leaving in spool for next cycle",
-                                            );
+                                            // rename(2) fails with EXDEV when src and dst are on
+                                            // different filesystems. Fall back to copy + delete.
+                                            match tokio::fs::copy(&path, &dlq_path).await {
+                                                Ok(_) => {
+                                                    let _ = tokio::fs::remove_file(&path).await;
+                                                }
+                                                Err(copy_err) => {
+                                                    error!(
+                                                        subject = %req_subject,
+                                                        src = %path.display(),
+                                                        dst = %dlq_path.display(),
+                                                        rename_error = %rename_err,
+                                                        copy_error = %copy_err,
+                                                        "Failed to move expired spool item to dead-letter directory; \
+                                                         leaving in spool for next cycle",
+                                                    );
+                                                }
+                                            }
                                         }
                                     } else {
                                         warn!(
