@@ -182,8 +182,6 @@ webhook:
       advancedMounts:
         app:
           permission-fix:
-            - path: /var/cache/wazuh-cert-oauth2-webhook/spool
-            - path: /var/cache/wazuh-cert-oauth2-webhook/dead-letter
+            - path: /var/cache/wazuh-cert-oauth2-webhook
           app:
-            - path: /var/cache/wazuh-cert-oauth2-webhook/spool
-            - path: /var/cache/wazuh-cert-oauth2-webhook/dead-letter
+            - path: /var/cache/wazuh-cert-oauth2-webhook
