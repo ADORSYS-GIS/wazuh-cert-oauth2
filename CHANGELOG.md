@@ -4,11 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[4010e6f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4010e6f4d0b70dad2cdd195dbe9042707c53f191)...[32ef001](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/32ef0018daf334348787073c334c9d1ff8073daf)
+[4010e6f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4010e6f4d0b70dad2cdd195dbe9042707c53f191)...[ac03fea](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ac03fea65f2dbc0a28921aeac11916fabb9a7a86)
+
+### Documentation
+
+- Update CHANGELOG.md and checksums [skip ci] ([`33ef84c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/33ef84c139ab104cd233559219d883b7db43580f))
 
 ### Miscellaneous Tasks
 
 - Update version to 0.4.5 across all relevant files ([`32ef001`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/32ef0018daf334348787073c334c9d1ff8073daf))
+- Add webhook directory to build paths and update image tag pattern ([`ac03fea`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ac03fea65f2dbc0a28921aeac11916fabb9a7a86))
 
 ## wazuh-cert-webhook-0.4.4 - 2026-07-17
 
