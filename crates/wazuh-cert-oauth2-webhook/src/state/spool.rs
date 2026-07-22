@@ -1,3 +1,4 @@
+use std::io;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -206,33 +207,61 @@ async fn process_once(state: &ProxyState, dlq_dir: &Path) -> AppResult<()> {
                                     let age = now.saturating_sub(triggered_at);
                                     let ttl = state.spool_evict_ttl.as_secs();
                                     if age > ttl {
-                                        // Prefix with a timestamp to avoid DLQ filename collisions.
-                                        let dlq_filename = format!(
-                                            "{}-{}",
-                                            now,
-                                            path.file_name().unwrap_or_default().to_string_lossy()
-                                        );
-                                        let dlq_path = dlq_dir.join(&dlq_filename);
-                                        error!(
-                                            subject = %req_subject,
-                                            path = %path.display(),
-                                            dead_letter_path = %dlq_path.display(),
-                                            age_secs = age,
-                                            ttl_secs = ttl,
-                                            error = %e,
-                                            "Eviction spool item exceeded TTL; moving to dead-letter directory",
-                                        );
+                                        // Use a short, unique identifier to avoid DLQ filename collisions.
+                                        let unique_suffix = {
+                                            let mut buf = [0u8; 8];
+                                            rand::rng()
+                                                .try_fill_bytes(&mut buf)
+                                                .unwrap_infallible();
+                                            buf.iter()
+                                                .map(|b| format!("{:02x}", b))
+                                                .collect::<String>()
+                                        };
+
+                                        let base_name = path
+                                            .file_name()
+                                            .and_then(|s| s.to_str())
+                                            .unwrap_or("evict-unknown.json");
+
+                                        let dlq_filename =
+                                            format!("{}-{}-{}", now, unique_suffix, base_name);
+                                        let dlq_path = dlq_dir.join(dlq_filename);
+
                                         if let Err(rename_err) =
                                             tokio::fs::rename(&path, &dlq_path).await
                                         {
-                                            error!(
-                                                subject = %req_subject,
-                                                src = %path.display(),
-                                                dst = %dlq_path.display(),
-                                                error = %rename_err,
-                                                "Failed to move expired spool item to dead-letter directory; \
-                                                 leaving in spool for next cycle",
-                                            );
+                                            if rename_err.kind() == io::ErrorKind::CrossesDevices {
+                                                // rename(2) fails with EXDEV when src and dst are
+                                                // on different filesystems. Fall back to copy+delete.
+                                                match tokio::fs::copy(&path, &dlq_path).await {
+                                                    Ok(_) => {
+                                                        let _ = tokio::fs::remove_file(&path).await;
+                                                        debug!(
+                                                            "Moved to dead-letter via copy fallback"
+                                                        );
+                                                    }
+                                                    Err(copy_err) => {
+                                                        error!(
+                                                            subject = %req_subject,
+                                                            src = %path.display(),
+                                                            dst = %dlq_path.display(),
+                                                            rename_error = %rename_err,
+                                                            copy_error = %copy_err,
+                                                            "Failed to move expired spool item to dead-letter directory; \
+                                                             leaving in spool for next cycle",
+                                                        );
+                                                    }
+                                                }
+                                            } else {
+                                                error!(
+                                                    subject = %req_subject,
+                                                    src = %path.display(),
+                                                    dst = %dlq_path.display(),
+                                                    error = %rename_err,
+                                                    "Failed to rename expired spool item to dead-letter directory; \
+                                                     leaving in spool for next cycle",
+                                                );
+                                            }
                                         }
                                     } else {
                                         warn!(
