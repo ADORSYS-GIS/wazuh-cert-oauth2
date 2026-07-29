@@ -4,11 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[15f618f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/15f618f769a61449d856cd91a5457dc22603266a)...[697e7f2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/697e7f213b6a04b2b0f0fa12d944ff30394dfbae)
+[15f618f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/15f618f769a61449d856cd91a5457dc22603266a)...[becab79](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/becab79b314cff8116a3dfbfc383055aa29ba769)
+
+### Documentation
+
+- Update CHANGELOG.md and checksums [skip ci] ([`28b39a9`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/28b39a9c6325085de8e0aabfb9e8f3d44b1b2e57))
 
 ### Features
 
 - Add migrate-ledger-v2 script for enhanced CSV migration ([`697e7f2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/697e7f213b6a04b2b0f0fa12d944ff30394dfbae))
+- Implement agent name backfilling from Keycloak ([`becab79`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/becab79b314cff8116a3dfbfc383055aa29ba769))
 
 ## wazuh-cert-webhook-0.4.5 - 2026-07-20
 
