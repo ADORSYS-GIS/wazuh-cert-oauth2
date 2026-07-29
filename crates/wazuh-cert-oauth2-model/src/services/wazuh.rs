@@ -27,6 +27,8 @@ struct AgentsResponse {
 #[derive(Deserialize)]
 struct AgentsData {
     affected_items: Vec<AgentItem>,
+    #[serde(default)]
+    total_affected_items: usize,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -288,33 +290,64 @@ impl WazuhClient {
     }
 
     /// Fetch all agents from the Wazuh Manager.
+    ///
+    /// Handles pagination via `offset`/`limit` to avoid silently truncating
+    /// fleets larger than the API's default page size (500 agents).
     #[tracing::instrument(skip(self))]
     pub async fn list_agents(&self) -> AppResult<Vec<AgentItem>> {
         let base = format!("{}/agents", self.manager_url.trim_end_matches('/'));
-        let resp = self
-            .with_retry(|token| {
-                let base = base.clone();
-                async move { Ok(self.http.get(&base).bearer_auth(token)) }
-            })
-            .await?;
+        let page_size: usize = 500;
+        let mut offset: usize = 0;
+        let mut all_agents: Vec<AgentItem> = Vec::new();
 
-        if !resp.status().is_success() {
-            return Err(AppError::UpstreamError(format!(
-                "GET /agents returned {}",
-                resp.status()
-            )));
+        loop {
+            let offset_str = offset.to_string();
+            let limit_str = page_size.to_string();
+            let resp = self
+                .with_retry(|token| {
+                    let base = base.clone();
+                    let offset_str = offset_str.clone();
+                    let limit_str = limit_str.clone();
+                    async move {
+                        Ok(self
+                            .http
+                            .get(&base)
+                            .query(&[
+                                ("offset", offset_str.as_str()),
+                                ("limit", limit_str.as_str()),
+                            ])
+                            .bearer_auth(token))
+                    }
+                })
+                .await?;
+
+            if !resp.status().is_success() {
+                return Err(AppError::UpstreamError(format!(
+                    "GET /agents returned {}",
+                    resp.status()
+                )));
+            }
+
+            let body: AgentsResponse = resp
+                .json()
+                .await
+                .map_err(|e| AppError::UpstreamError(format!("GET /agents parse failed: {e}")))?;
+
+            let count = body.data.affected_items.len();
+            all_agents.extend(body.data.affected_items);
+
+            let total = body.data.total_affected_items;
+            if offset + count >= total || count == 0 {
+                break;
+            }
+            offset += count;
         }
-
-        let body: AgentsResponse = resp
-            .json()
-            .await
-            .map_err(|e| AppError::UpstreamError(format!("GET /agents parse failed: {e}")))?;
 
         info!(
             "Retrieved {} agents from Wazuh Manager",
-            body.data.affected_items.len()
+            all_agents.len()
         );
-        Ok(body.data.affected_items)
+        Ok(all_agents)
     }
 
     /// Remove the agent from the Wazuh manager.

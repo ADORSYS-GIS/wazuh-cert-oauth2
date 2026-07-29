@@ -36,8 +36,8 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
         "Authenticating with Keycloak Admin API (method: {})...",
         opt.keycloak_auth_method
     );
-    let kc_token = client::keycloak_get_token(&kc_client, &opt).await?;
-    let kc_available = kc_token.is_some();
+    let mut kc_session = client::KeycloakSession::new(kc_client, opt.clone());
+    let kc_available = kc_session.get_token().await?.is_some();
     if kc_available {
         info!("Keycloak admin authentication successful");
     } else {
@@ -75,7 +75,7 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
         let (result, status, reason) = if entry.wazuh_agent_name.is_some() {
             (None, MatchStatus::SkippedAlreadyPresent, "skipped_already_present".to_string())
         } else {
-            let (r, s) = match_entry(entry, &agents, kc_token.as_deref(), &kc_client, &opt).await;
+            let (r, s) = match_entry(entry, &agents, &mut kc_session).await;
             let reason = match &s {
                 MatchStatus::Matched => "keycloak_match".to_string(),
                 MatchStatus::AmbiguousMultipleAgents(candidates) => {
@@ -162,13 +162,23 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
 async fn match_entry(
     entry: &wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry,
     agents: &[AgentItem],
-    kc_token: Option<&str>,
-    kc_client: &Client,
-    opt: &MigrateOpt,
+    kc_session: &mut client::KeycloakSession,
 ) -> (Option<MatchResult>, MatchStatus) {
-    if let Some(token) = kc_token
-        && let Some(kc_name) =
-            client::keycloak_lookup_user(kc_client, opt, token, &entry.subject).await
+    let kc_token = match kc_session.get_token().await {
+        Ok(t) => t,
+        Err(e) => {
+            warn!(entry.subject, error = %e, "Keycloak token refresh failed");
+            None
+        }
+    };
+    if let Some(ref token) = kc_token
+        && let Some(kc_name) = client::keycloak_lookup_user(
+            kc_session.client(),
+            kc_session.opt(),
+            token,
+            &entry.subject,
+        )
+        .await
     {
         match matcher::find_match(&kc_name, agents) {
             Ok(Some(m)) => return (Some(m), MatchStatus::Matched),

@@ -1,6 +1,6 @@
 use clap::Parser;
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[command(about = "Backfill wazuh_agent_name for existing ledger entries")]
 pub struct MigrateOpt {
     #[arg(long, env = "INPUT_LEDGER_PATH", default_value = "/data/ledger.csv")]

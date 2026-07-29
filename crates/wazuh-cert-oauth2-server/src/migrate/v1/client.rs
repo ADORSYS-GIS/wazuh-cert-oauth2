@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use reqwest::Client;
 use serde::Deserialize;
 use tracing::{info, warn};
@@ -20,7 +22,70 @@ struct KcUserResponse {
     username: Option<String>,
 }
 
-pub async fn keycloak_get_token(client: &Client, opt: &MigrateOpt) -> AppResult<Option<String>> {
+pub struct KeycloakSession {
+    client: Client,
+    opt: MigrateOpt,
+    token: Option<String>,
+    last_attempt: Instant,
+}
+
+impl KeycloakSession {
+    pub fn new(client: Client, opt: MigrateOpt) -> Self {
+        Self {
+            client,
+            opt,
+            // Seed far enough in the past so the very first call always fires.
+            token: None,
+            last_attempt: Instant::now()
+                .checked_sub(std::time::Duration::from_secs(600))
+                .unwrap_or(Instant::now()),
+        }
+    }
+
+    pub fn client(&self) -> &Client {
+        &self.client
+    }
+
+    pub fn opt(&self) -> &MigrateOpt {
+        &self.opt
+    }
+
+    /// Return a valid Keycloak access token, refreshing if the cached token
+    /// is stale or missing and enough time has passed since the last attempt.
+    ///
+    /// Uses a hard-coded 200s refresh threshold on top of Keycloak's default
+    /// 300s access-token lifespan, giving a 100s margin for clock skew and
+    /// request latency.  If the realm is configured with a shorter lifespan
+    /// the token may expire before the next refresh — in that case a 401
+    /// response from a subsequent API call will cause the entry to fall
+    /// through to `unmatched_no_match`.
+    pub async fn get_token(&mut self) -> AppResult<Option<String>> {
+        let refresh_threshold = std::time::Duration::from_secs(200);
+        let needs_refresh = self.last_attempt.elapsed() > refresh_threshold;
+
+        if needs_refresh {
+            self.last_attempt = Instant::now();
+            match keycloak_get_token(&self.client, &self.opt).await {
+                Ok(Some(t)) => {
+                    self.token = Some(t.clone());
+                    Ok(Some(t))
+                }
+                Ok(None) => {
+                    self.token = None;
+                    Ok(None)
+                }
+                Err(e) => {
+                    self.token = None;
+                    Err(e)
+                }
+            }
+        } else {
+            Ok(self.token.clone())
+        }
+    }
+}
+
+async fn keycloak_get_token(client: &Client, opt: &MigrateOpt) -> AppResult<Option<String>> {
     let base = opt.keycloak_admin_url.trim_end_matches('/').to_string();
 
     let (url, params) = match opt.keycloak_auth_method.as_str() {
