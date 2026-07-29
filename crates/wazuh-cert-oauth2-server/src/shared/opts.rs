@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -7,6 +7,9 @@ use clap::Parser;
     about = "OAuth2-backed certificate issuance server for Wazuh agents"
 )]
 pub struct Opt {
+    #[command(subcommand)]
+    pub command: Option<Command>,
+
     #[arg(long, env = "OAUTH_ISSUER", short = 'i')]
     pub oauth_issuer: String,
 
@@ -44,4 +47,9 @@ pub struct Opt {
     /// Bearer token used to authenticate eviction requests to the webhook.
     #[arg(long, env = "WEBHOOK_BEARER_TOKEN")]
     pub webhook_bearer_token: Option<String>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Command {
+    Migrate(crate::migrate::v1::opts::MigrateOpt),
 }

@@ -28,7 +28,11 @@ pub struct RevocationEntry {
 pub fn compute_etag(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>()
 }
 
 #[derive(Clone)]

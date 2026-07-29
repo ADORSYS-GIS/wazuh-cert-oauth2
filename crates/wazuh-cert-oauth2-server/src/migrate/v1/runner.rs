@@ -1,0 +1,202 @@
+use std::path::PathBuf;
+use std::sync::Arc;
+
+use reqwest::Client;
+use tokio::sync::RwLock;
+use tracing::{info, warn};
+use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
+use wazuh_cert_oauth2_model::services::wazuh::WazuhClient;
+
+use crate::migrate::v1::client;
+use crate::migrate::v1::csv::{self, UnresolvedEntry};
+use crate::migrate::v1::matcher::{self, MatchResult};
+use crate::migrate::v1::opts::MigrateOpt;
+use crate::migrate::v1::report;
+use wazuh_cert_oauth2_model::services::wazuh::AgentItem;
+
+pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
+    info!("Authenticating with Wazuh Manager...");
+    let wazuh = WazuhClient::with_tls_options(
+        opt.wazuh_manager_url.clone(),
+        Some(opt.wazuh_api_user.clone()),
+        Some(opt.wazuh_api_password.clone()),
+        None,
+        opt.wazuh_tls_verify,
+        opt.wazuh_ca_bundle.clone(),
+    );
+    let agents = wazuh.list_agents().await?;
+    if agents.is_empty() {
+        return Err(AppError::UpstreamError(
+            "No agents found in Wazuh Manager — nothing to match".into(),
+        ));
+    }
+
+    let kc_client = build_kc_client(&opt)?;
+    info!(
+        "Authenticating with Keycloak Admin API (method: {})...",
+        opt.keycloak_auth_method
+    );
+    let kc_token = client::keycloak_get_token(&kc_client, &opt).await?;
+    let kc_available = kc_token.is_some();
+    if kc_available {
+        info!("Keycloak admin authentication successful");
+    } else {
+        info!("Keycloak unavailable — will only keep entries with an existing agent_name");
+    }
+
+    let input_path = PathBuf::from(&opt.input);
+    if !input_path.exists() {
+        return Err(AppError::Io(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("Input ledger CSV not found: {}", opt.input),
+        )));
+    }
+    info!("Processing ledger CSV: {}", opt.input);
+    let content = tokio::fs::read_to_string(&input_path).await?;
+    let entries = crate::shared::ledger::csv::parse_csv(&content)?;
+    info!("Read {} ledger entries", entries.len());
+    if entries.is_empty() {
+        return Err(AppError::UpstreamError("No ledger entries found".into()));
+    }
+
+    let mut migrated = Vec::with_capacity(entries.len());
+    let mut unresolved: Vec<UnresolvedEntry> = Vec::new();
+    let mut results: Vec<Option<MatchResult>> = Vec::with_capacity(entries.len());
+    let mut active_count: usize = 0;
+    let mut skipped_revoked: usize = 0;
+
+    for entry in &entries {
+        if entry.revoked {
+            // Agent was already evicted — no point backfilling a name for it.
+            // Keep the entry as-is in the output.
+            skipped_revoked += 1;
+            results.push(None);
+            migrated.push(entry.clone());
+            continue;
+        }
+
+        active_count += 1;
+        let (result, reason) = if entry.wazuh_agent_name.is_some() {
+            (None, "skipped_already_present".to_string())
+        } else {
+            match_entry(entry, &agents, kc_token.as_deref(), &kc_client, &opt).await
+        };
+
+        results.push(result.clone());
+        migrated.push(wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry {
+            subject: entry.subject.clone(),
+            serial_hex: entry.serial_hex.clone(),
+            issued_at_unix: entry.issued_at_unix,
+            revoked: entry.revoked,
+            revoked_at_unix: entry.revoked_at_unix,
+            reason: entry.reason.clone(),
+            issuer: entry.issuer.clone(),
+            realm: entry.realm.clone(),
+            wazuh_agent_name: entry
+                .wazuh_agent_name
+                .clone()
+                .or_else(|| result.as_ref().map(|m| m.agent_name.clone())),
+        });
+
+        match &result {
+            Some(m) => info!("Matched {} → {}", entry.subject, m.agent_name),
+            None if entry.wazuh_agent_name.is_some() => {
+                info!("Skipped {} (already has agent_name)", entry.subject);
+            }
+            None => {
+                warn!("Unmatched {} (reason={})", entry.subject, reason);
+                unresolved.push(UnresolvedEntry {
+                    subject: entry.subject.clone(),
+                    serial_hex: entry.serial_hex.clone(),
+                    issued_at_unix: entry.issued_at_unix,
+                    reason,
+                });
+            }
+        }
+    }
+
+    if !unresolved.is_empty() {
+        let unresolved_path = PathBuf::from(&opt.unresolved);
+        csv::write_unresolved_csv(&unresolved_path, &unresolved)?;
+        info!(
+            "Wrote {} unresolved entries to {}",
+            unresolved.len(),
+            opt.unresolved
+        );
+    }
+
+    let output_path = PathBuf::from(&opt.output);
+    let shared = Arc::new(RwLock::new(migrated));
+    crate::shared::ledger::csv::persist_csv(&output_path, &shared).await?;
+    info!("Wrote migrated CSV to {}", opt.output);
+
+    let report_text = report::generate(
+        &entries,
+        &results,
+        agents.len(),
+        kc_available,
+        active_count,
+        skipped_revoked,
+        &opt,
+    );
+    let report_path = PathBuf::from(&opt.report);
+    std::fs::write(&report_path, report_text.as_bytes())?;
+    println!("{}", report_text);
+
+    info!("Migration complete");
+    Ok(())
+}
+
+async fn match_entry(
+    entry: &wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry,
+    agents: &[AgentItem],
+    kc_token: Option<&str>,
+    kc_client: &Client,
+    opt: &MigrateOpt,
+) -> (Option<MatchResult>, String) {
+    if let Some(token) = kc_token
+        && let Some(kc_name) =
+            client::keycloak_lookup_user(kc_client, opt, token, &entry.subject).await
+    {
+        match matcher::find_match(&kc_name, agents) {
+            Ok(Some(m)) => return (Some(m), "keycloak_match".into()),
+            Err(candidates) => {
+                let names: Vec<&str> = candidates.iter().map(|(_, n)| n.as_str()).collect();
+                let ids: Vec<&str> = candidates.iter().map(|(id, _)| id.as_str()).collect();
+                return (
+                    None,
+                    format!(
+                        "ambiguous_multiple_agents: candidates=[{}] ids=[{}]",
+                        names.join(", "),
+                        ids.join(", "),
+                    ),
+                );
+            }
+            Ok(None) => {}
+        }
+    }
+
+    let reason = if kc_token.is_none() {
+        "unmatched_no_keycloak"
+    } else {
+        "unmatched_no_match"
+    };
+    (None, reason.into())
+}
+
+fn build_kc_client(opt: &MigrateOpt) -> AppResult<Client> {
+    let mut builder = Client::builder();
+    if !opt.keycloak_tls_verify {
+        builder = builder.danger_accept_invalid_certs(true);
+    }
+    if let Some(ref ca_path) = opt.keycloak_ca_bundle {
+        let cert_pem = std::fs::read_to_string(ca_path)?;
+        let cert = reqwest::Certificate::from_pem(cert_pem.as_bytes())
+            .map_err(|e| AppError::UpstreamError(format!("invalid Keycloak CA cert: {}", e)))?;
+        builder = builder.add_root_certificate(cert);
+    }
+    builder
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| AppError::UpstreamError(format!("failed to build HTTP client: {}", e)))
+}

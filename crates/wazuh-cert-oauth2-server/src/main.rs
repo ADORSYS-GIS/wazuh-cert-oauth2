@@ -14,12 +14,13 @@ use crate::handlers::revoke::revoke;
 use crate::models::oidc_state::OidcState;
 
 mod handlers;
+mod migrate;
 mod models;
 mod shared;
 use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
-use crate::shared::opts::Opt;
+use crate::shared::opts::{Command, Opt};
 use clap::Parser;
 use mimalloc::MiMalloc;
 use tracing::info;
@@ -40,6 +41,11 @@ async fn main() -> AppResult<()> {
         Ok(opt) => opt,
         Err(e) => e.exit(),
     };
+
+    if let Some(Command::Migrate(migrate_opt)) = opt.command {
+        migrate::v1::runner::run_migration(migrate_opt).await?;
+    }
+
     let Opt {
         oauth_issuer,
         kc_audiences,

@@ -29,14 +29,14 @@ struct AgentsData {
     affected_items: Vec<AgentItem>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct AgentItem {
     pub id: String,
     pub name: String,
     pub os: Option<OSInfo>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct OSInfo {
     #[serde(default)]
     pub platform: String,
@@ -285,6 +285,36 @@ impl WazuhClient {
         }
 
         Ok(None)
+    }
+
+    /// Fetch all agents from the Wazuh Manager.
+    #[tracing::instrument(skip(self))]
+    pub async fn list_agents(&self) -> AppResult<Vec<AgentItem>> {
+        let base = format!("{}/agents", self.manager_url.trim_end_matches('/'));
+        let resp = self
+            .with_retry(|token| {
+                let base = base.clone();
+                async move { Ok(self.http.get(&base).bearer_auth(token)) }
+            })
+            .await?;
+
+        if !resp.status().is_success() {
+            return Err(AppError::UpstreamError(format!(
+                "GET /agents returned {}",
+                resp.status()
+            )));
+        }
+
+        let body: AgentsResponse = resp
+            .json()
+            .await
+            .map_err(|e| AppError::UpstreamError(format!("GET /agents parse failed: {e}")))?;
+
+        info!(
+            "Retrieved {} agents from Wazuh Manager",
+            body.data.affected_items.len()
+        );
+        Ok(body.data.affected_items)
     }
 
     /// Remove the agent from the Wazuh manager.

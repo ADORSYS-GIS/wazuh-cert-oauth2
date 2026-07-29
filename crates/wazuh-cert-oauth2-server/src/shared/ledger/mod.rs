@@ -4,8 +4,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::{RwLock, mpsc, oneshot};
 
 mod commands;
-mod csv;
-mod csv_utils;
+pub(crate) mod csv;
+pub(crate) mod csv_utils;
 mod loader;
 mod worker;
 
