@@ -5,6 +5,16 @@ pub struct MatchResult {
     pub agent_name: String,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum MatchStatus {
+    Matched,
+    SkippedRevoked,
+    SkippedAlreadyPresent,
+    UnmatchedNoKeycloak,
+    UnmatchedNoMatch,
+    AmbiguousMultipleAgents(Vec<(String, String)>),
+}
+
 /// Sanitize a name for agent name prefix matching.
 ///
 /// This mirrors the sanitization in `generate_agent_name` (client-side):

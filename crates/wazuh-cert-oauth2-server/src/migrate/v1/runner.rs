@@ -9,7 +9,7 @@ use wazuh_cert_oauth2_model::services::wazuh::WazuhClient;
 
 use crate::migrate::v1::client;
 use crate::migrate::v1::csv::{self, UnresolvedEntry};
-use crate::migrate::v1::matcher::{self, MatchResult};
+use crate::migrate::v1::matcher::{self, MatchResult, MatchStatus};
 use crate::migrate::v1::opts::MigrateOpt;
 use crate::migrate::v1::report;
 use wazuh_cert_oauth2_model::services::wazuh::AgentItem;
@@ -62,26 +62,39 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
     let mut migrated = Vec::with_capacity(entries.len());
     let mut unresolved: Vec<UnresolvedEntry> = Vec::new();
     let mut results: Vec<Option<MatchResult>> = Vec::with_capacity(entries.len());
-    let mut active_count: usize = 0;
-    let mut skipped_revoked: usize = 0;
+    let mut statuses: Vec<MatchStatus> = Vec::with_capacity(entries.len());
 
     for entry in &entries {
         if entry.revoked {
-            // Agent was already evicted — no point backfilling a name for it.
-            // Keep the entry as-is in the output.
-            skipped_revoked += 1;
+            statuses.push(MatchStatus::SkippedRevoked);
             results.push(None);
             migrated.push(entry.clone());
             continue;
         }
 
-        active_count += 1;
-        let (result, reason) = if entry.wazuh_agent_name.is_some() {
-            (None, "skipped_already_present".to_string())
+        let (result, status, reason) = if entry.wazuh_agent_name.is_some() {
+            (None, MatchStatus::SkippedAlreadyPresent, "skipped_already_present".to_string())
         } else {
-            match_entry(entry, &agents, kc_token.as_deref(), &kc_client, &opt).await
+            let (r, s) = match_entry(entry, &agents, kc_token.as_deref(), &kc_client, &opt).await;
+            let reason = match &s {
+                MatchStatus::Matched => "keycloak_match".to_string(),
+                MatchStatus::AmbiguousMultipleAgents(candidates) => {
+                    let ids: Vec<&str> = candidates.iter().map(|(id, _)| id.as_str()).collect();
+                    let names: Vec<&str> = candidates.iter().map(|(_, name)| name.as_str()).collect();
+                    format!(
+                        "ambiguous_multiple_agents: candidates=[{}] ids=[{}]",
+                        names.join(", "),
+                        ids.join(", "),
+                    )
+                }
+                MatchStatus::UnmatchedNoKeycloak => "unmatched_no_keycloak".to_string(),
+                MatchStatus::UnmatchedNoMatch => "unmatched_no_match".to_string(),
+                _ => "unknown".to_string(),
+            };
+            (r, s, reason)
         };
 
+        statuses.push(status);
         results.push(result.clone());
         migrated.push(wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry {
             subject: entry.subject.clone(),
@@ -133,10 +146,9 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
     let report_text = report::generate(
         &entries,
         &results,
+        &statuses,
         agents.len(),
         kc_available,
-        active_count,
-        skipped_revoked,
         &opt,
     );
     let report_path = PathBuf::from(&opt.report);
@@ -153,35 +165,25 @@ async fn match_entry(
     kc_token: Option<&str>,
     kc_client: &Client,
     opt: &MigrateOpt,
-) -> (Option<MatchResult>, String) {
+) -> (Option<MatchResult>, MatchStatus) {
     if let Some(token) = kc_token
         && let Some(kc_name) =
             client::keycloak_lookup_user(kc_client, opt, token, &entry.subject).await
     {
         match matcher::find_match(&kc_name, agents) {
-            Ok(Some(m)) => return (Some(m), "keycloak_match".into()),
+            Ok(Some(m)) => return (Some(m), MatchStatus::Matched),
             Err(candidates) => {
-                let names: Vec<&str> = candidates.iter().map(|(_, n)| n.as_str()).collect();
-                let ids: Vec<&str> = candidates.iter().map(|(id, _)| id.as_str()).collect();
-                return (
-                    None,
-                    format!(
-                        "ambiguous_multiple_agents: candidates=[{}] ids=[{}]",
-                        names.join(", "),
-                        ids.join(", "),
-                    ),
-                );
+                return (None, MatchStatus::AmbiguousMultipleAgents(candidates));
             }
             Ok(None) => {}
         }
     }
 
-    let reason = if kc_token.is_none() {
-        "unmatched_no_keycloak"
+    if kc_token.is_none() {
+        (None, MatchStatus::UnmatchedNoKeycloak)
     } else {
-        "unmatched_no_match"
-    };
-    (None, reason.into())
+        (None, MatchStatus::UnmatchedNoMatch)
+    }
 }
 
 fn build_kc_client(opt: &MigrateOpt) -> AppResult<Client> {

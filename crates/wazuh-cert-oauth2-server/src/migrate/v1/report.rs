@@ -2,20 +2,22 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 
-use crate::migrate::v1::matcher::MatchResult;
+use crate::migrate::v1::matcher::{MatchResult, MatchStatus};
 use crate::migrate::v1::opts::MigrateOpt;
 
 pub fn generate(
     entries: &[LedgerEntry],
     results: &[Option<MatchResult>],
+    statuses: &[MatchStatus],
     agent_count: usize,
     kc_available: bool,
-    active_count: usize,
-    skipped_revoked: usize,
     opt: &MigrateOpt,
 ) -> String {
     let total = entries.len();
     let matched_count = results.iter().filter(|r| r.is_some()).count();
+    let active_count = statuses.iter().filter(|s| **s != MatchStatus::SkippedRevoked).count();
+    let skipped_revoked = statuses.iter().filter(|s| **s == MatchStatus::SkippedRevoked).count();
+    let skipped_already = statuses.iter().filter(|s| **s == MatchStatus::SkippedAlreadyPresent).count();
 
     let mut report = String::new();
     report.push_str("=== Migration Report ===\n");
@@ -35,19 +37,27 @@ pub fn generate(
     report.push('\n');
 
     report.push_str(&format!(
-        "{:<40} {:<35} {}\n",
-        "subject", "wazuh_agent_name", "issued_at"
+        "{:<40} {:<35} {:<25} {}\n",
+        "subject", "wazuh_agent_name", "status", "issued_at"
     ));
-    report.push_str(&format!("{:=<40} {:=<35} {}\n", "", "", ""));
+    report.push_str(&format!("{:=<40} {:=<35} {:=<25} {}\n", "", "", "", ""));
 
     for (i, e) in entries.iter().enumerate() {
         let name = results[i]
             .as_ref()
             .map(|m| m.agent_name.as_str())
-            .unwrap_or("(unmatched)");
+            .unwrap_or("-");
+        let status_label = match &statuses[i] {
+            MatchStatus::Matched => "matched",
+            MatchStatus::SkippedRevoked => "skipped_revoked",
+            MatchStatus::SkippedAlreadyPresent => "skipped_already_present",
+            MatchStatus::UnmatchedNoKeycloak => "unmatched",
+            MatchStatus::UnmatchedNoMatch => "unmatched",
+            MatchStatus::AmbiguousMultipleAgents(..) => "unmatched",
+        };
         report.push_str(&format!(
-            "{:<40} {:<35} {}\n",
-            e.subject, name, e.issued_at_unix
+            "{:<40} {:<35} {:<25} {}\n",
+            e.subject, name, status_label, e.issued_at_unix
         ));
     }
 
@@ -56,6 +66,7 @@ pub fn generate(
     report.push_str(&format!("Total ledger entries:     {}\n", total));
     report.push_str(&format!("  Active (non-revoked):   {}\n", active_count));
     report.push_str(&format!("  Revoked (skipped):      {}\n", skipped_revoked));
+    report.push_str(&format!("  Already had name:       {}\n", skipped_already));
     report.push_str(&format!("Matched:                  {}\n", matched_count));
     report.push_str(&format!(
         "  (of {} active entries)  {:.1}%\n",
@@ -68,20 +79,20 @@ pub fn generate(
     ));
     report.push_str(&format!(
         "Unmatched:                {}\n",
-        active_count.saturating_sub(matched_count)
+        active_count.saturating_sub(matched_count + skipped_already)
     ));
     report.push_str(&format!(
         "  (of {} active entries)  {:.1}%\n",
         active_count,
         if active_count > 0 {
-            (active_count - matched_count) as f64 / active_count as f64 * 100.0
+            (active_count - matched_count - skipped_already) as f64 / active_count as f64 * 100.0
         } else {
             0.0
         }
     ));
     report.push('\n');
 
-    let unmatched = active_count - matched_count;
+    let unmatched = active_count.saturating_sub(matched_count + skipped_already);
     if unmatched > 0 {
         report.push_str(&format!(
             "WARNING: {} active entries could not be matched.\n",
