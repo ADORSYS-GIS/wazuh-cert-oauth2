@@ -45,7 +45,7 @@ async fn main() -> AppResult<()> {
     match opt.command {
         Command::Migrate(migrate_opt) => {
             migrate::v1::runner::run_migration(migrate_opt).await?;
-            return Ok(());
+            Ok(())
         }
         Command::Serve(serve_opt) => run_server(serve_opt).await,
     }
