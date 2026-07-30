@@ -12,10 +12,7 @@
   "sslRequired": "none",
   "eventsEnabled": true,
   "eventsExpiration": 86400,
-  "eventsListeners": [
-    "jboss-logging",
-    "webhook-http"
-  ],
+  "eventsListeners": ["jboss-logging", "webhook-http"],
   "adminEventsEnabled": true,
   "adminEventsDetailsEnabled": true,
   "attributes": {
@@ -42,9 +39,7 @@
       "enabled": true,
       "serviceAccountClientId": "test-client",
       "clientRoles": {
-        "realm-management": [
-          "view-users"
-        ]
+        "realm-management": ["view-users"]
       }
     },
     {
@@ -52,9 +47,15 @@
       "enabled": true,
       "serviceAccountClientId": "test-client-secret",
       "clientRoles": {
-        "realm-management": [
-          "view-users"
-        ]
+        "realm-management": ["view-users"]
+      }
+    },
+    {
+      "username": "service-account-cert-migration",
+      "enabled": true,
+      "serviceAccountClientId": "cert-migration",
+      "clientRoles": {
+        "realm-management": ["view-users"]
       }
     }
   ],
@@ -70,13 +71,8 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "redirectUris": [
-        "http://localhost:*",
-        "http://127.0.0.1:*"
-      ],
-      "webOrigins": [
-        "*"
-      ],
+      "redirectUris": ["http://localhost:*", "http://127.0.0.1:*"],
+      "webOrigins": ["*"],
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -132,12 +128,8 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "some-secret",
-      "redirectUris": [
-        "/*"
-      ],
-      "webOrigins": [
-        "/*"
-      ],
+      "redirectUris": ["/*"],
+      "webOrigins": ["/*"],
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -174,6 +166,43 @@
         "organization",
         "microprofile-jwt"
       ],
+      "access": {
+        "view": true,
+        "configure": true,
+        "manage": true
+      }
+    },
+    {
+      "clientId": "cert-migration",
+      "name": "Cert Migration Service Account",
+      "description": "Service account used by wazuh-cert-oauth2-server migrate to read user profiles for agent-name matching",
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "cert-migration-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      },
+      "fullScopeAllowed": false,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": ["web-origins", "acr", "roles", "basic"],
+      "optionalClientScopes": [],
       "access": {
         "view": true,
         "configure": true,

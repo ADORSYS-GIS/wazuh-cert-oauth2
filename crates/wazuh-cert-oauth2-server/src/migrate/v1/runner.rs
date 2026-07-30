@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use reqwest::Client;
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::wazuh::WazuhClient;
 
@@ -30,6 +30,11 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
             "No agents found in Wazuh Manager — nothing to match".into(),
         ));
     }
+
+    debug!(
+        agent_names = ?agents.iter().map(|a| (a.id.as_str(), a.name.as_str())).collect::<Vec<_>>(),
+        "Wazuh agents available for matching"
+    );
 
     let kc_client = build_kc_client(&opt)?;
     info!(
@@ -73,14 +78,19 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
         }
 
         let (result, status, reason) = if entry.wazuh_agent_name.is_some() {
-            (None, MatchStatus::SkippedAlreadyPresent, "skipped_already_present".to_string())
+            (
+                None,
+                MatchStatus::SkippedAlreadyPresent,
+                "skipped_already_present".to_string(),
+            )
         } else {
             let (r, s) = match_entry(entry, &agents, &mut kc_session).await;
             let reason = match &s {
                 MatchStatus::Matched => "keycloak_match".to_string(),
                 MatchStatus::AmbiguousMultipleAgents(candidates) => {
                     let ids: Vec<&str> = candidates.iter().map(|(id, _)| id.as_str()).collect();
-                    let names: Vec<&str> = candidates.iter().map(|(_, name)| name.as_str()).collect();
+                    let names: Vec<&str> =
+                        candidates.iter().map(|(_, name)| name.as_str()).collect();
                     format!(
                         "ambiguous_multiple_agents: candidates=[{}] ids=[{}]",
                         names.join(", "),

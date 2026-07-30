@@ -15,9 +15,18 @@ pub fn generate(
 ) -> String {
     let total = entries.len();
     let matched_count = results.iter().filter(|r| r.is_some()).count();
-    let active_count = statuses.iter().filter(|s| **s != MatchStatus::SkippedRevoked).count();
-    let skipped_revoked = statuses.iter().filter(|s| **s == MatchStatus::SkippedRevoked).count();
-    let skipped_already = statuses.iter().filter(|s| **s == MatchStatus::SkippedAlreadyPresent).count();
+    let active_count = statuses
+        .iter()
+        .filter(|s| **s != MatchStatus::SkippedRevoked)
+        .count();
+    let skipped_revoked = statuses
+        .iter()
+        .filter(|s| **s == MatchStatus::SkippedRevoked)
+        .count();
+    let skipped_already = statuses
+        .iter()
+        .filter(|s| **s == MatchStatus::SkippedAlreadyPresent)
+        .count();
 
     let mut report = String::new();
     report.push_str("=== Migration Report ===\n");

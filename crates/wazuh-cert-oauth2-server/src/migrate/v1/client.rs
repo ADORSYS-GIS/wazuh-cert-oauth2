@@ -1,25 +1,17 @@
 use std::time::Instant;
 
+use crate::migrate::v1::opts::KeycloakAuthMethod;
 use reqwest::Client;
 use serde::Deserialize;
 use tracing::{info, warn};
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
+use wazuh_cert_oauth2_model::models::user_representation::SimpleUserRepresentation;
 
 use crate::migrate::v1::opts::MigrateOpt;
 
 #[derive(Deserialize)]
 struct KcTokenResponse {
     access_token: String,
-}
-
-#[derive(Deserialize)]
-struct KcUserResponse {
-    #[serde(default)]
-    first_name: Option<String>,
-    #[serde(default)]
-    last_name: Option<String>,
-    #[serde(default)]
-    username: Option<String>,
 }
 
 pub struct KeycloakSession {
@@ -86,10 +78,16 @@ impl KeycloakSession {
 }
 
 async fn keycloak_get_token(client: &Client, opt: &MigrateOpt) -> AppResult<Option<String>> {
-    let base = opt.keycloak_admin_url.trim_end_matches('/').to_string();
+    let base = if opt.keycloak_admin_url.trim_end_matches('/').is_empty() {
+        return Err(AppError::ValidationError(
+            "KEYCLOAK_ADMIN_URL is required for Keycloak matching".into(),
+        ));
+    } else {
+        opt.keycloak_admin_url.trim_end_matches('/').to_string()
+    };
 
-    let (url, params) = match opt.keycloak_auth_method.as_str() {
-        "client_credentials" => {
+    let (url, params) = match opt.keycloak_auth_method {
+        KeycloakAuthMethod::ClientCredentials => {
             let client_id = opt.keycloak_client_id.as_deref().ok_or_else(|| {
                 AppError::ValidationError(
                     "KEYCLOAK_CLIENT_ID required for client_credentials".into(),
@@ -112,7 +110,7 @@ async fn keycloak_get_token(client: &Client, opt: &MigrateOpt) -> AppResult<Opti
                 ],
             )
         }
-        _ => {
+        KeycloakAuthMethod::Password => {
             let user = opt.keycloak_admin_user.as_deref().ok_or_else(|| {
                 AppError::ValidationError("KEYCLOAK_ADMIN_USER required for password auth".into())
             })?;
@@ -167,7 +165,11 @@ pub async fn keycloak_lookup_user(
     token: &str,
     uuid: &str,
 ) -> Option<String> {
-    let base = opt.keycloak_admin_url.trim_end_matches('/').to_string();
+    let base = if opt.keycloak_admin_url.trim_end_matches('/').is_empty() {
+        return None;
+    } else {
+        opt.keycloak_admin_url.trim_end_matches('/').to_string()
+    };
     let url = format!(
         "{}/admin/realms/{}/users/{}",
         base, opt.keycloak_realm, uuid
@@ -178,7 +180,7 @@ pub async fn keycloak_lookup_user(
         return None;
     }
 
-    let user: KcUserResponse = resp.json().await.ok()?;
+    let user: SimpleUserRepresentation = resp.json().await.ok()?;
 
     // Reconstruct the display name from Keycloak's Admin API profile.
     //

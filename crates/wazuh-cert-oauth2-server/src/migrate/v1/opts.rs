@@ -19,13 +19,13 @@ pub struct MigrateOpt {
     #[arg(long, env = "REPORT_PATH", default_value = "migration-report.txt")]
     pub report: String,
 
-    #[arg(long, env = "WAZUH_MANAGER_URL")]
+    #[arg(long, env = "WAZUH_MANAGER_URL", required = true)]
     pub wazuh_manager_url: String,
 
-    #[arg(long, env = "WAZUH_API_USER")]
+    #[arg(long, env = "WAZUH_API_USER", required = true)]
     pub wazuh_api_user: String,
 
-    #[arg(long, env = "WAZUH_API_PASSWORD")]
+    #[arg(long, env = "WAZUH_API_PASSWORD", required = true)]
     pub wazuh_api_password: String,
 
     /// Enable TLS certificate verification for the Wazuh Manager API.
@@ -39,14 +39,14 @@ pub struct MigrateOpt {
     #[arg(long, env = "WAZUH_CA_BUNDLE")]
     pub wazuh_ca_bundle: Option<std::path::PathBuf>,
 
-    #[arg(long, env = "KEYCLOAK_ADMIN_URL")]
+    #[arg(long, env = "KEYCLOAK_ADMIN_URL", required = true)]
     pub keycloak_admin_url: String,
 
     #[arg(long, env = "KEYCLOAK_REALM")]
     pub keycloak_realm: String,
 
     #[arg(long, env = "KEYCLOAK_AUTH_METHOD", default_value = "password")]
-    pub keycloak_auth_method: String,
+    pub keycloak_auth_method: KeycloakAuthMethod,
 
     #[arg(long, env = "KEYCLOAK_ADMIN_USER")]
     pub keycloak_admin_user: Option<String>,
@@ -70,4 +70,35 @@ pub struct MigrateOpt {
     /// for the Keycloak Admin API (e.g. for self-signed Keycloak servers).
     #[arg(long, env = "KEYCLOAK_CA_BUNDLE")]
     pub keycloak_ca_bundle: Option<std::path::PathBuf>,
+}
+
+use std::{fmt::Display, str::FromStr};
+
+#[derive(Debug, Clone)]
+pub enum KeycloakAuthMethod {
+    Password,
+    ClientCredentials,
+}
+
+impl FromStr for KeycloakAuthMethod {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "password" => Ok(Self::Password),
+            "client-credentials" => Ok(Self::ClientCredentials),
+            _ => Err(format!(
+                "invalid auth method '{s}'. Expected 'password' or 'client-credentials'"
+            )),
+        }
+    }
+}
+
+impl Display for KeycloakAuthMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Password => write!(f, "password"),
+            Self::ClientCredentials => write!(f, "client-credentials"),
+        }
+    }
 }

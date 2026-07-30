@@ -1,3 +1,4 @@
+use tracing::debug;
 use wazuh_cert_oauth2_model::services::wazuh::AgentItem;
 
 #[derive(Clone, Debug)]
@@ -43,9 +44,19 @@ pub fn find_match(
     let prefix = sanitize_name(kc_name);
     let prefix_lower = prefix.to_ascii_lowercase();
 
+    let search_prefix = format!("{}-", prefix);
+    let search_prefix_lower = format!("{}-", prefix_lower);
+
+    debug!(
+        prefix = %search_prefix,
+        agent_count = agents.len(),
+        agent_names = ?agents.iter().map(|a| &a.name).collect::<Vec<_>>(),
+        "Attempting to match Keycloak name to Wazuh agent"
+    );
+
     let mut matched: Vec<&AgentItem> = agents
         .iter()
-        .filter(|a| a.name.starts_with(&format!("{}-", prefix)))
+        .filter(|a| a.name.starts_with(&search_prefix))
         .collect();
 
     if matched.is_empty() {
@@ -54,10 +65,16 @@ pub fn find_match(
             .filter(|a| {
                 a.name
                     .to_ascii_lowercase()
-                    .starts_with(&format!("{}-", prefix_lower))
+                    .starts_with(&search_prefix_lower)
             })
             .collect();
     }
+
+    debug!(
+        matched = matched.len(),
+        matched_names = ?matched.iter().map(|a| &a.name).collect::<Vec<_>>(),
+        "Match result"
+    );
 
     if matched.len() == 1 {
         return Ok(Some(MatchResult {

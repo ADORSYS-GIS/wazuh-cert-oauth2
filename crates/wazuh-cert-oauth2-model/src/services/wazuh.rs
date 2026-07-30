@@ -343,10 +343,7 @@ impl WazuhClient {
             offset += count;
         }
 
-        info!(
-            "Retrieved {} agents from Wazuh Manager",
-            all_agents.len()
-        );
+        info!("Retrieved {} agents from Wazuh Manager", all_agents.len());
         Ok(all_agents)
     }
 
