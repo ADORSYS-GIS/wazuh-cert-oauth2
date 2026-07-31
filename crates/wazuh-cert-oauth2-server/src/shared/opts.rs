@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -7,7 +7,21 @@ use clap::Parser;
     about = "OAuth2-backed certificate issuance server for Wazuh agents"
 )]
 pub struct Opt {
-    #[arg(long, env = "OAUTH_ISSUER", short = 'i')]
+    #[command(subcommand)]
+    pub command: Command,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Command {
+    /// Run the OAuth2 certificate server
+    Serve(ServeOpt),
+    /// Backfill Wazuh agent names for existing ledger entries
+    Migrate(crate::migrate::v1::opts::MigrateOpt),
+}
+
+#[derive(Parser, Debug)]
+pub struct ServeOpt {
+    #[arg(long, env = "OAUTH_ISSUER", required = true, short = 'i')]
     pub oauth_issuer: String,
 
     #[arg(long, env = "KC_AUDIENCES")]

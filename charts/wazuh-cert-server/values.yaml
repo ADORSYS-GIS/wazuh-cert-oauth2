@@ -94,6 +94,56 @@ cert:
           command:
             - /bin/sh
             - /opt/scripts/s3-init.sh
+        migration:
+          enabled: false
+          image:
+            repository: '{{ .Values.cert.controllers.main.containers.main.image.repository }}'
+            tag: '{{ .Values.cert.controllers.main.containers.main.image.tag }}'
+            pullPolicy: '{{ .Values.cert.controllers.main.containers.main.image.pullPolicy }}'
+          command:
+            - /app/server
+            - migrate
+          env:
+            RUST_LOG: "debug"
+            ROOT_CA_PATH: "/usr/share/wazuh-cert-oauth2/certs/root-ca.pem"
+            ROOT_CA_KEY_PATH: "/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem"
+            LEDGER_PATH: "/usr/share/wazuh-cert-oauth2/data/ledger.csv"
+            CRL_PATH: "/usr/share/wazuh-cert-oauth2/data/issuing.crl"
+            INPUT_LEDGER_PATH: "/usr/share/wazuh-cert-oauth2/data/ledger.csv"
+            OUTPUT_LEDGER_PATH: "/usr/share/wazuh-cert-oauth2/data/ledger-migrated.csv"
+            UNRESOLVED_PATH: "/usr/share/wazuh-cert-oauth2/data/unresolved.csv"
+            REPORT_PATH: "/usr/share/wazuh-cert-oauth2/data/migration-report.txt"
+            # Wazuh Manager
+            WAZUH_MANAGER_URL: ""
+            WAZUH_API_USER: ""
+            # WAZUH_API_PASSWORD:
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: wazuh-api-credentials
+            #       key: user
+            WAZUH_API_PASSWORD: ""
+            # WAZUH_API_PASSWORD:
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: wazuh-api-credentials
+            #       key: password
+            WAZUH_TLS_VERIFY: "true"
+            WAZUH_CA_BUNDLE: ""
+            # Keycloak
+            KEYCLOAK_ADMIN_URL: ""
+            KEYCLOAK_REALM: ""
+            KEYCLOAK_AUTH_METHOD: "client-credentials"
+            KEYCLOAK_CLIENT_ID: ""
+            KEYCLOAK_CLIENT_SECRET: ""
+            # KEYCLOAK_CLIENT_SECRET:
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: keycloak-migration-credentials
+            #       key: client-secret
+            KEYCLOAK_ADMIN_USER: ""
+            KEYCLOAK_ADMIN_PASSWORD: ""
+            KEYCLOAK_TLS_VERIFY: "false"
+            KEYCLOAK_CA_BUNDLE: ""
       containers:
         main:
           image:
@@ -293,6 +343,8 @@ cert:
             - path: /usr/share/wazuh-cert-oauth2/data
           s3-init:
             - path: /usr/share/wazuh-cert-oauth2/data
+          migration:
+            - path: /usr/share/wazuh-cert-oauth2/data
           main:
             - path: /usr/share/wazuh-cert-oauth2/data
           s3-backup:
@@ -313,6 +365,13 @@ cert:
       name: cert-secret
       advancedMounts:
         main:
+          migration:
+            - path: /usr/share/wazuh-cert-oauth2/certs/root-ca.pem
+              subPath: root-ca.pem
+              readOnly: true
+            - path: /usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem
+              subPath: root-ca-key.pem
+              readOnly: true
           main:
             - path: /usr/share/wazuh-cert-oauth2/certs/root-ca.pem
               subPath: root-ca.pem

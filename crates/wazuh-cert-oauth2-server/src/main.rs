@@ -14,12 +14,13 @@ use crate::handlers::revoke::revoke;
 use crate::models::oidc_state::OidcState;
 
 mod handlers;
+mod migrate;
 mod models;
 mod shared;
 use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
 use crate::shared::ledger::Ledger;
-use crate::shared::opts::Opt;
+use crate::shared::opts::{Command, Opt, ServeOpt};
 use clap::Parser;
 use mimalloc::MiMalloc;
 use tracing::info;
@@ -40,7 +41,18 @@ async fn main() -> AppResult<()> {
         Ok(opt) => opt,
         Err(e) => e.exit(),
     };
-    let Opt {
+
+    match opt.command {
+        Command::Migrate(migrate_opt) => {
+            migrate::v1::runner::run_migration(migrate_opt).await?;
+            Ok(())
+        }
+        Command::Serve(serve_opt) => run_server(serve_opt).await,
+    }
+}
+
+async fn run_server(opt: ServeOpt) -> AppResult<()> {
+    let ServeOpt {
         oauth_issuer,
         kc_audiences,
         root_ca_path,
@@ -51,18 +63,19 @@ async fn main() -> AppResult<()> {
         crl_dist_url,
         crl_path,
         ledger_path,
-        ..
+        webhook_base_url,
+        webhook_bearer_token,
     } = opt;
     let kc_audiences = kc_audiences.map(|a| a.split(",").map(|s| s.to_string()).collect());
 
     // Shared HTTP client service with connection pooling
     let http_client = HttpClient::new_with_defaults()?;
 
-    let webhook_notifier = opt.webhook_base_url.map(|base_url| {
+    let webhook_notifier = webhook_base_url.map(|base_url| {
         crate::shared::webhook_notifier::WebhookNotifier::new(
             http_client.clone(),
             base_url,
-            opt.webhook_bearer_token,
+            webhook_bearer_token,
         )
     });
 

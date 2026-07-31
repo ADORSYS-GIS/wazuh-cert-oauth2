@@ -108,3 +108,4 @@ EXPOSE $PORT
 HEALTHCHECK --interval=10s --timeout=3s --start-period=2s --retries=5 CMD ["/app/healthcheck"]
 
 ENTRYPOINT ["/app/server"]
+CMD ["serve"]

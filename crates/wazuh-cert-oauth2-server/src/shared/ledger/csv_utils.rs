@@ -1,4 +1,4 @@
-pub(super) fn split_csv_line(line: &str) -> Vec<String> {
+pub(crate) fn split_csv_line(line: &str) -> Vec<String> {
     let mut fields = Vec::new();
     let mut cur = String::new();
     let mut in_quotes = false;
@@ -28,7 +28,7 @@ pub(super) fn split_csv_line(line: &str) -> Vec<String> {
     fields
 }
 
-pub(super) fn escape_csv_field(s: &str) -> String {
+pub(crate) fn escape_csv_field(s: &str) -> String {
     let needs_quotes = s.contains(',') || s.contains('"') || s.contains('\n') || s.contains('\r');
     if needs_quotes {
         let mut out = String::with_capacity(s.len() + 2);
@@ -48,7 +48,7 @@ pub(super) fn escape_csv_field(s: &str) -> String {
     }
 }
 
-pub(super) fn unescape_csv_field(s: &str) -> String {
+pub(crate) fn unescape_csv_field(s: &str) -> String {
     let s = s.trim();
     if s.starts_with('"') && s.ends_with('"') && s.len() >= 2 {
         let inner = &s[1..s.len() - 1];

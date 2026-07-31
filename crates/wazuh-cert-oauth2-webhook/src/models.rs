@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value as JsonValue, from_str};
 use std::collections::HashMap;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
+pub use wazuh_cert_oauth2_model::models::user_representation::SimpleUserRepresentation;
 
 #[derive(Serialize)]
 pub struct Health {
@@ -62,17 +63,6 @@ impl WebhookRequest {
             }
         }
     }
-}
-
-#[derive(Deserialize, Debug, Serialize, Clone, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct SimpleUserRepresentation {
-    pub id: Option<String>,
-    pub enabled: bool,
-    pub username: Option<String>,
-    pub email: Option<String>,
-    pub first_name: Option<String>,
-    pub last_name: Option<String>,
 }
 
 #[cfg(test)]
