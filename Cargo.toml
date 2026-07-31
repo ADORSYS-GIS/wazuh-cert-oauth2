@@ -29,7 +29,7 @@ diacritics = "0"
 mid = "5"
 oauth2 = { version = "5", features = ["reqwest"] }
 clap = { version = "4", features = ["derive", "env"] }
-base64 = "0.22"
+base64 = "0.23"
 url = "2"
 unwrap-infallible = "1.0.0"
 
