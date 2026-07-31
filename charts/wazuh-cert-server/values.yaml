@@ -97,9 +97,9 @@ cert:
         migration:
           enabled: false
           image:
-            repository: '{{ .Values.cert.controllers.main.containers.main.image.repository }}'
-            tag: '{{ .Values.cert.controllers.main.containers.main.image.tag }}'
-            pullPolicy: '{{ .Values.cert.controllers.main.containers.main.image.pullPolicy }}'
+            repository: '{{ .Values.controllers.main.containers.main.image.repository }}'
+            tag: '{{ .Values.controllers.main.containers.main.image.tag }}'
+            pullPolicy: IfNotPresent
           command:
             - /app/server
             - migrate
@@ -115,31 +115,32 @@ cert:
             REPORT_PATH: "/usr/share/wazuh-cert-oauth2/data/migration-report.txt"
             # Wazuh Manager
             WAZUH_MANAGER_URL: ""
-            WAZUH_API_USER: ""
-            # WAZUH_API_PASSWORD:
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: wazuh-api-credentials
-            #       key: user
-            WAZUH_API_PASSWORD: ""
-            # WAZUH_API_PASSWORD:
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: wazuh-api-credentials
-            #       key: password
+            WAZUH_API_USER:
+              valueFrom:
+                secretKeyRef:
+                  name: wazuh-api-credentials
+                  key: user
+            WAZUH_API_PASSWORD:
+              valueFrom:
+                secretKeyRef:
+                  name: wazuh-api-credentials
+                  key: password
             WAZUH_TLS_VERIFY: "true"
             WAZUH_CA_BUNDLE: ""
             # Keycloak
             KEYCLOAK_ADMIN_URL: ""
             KEYCLOAK_REALM: ""
             KEYCLOAK_AUTH_METHOD: "client-credentials"
-            KEYCLOAK_CLIENT_ID: ""
-            KEYCLOAK_CLIENT_SECRET: ""
-            # KEYCLOAK_CLIENT_SECRET:
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: keycloak-migration-credentials
-            #       key: client-secret
+            KEYCLOAK_CLIENT_ID:
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-migration-credentials
+                  key: client-id
+            KEYCLOAK_CLIENT_SECRET:
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-migration-credentials
+                  key: client-secret
             KEYCLOAK_ADMIN_USER: ""
             KEYCLOAK_ADMIN_PASSWORD: ""
             KEYCLOAK_TLS_VERIFY: "false"
@@ -170,7 +171,7 @@ cert:
             LEDGER_PATH: '/usr/share/wazuh-cert-oauth2/data/ledger.csv'
 
             CRL_PATH: '/usr/share/wazuh-cert-oauth2/data/issuing.crl'
-            CRL_DIST_URL: 'https://{{ .Values.global.version }}/crl/issuing.crl'
+            CRL_DIST_URL: 'https://{{ .Values.global.domain }}/crl/issuing.crl'
             WEBHOOK_BASE_URL: ""
             WEBHOOK_BEARER_TOKEN: ""
 
