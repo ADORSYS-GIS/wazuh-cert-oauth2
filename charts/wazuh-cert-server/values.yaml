@@ -97,8 +97,8 @@ cert:
         migration:
           enabled: false
           image:
-            repository: '{{ .Values.controllers.main.containers.main.image.repository }}'
-            tag: '{{ .Values.controllers.main.containers.main.image.tag }}'
+            repository: ghcr.io/adorsys-gis/wazuh-cert-oauth2
+            tag: '{{ .Values.global.version }}'
             pullPolicy: IfNotPresent
           command:
             - /app/server
