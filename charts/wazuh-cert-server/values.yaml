@@ -141,10 +141,7 @@ cert:
                 secretKeyRef:
                   name: keycloak-migration-credentials
                   key: client-secret
-            KEYCLOAK_ADMIN_USER: ""
-            KEYCLOAK_ADMIN_PASSWORD: ""
             KEYCLOAK_TLS_VERIFY: "false"
-            KEYCLOAK_CA_BUNDLE: ""
       containers:
         main:
           image:
