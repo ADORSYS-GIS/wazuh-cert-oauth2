@@ -4,13 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[15f618f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/15f618f769a61449d856cd91a5457dc22603266a)...[0c6297c](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0c6297cfc83908c1703454d5262832567ec15cff)
+[15f618f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/15f618f769a61449d856cd91a5457dc22603266a)...[d4caa96](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/d4caa96de15bd889b9b0e7a3bf121146d2b5afcc)
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`28b39a9`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/28b39a9c6325085de8e0aabfb9e8f3d44b1b2e57))
 - Update CHANGELOG.md and checksums [skip ci] ([`ddda99a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ddda99ae8e9b3e7f7925ffabb640cec4e225001e))
 - Update CHANGELOG.md and checksums [skip ci] ([`742b7f5`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/742b7f5071dda37ce308e779002c22c03f4638ee))
+- Update CHANGELOG.md and checksums [skip ci] ([`879beaf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/879beaf00fd5c6819ccee9f2bbaae7f7503d5ef0))
 
 ### Features
 
@@ -20,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Enhance migration process with detailed match statuses and server command integration ([`355f44b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/355f44bf18e258bb20a60630a6867fb12e7c0edf))
 - Enhance agent listing with pagination and total count handling ([`0296c8e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0296c8ea0da1264a69ba76921ce66a1a03064639))
 - Add migration service with Keycloak integration and user representation model ([`0c6297c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0c6297cfc83908c1703454d5262832567ec15cff))
+- Add migration container configuration with environment variables and apply cargo clippy ([`9f863b7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9f863b7ef126d24a6facbe4f74f7c3c25f8ab758))
 
 ## wazuh-cert-webhook-0.4.5 - 2026-07-20
 
