@@ -17,3 +17,5 @@ test.yaml
 
 .trivycache
 spool
+# Jekyll build output
+_site/

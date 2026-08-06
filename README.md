@@ -22,7 +22,9 @@ Internal utilities: `wazuh-cert-oauth2-healthcheck`.
 
 ## Quick start
 
-For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/getting-started.md).
+- **Documentation**: Browse the full feature documentation on the [GitHub Pages site](https://adorsys-gis.github.io/wazuh-cert-oauth2/) (built with Jekyll/Just the Docs from the `docs/` folder).
+
+- For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/getting-started.md).
 
 - **Docker Compose Stack**:
   - `docker compose up -d --build`

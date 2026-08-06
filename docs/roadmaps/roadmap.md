@@ -1,3 +1,9 @@
+---
+layout: default
+title: Roadmap
+nav_order: 5
+---
+
 # Project Roadmap
 
 This document outlines the future plans and development goals for the Wazuh Certificate OAuth2 project.
