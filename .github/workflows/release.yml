@@ -42,7 +42,7 @@ jobs:
         # from source and link it statically. This avoids the need to install
         # OpenSSL separately in the build environment, which is complex for
         # cross-compilation.
-        uses: houseabsolute/actions-rust-cross@f481cb5e0110765615313e2177ce12a99bf26bbd
+        uses: houseabsolute/actions-rust-cross@85826e468eac832e251ac58f6191ba784db237c8
         with:
           command: "build"
           target: ${{ matrix.target }}
@@ -89,7 +89,7 @@ jobs:
           brew install pkg-config openssl@3
 
       - name: Build with cross
-        uses: houseabsolute/actions-rust-cross@f481cb5e0110765615313e2177ce12a99bf26bbd
+        uses: houseabsolute/actions-rust-cross@85826e468eac832e251ac58f6191ba784db237c8
         with:
           command: "build"
           target: ${{ matrix.target }}
@@ -130,7 +130,7 @@ jobs:
       # Note: intentionally avoid caches in release build to prevent cache poisoning
 
       - name: Build with cross
-        uses: houseabsolute/actions-rust-cross@f481cb5e0110765615313e2177ce12a99bf26bbd
+        uses: houseabsolute/actions-rust-cross@85826e468eac832e251ac58f6191ba784db237c8
         with:
           command: "build"
           target: ${{ matrix.target }}
