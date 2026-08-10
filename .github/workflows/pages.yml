@@ -54,10 +54,17 @@ jobs:
           # credential scoped to this repo and to these git commands only (no --global)
           cred="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
           cfg="-c url.${cred}.insteadOf=${repo}"
-          # distinguish "branch absent" from "fetch failed"
-          if ! git ${cfg} ls-remote --exit-code "${repo}" refs/heads/gh-pages >/dev/null 2>&1; then
+          # distinguish "branch absent" (exit 2) from "check failed" (other)
+          set +e
+          git ${cfg} ls-remote --exit-code "${repo}" refs/heads/gh-pages >/dev/null 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 2 ]; then
             echo "::warning::gh-pages branch not found; skipping Helm chart artifacts"
             exit 0
+          elif [ "$rc" -ne 0 ]; then
+            echo "::error::failed to check gh-pages branch (ls-remote exit $rc)"
+            exit "$rc"
           fi
           # shallow-fetch the branch into an isolated scratch repo
           scratch="$(mktemp -d)"
