@@ -1,18 +1,25 @@
+---
+layout: default
+title: Getting Started
+nav_order: 6
+---
+
 # Getting Started
 
 This guide walks you through setting up and running the `wazuh-cert-oauth2` project locally. There are two ways to run the stack — pick the one that fits your workflow:
 
-> [!NOTE]
+{: .note }
 > **GitHub Integration**: The Webhook Proxy supports automated GitHub issue creation for new user registrations in Keycloak. To use this feature, you will need a GitHub Personal Access Token (preferably a **fine-grained** token with only **Issue Creation** permissions), the repository owner, and the repository name. See the [Configuration Reference](#webhook-flags) for details.
 
 ## Prerequisites
+
 | | [Option A: Docker Compose](#option-a-docker-compose-recommended) | [Option B: From Source](#option-b-running-from-source) |
 | :--- | :--- | :--- |
 | Best for | Quick setup, testing, demos | Active development, debugging |
 | Requires | Docker & Docker Compose | Rust toolchain + build deps |
 | Services managed | Automatically | Manually (3 separate processes) |
 
-> Want to understand how the components fit together first? See the [Architecture Overview](./architecture.md).
+> Want to understand how the components fit together first? See the [Architecture Overview](../architecture/).
 
 ---
 
@@ -61,7 +68,7 @@ The fastest way to get the full stack running. Docker Compose starts the Certifi
 docker compose up -d --build
 ```
 
-> [!TIP]
+{: .tip }
 > On Linux, if your shell doesn't automatically export `UID`/`GID`, prefix the command to avoid permission issues with the mounted CA files:
 > ```bash
 > UID=$(id -u) GID=$(id -g) docker compose up -d --build
@@ -99,7 +106,7 @@ Run the client from the repository root:
   --endpoint http://localhost:8000/api/register-agent
 ```
 
-> [!NOTE]
+{: .note }
 > If you haven't built the binaries yet, run `cargo build --release` first.
 
 The client will attempt to open the authorization URL in your system's default browser automatically. If that fails, the URL will be printed in the terminal for you to open manually. Log in with `test` / `test`, and paste the authorization code back into the terminal. On success, the signed certificate and private key will be written to the platform-specific default path.
@@ -175,6 +182,7 @@ The client will attempt to open the authorization URL in your system's default b
 ## Configuration Reference
 
 ### Server Flags
+
 | Flag | Env Variable | Default | Purpose |
 | :--- | :--- | :--- | :--- |
 | `--oauth-issuer` | `OAUTH_ISSUER` | (Required) | OIDC issuer URL. |
@@ -187,7 +195,7 @@ The client will attempt to open the authorization URL in your system's default b
 
 ### Webhook Flags
 
-> [!WARNING]
+{: .warning }
 > **Breaking change:** `WAZUH_API_TLS_VERIFY` now defaults to `true`. If your Wazuh Manager uses a self-signed certificate and you do not have `WAZUH_API_CA_BUNDLE` configured, set `WAZUH_API_TLS_VERIFY=false` **before upgrading** to avoid eviction failures.
 
 | Flag | Env Variable | Default | Purpose |
@@ -211,6 +219,7 @@ The client will attempt to open the authorization URL in your system's default b
 | `--wazuh-api-ca-bundle` | `WAZUH_API_CA_BUNDLE` | (Optional) | Path to a PEM CA bundle for the Wazuh Manager API. |
 
 ### Client Flags
+
 | Flag | Env Variable | Default | Purpose |
 | :--- | :--- | :--- | :--- |
 | `--issuer` | `ISSUER` | Keycloak URL | OIDC issuer for agent auth. |
@@ -225,7 +234,7 @@ The client will attempt to open the authorization URL in your system's default b
 ### 🌐 Connectivity Issues
 
 #### "error sending request for url" (Client)
-> [!IMPORTANT]
+{: .important }
 > **Symptom:** The client fails with an error similar to:  
 > `An error occurred during execution: HTTP error: error sending request for url (http://localhost:9100/realms/dev/.well-known/openid-configuration)`
 
@@ -235,7 +244,7 @@ The client will attempt to open the authorization URL in your system's default b
 - Ensure the `--issuer` URL matches the reachable address of your OIDC provider.
 
 #### 401 Unauthorized or "Could not get JWKS" (Server)
-> [!WARNING]
+{: .warning }
 > **Symptom:** Server logs show `Could not get JWKS HTTP error: error sending request for url (...)` or the client receives a 401.
 
 **Cause:** The Certificate Server cannot reach the OIDC issuer to validate tokens.  
@@ -246,7 +255,7 @@ The client will attempt to open the authorization URL in your system's default b
 ### 🔑 Permissions & Security
 
 #### "Permission Denied (os error 13)"
-> [!CAUTION]
+{: .warning }
 > **Symptom:** `CSR signing failed: I/O error: Permission denied (os error 13)` appears in logs.
 
 **Cause:** The container user cannot read the host-mounted Root CA files.  
@@ -255,7 +264,7 @@ The client will attempt to open the authorization URL in your system's default b
 - **Windows (Docker Desktop):** Ensure Docker Desktop has permission to access the repository folder and the files aren't blocked by Windows Security.
 
 #### "Executable file not found" (docker exec)
-> [!NOTE]
+{: .note }
 > **Symptom:** `OCI runtime exec failed: ... exec: "ls": executable file not found in $PATH`
 
 **Cause:** The project uses Distroless images — no shell or standard utilities.  

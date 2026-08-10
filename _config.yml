@@ -1,0 +1,84 @@
+# Wazuh Certificate OAuth2 documentation site
+title: Wazuh Cert OAuth2
+description: >-
+  Certificate-based agent authentication for Wazuh, backed by OAuth2 / OpenID
+  Connect identity providers such as Keycloak.
+
+# Theme
+theme: just-the-docs
+
+# Site metadata
+url: "https://adorsys-gis.github.io/wazuh-cert-oauth2"
+baseurl: "/wazuh-cert-oauth2"
+
+# Just the Docs configuration
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+permalink: pretty
+
+# Enable Mermaid diagram rendering (used in the architecture page)
+mermaid:
+  version: "10.9.0"
+
+# Callouts: enable Just-the-Docs styled note/tip/warning/important callouts
+callouts:
+  note:
+    color: blue
+    title: Note
+  important:
+    color: yellow
+    title: Important
+  warning:
+    color: red
+    title: Warning
+  tip:
+    color: green
+    title: Tip
+
+# Footer
+# (Copyright is rendered in the sidebar footer via _includes/nav_footer_custom.html)
+
+# Build settings
+
+exclude:
+  - README.md
+  - SECURITY.md
+  - CODE_OF_CONDUCT.md
+  - CONTRIBUTING.md
+  - CHANGELOG.md
+  - Makefile
+  - Makefile.docs
+  - Gemfile
+  - Gemfile.lock
+  - index.yaml
+  - target/
+  - crates/
+  - charts/
+  - scripts/
+  - .docker/
+  - .github/
+  - .git/
+  - .qodo/
+  - .trivycache/
+  - .vscode/
+  - .zencoder/
+  - .zenflow/
+  - Cargo.toml
+  - Cargo.lock
+  - Dockerfile
+  - .dockerignore
+  - compose.yaml
+  - deny.toml
+  - cliff.toml
+  - trivy.yaml
+  - .yaml-lint.yml
+  - .pre-commit-config.yaml
+  - .clippy.toml
+  - p.key
+  - root-ca.pem
+  - root-ca-key.pem
+  - wazuh-certs/
+  - ledger.csv
+  - unresloved.csv
+  - checksums.sha256

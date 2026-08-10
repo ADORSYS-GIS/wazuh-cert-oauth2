@@ -1,3 +1,9 @@
+---
+layout: default
+title: Architecture
+nav_order: 4
+---
+
 # Project Architecture
 
 This document describes the high-level architecture of the `wazuh-cert-oauth2` project and how its components interact.

@@ -22,7 +22,9 @@ Internal utilities: `wazuh-cert-oauth2-healthcheck`.
 
 ## Quick start
 
-For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/getting-started.md).
+- **Documentation**: Browse the full feature documentation on the [GitHub Pages site](https://adorsys-gis.github.io/wazuh-cert-oauth2/) (built with Jekyll/Just the Docs from the `docs/` folder).
+
+- For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/getting-started.md).
 
 - **Docker Compose Stack**:
   - `docker compose up -d --build`
@@ -30,8 +32,20 @@ For detailed setup instructions, prerequisites, and a guide on running the proje
   - Webhook: `http://localhost:8100`
   - Keycloak: `http://localhost:9100`
 
-- **Roadmap**: See [Roadmaps](docs/roadmaps/) for future plans.
+- **Getting Started Guide**: See [Getting Started](docs/getting-started.md).
 
+
+## Documentation (local preview)
+
+The docs site is built with Jekyll and the Just-the-Docs theme (see [`_config.yml`](_config.yml) and `_includes/`). You don't need Ruby installed — previewing runs in Docker:
+
+```bash
+make -f Makefile.docs docs-serve   # live-reload preview at http://localhost:4000/wazuh-cert-oauth2/
+make -f Makefile.docs docs-build   # one-off static build into ./_site
+make -f Makefile.docs docs-clean   # remove build output and the Docker gem cache
+```
+
+`docs-serve` caches the Ruby gems in a Docker named volume, so only the first run is slow.
 
 ## License
 
