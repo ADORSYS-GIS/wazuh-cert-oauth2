@@ -27,9 +27,8 @@ automated revocation driven by identity-provider events.
 
 ## Quick links
 
-- [Features](docs/features) — what the project does end-to-end.
-- [Components](docs/components) — the server, client, webhook, model, and nginx sidecar.
-- [Architecture](docs/architecture) — component overview and communication flows.
-- [Getting Started](docs/getting-started) — run the stack with Docker Compose or from source.
-- [Roadmap](docs/roadmap) — future plans and hardening initiatives.
+- [Features](docs/features): what the project does end-to-end.
+- [Components](docs/components): the server, client, webhook, model, and nginx sidecar.
+- [Architecture](docs/architecture): component overview and communication flows.
+- [Getting Started](docs/getting-started): run the stack with Docker Compose or from source.
 - Source code: [ADORSYS-GIS/wazuh-cert-oauth2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2)

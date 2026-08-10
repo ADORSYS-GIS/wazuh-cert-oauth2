@@ -1,0 +1,83 @@
+<style>
+  /* Theme toggle pinned to the top-right, always visible, outside the content flow */
+  .theme-toggle-header {
+    position: fixed;
+    top: 0.9rem;
+    right: 1.25rem;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+  }
+  .theme-toggle-header .js-toggle-theme {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1;
+    border: 1px solid #7253ed;
+    border-radius: 4px;
+    background: transparent;
+    color: #7253ed;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .theme-toggle-header .js-toggle-theme:hover {
+    background: rgba(114, 83, 237, 0.1);
+  }
+  /* On small screens the header (which hosts this) is hidden; keep it tucked in a corner */
+  @media (min-width: 600px) {
+    .theme-toggle-header {
+      top: 0.9rem;
+      right: 1.25rem;
+    }
+  }
+</style>
+<script>
+(function () {
+  /* Light/dark switching. Swaps just-the-docs-default.css (light) for just-the-docs-dark.css. */
+  function getTheme() {
+    var css = document.querySelector('[rel="stylesheet"]');
+    if (!css) return 'light';
+    var href = css.getAttribute('href') || '';
+    return href.substring(href.lastIndexOf('-') + 1, href.length - 4);
+  }
+  function setTheme(theme) {
+    var css = document.querySelector('[rel="stylesheet"]');
+    if (css) {
+      css.setAttribute('href', '{{ "assets/css/just-the-docs-" | relative_url }}' + theme + '.css');
+    }
+  }
+  function savedTheme() {
+    try { return localStorage.getItem('jtd-theme'); } catch (e) { return null; }
+  }
+  function isDark() {
+    return getTheme() === 'dark';
+  }
+  function syncLabel() {
+    var buttons = document.querySelectorAll('.js-toggle-theme');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].textContent = isDark() ? 'Light mode' : 'Dark mode';
+    }
+  }
+  window.jtdToggleTheme = function () {
+    var next = isDark() ? 'light' : 'dark';
+    setTheme(next);
+    try { localStorage.setItem('jtd-theme', next); } catch (e) {}
+    syncLabel();
+  };
+  function applySaved() {
+    var saved = savedTheme();
+    if (saved && saved !== getTheme()) {
+      setTheme(saved);
+    }
+  }
+  /* Apply the saved theme before first paint (avoids a light flash on load),
+     and re-apply on back/forward navigation (pageshow / bfcache restore). */
+  applySaved();
+  document.addEventListener('DOMContentLoaded', syncLabel);
+  window.addEventListener('pageshow', function () {
+    applySaved();
+    syncLabel();
+  });
+})();
+</script>

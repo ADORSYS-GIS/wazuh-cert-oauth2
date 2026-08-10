@@ -34,6 +34,8 @@ When a certificate is revoked, the webhook evicts the corresponding Wazuh agent:
 
 If the Wazuh API is unreachable, the `EvictRequest` is persisted to the spool directory and retried with exponential backoff. Eviction spool items older than the TTL are dead-lettered to prevent unbounded retry of poison messages. If both the direct eviction call and the spool queue reject the request, the endpoint returns `500`.
 
+See [Agent eviction](../features-eviction) for the full feature walkthrough, including grace periods, auto-rotate, and resilience.
+
 ## Configuration
 
 | Flag | Env Variable | Default | Purpose |

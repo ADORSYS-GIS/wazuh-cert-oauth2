@@ -12,6 +12,7 @@ This guide walks you through setting up and running the `wazuh-cert-oauth2` proj
 > **GitHub Integration**: The Webhook Proxy supports automated GitHub issue creation for new user registrations in Keycloak. To use this feature, you will need a GitHub Personal Access Token (preferably a **fine-grained** token with only **Issue Creation** permissions), the repository owner, and the repository name. See the [Configuration Reference](#webhook-flags) for details.
 
 ## Prerequisites
+
 | | [Option A: Docker Compose](#option-a-docker-compose-recommended) | [Option B: From Source](#option-b-running-from-source) |
 | :--- | :--- | :--- |
 | Best for | Quick setup, testing, demos | Active development, debugging |
@@ -181,6 +182,7 @@ The client will attempt to open the authorization URL in your system's default b
 ## Configuration Reference
 
 ### Server Flags
+
 | Flag | Env Variable | Default | Purpose |
 | :--- | :--- | :--- | :--- |
 | `--oauth-issuer` | `OAUTH_ISSUER` | (Required) | OIDC issuer URL. |
@@ -217,6 +219,7 @@ The client will attempt to open the authorization URL in your system's default b
 | `--wazuh-api-ca-bundle` | `WAZUH_API_CA_BUNDLE` | (Optional) | Path to a PEM CA bundle for the Wazuh Manager API. |
 
 ### Client Flags
+
 | Flag | Env Variable | Default | Purpose |
 | :--- | :--- | :--- | :--- |
 | `--issuer` | `ISSUER` | Keycloak URL | OIDC issuer for agent auth. |

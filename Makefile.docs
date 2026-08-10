@@ -1,0 +1,34 @@
+.PHONY: docs-build docs-serve docs-clean
+
+# Local Jekyll / Just-the-Docs preview via Docker (no local Ruby required).
+# Gems are cached in a docker named volume, so only the first run is slow.
+# Serve at http://localhost:4000/wazuh-cert-oauth2/
+
+RUBY_IMAGE ?= ruby:3.3
+BUNDLE_CACHE ?= jtd-gems-cache
+JEKYLL_USER := $(shell id -u):$(shell id -g)
+
+docs-build: ## Build the static site into ./_site
+	docker run --rm \
+		--user $(JEKYLL_USER) \
+		-e HOME=/tmp \
+		-e BUNDLE_PATH=/usr/local/bundle \
+		-v $(BUNDLE_CACHE):/usr/local/bundle \
+		-v $(CURDIR):/site \
+		-w /site $(RUBY_IMAGE) \
+		bash -lc "gem install bundler -v 2.5 >/dev/null 2>&1 && bundle install --quiet && bundle exec jekyll build"
+
+docs-serve: ## Serve the site locally with live reload on port 4000
+	docker run --rm \
+		--user $(JEKYLL_USER) \
+		-p 4000:4000 \
+		-e HOME=/tmp \
+		-e BUNDLE_PATH=/usr/local/bundle \
+		-v $(BUNDLE_CACHE):/usr/local/bundle \
+		-v $(CURDIR):/site \
+		-w /site $(RUBY_IMAGE) \
+		bash -lc "gem install bundler -v 2.5 >/dev/null 2>&1 && bundle install --quiet && bundle exec jekyll serve --host 0.0.0.0 --port 4000 --livereload"
+
+docs-clean: ## Remove the local build output and gem cache
+	rm -rf .site _site
+	docker volume rm $(BUNDLE_CACHE) 2>/dev/null || true

@@ -21,8 +21,23 @@ permalink: pretty
 mermaid:
   version: "10.9.0"
 
+# Callouts: enable Just-the-Docs styled note/tip/warning/important callouts
+callouts:
+  note:
+    color: blue
+    title: Note
+  important:
+    color: yellow
+    title: Important
+  warning:
+    color: red
+    title: Warning
+  tip:
+    color: green
+    title: Tip
+
 # Footer
-footer_content: 'Copyright &copy; 2026 ADORSYS-GIS. Distributed under the MIT license.'
+# (Copyright is rendered in the sidebar footer via _includes/nav_footer_custom.html)
 
 # Build settings
 
@@ -31,6 +46,12 @@ exclude:
   - SECURITY.md
   - CODE_OF_CONDUCT.md
   - CONTRIBUTING.md
+  - CHANGELOG.md
+  - Makefile
+  - Makefile.docs
+  - Gemfile
+  - Gemfile.lock
+  - index.yaml
   - target/
   - crates/
   - charts/
