@@ -35,14 +35,17 @@
 <script>
 (function () {
   /* Light/dark switching. Swaps just-the-docs-default.css (light) for just-the-docs-dark.css. */
+  function themeLink() {
+    return document.querySelector('link[href*="assets/css/just-the-docs-"]:not([href*="head-nav"])');
+  }
   function getTheme() {
-    var css = document.querySelector('[rel="stylesheet"]');
-    if (!css) return 'light';
+    var css = themeLink();
+    if (!css) return 'default';
     var href = css.getAttribute('href') || '';
     return href.substring(href.lastIndexOf('-') + 1, href.length - 4);
   }
   function setTheme(theme) {
-    var css = document.querySelector('[rel="stylesheet"]');
+    var css = themeLink();
     if (css) {
       css.setAttribute('href', '{{ "assets/css/just-the-docs-" | relative_url }}' + theme + '.css');
     }
@@ -55,12 +58,12 @@
   }
   function syncLabel() {
     var buttons = document.querySelectorAll('.js-toggle-theme');
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].textContent = isDark() ? 'Light mode' : 'Dark mode';
-    }
+    buttons.forEach(function (button) {
+      button.textContent = isDark() ? 'Light mode' : 'Dark mode';
+    });
   }
   window.jtdToggleTheme = function () {
-    var next = isDark() ? 'light' : 'dark';
+    var next = isDark() ? 'default' : 'dark';
     setTheme(next);
     try { localStorage.setItem('jtd-theme', next); } catch (e) {}
     syncLabel();
@@ -72,9 +75,14 @@
     }
   }
   /* Apply the saved theme before first paint (avoids a light flash on load),
-     and re-apply on back/forward navigation (pageshow / bfcache restore). */
-  applySaved();
-  document.addEventListener('DOMContentLoaded', syncLabel);
+     and re-apply on DOMContentLoaded and back/forward navigation (pageshow). */
+  if (document.readyState === 'loading') {
+    applySaved();
+    document.addEventListener('DOMContentLoaded', function () { applySaved(); syncLabel(); });
+  } else {
+    applySaved();
+    syncLabel();
+  }
   window.addEventListener('pageshow', function () {
     applySaved();
     syncLabel();
