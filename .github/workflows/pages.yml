@@ -45,18 +45,37 @@ jobs:
         # Serve the chart repository (index.yaml + .tgz packages) alongside the
         # docs. chart-releaser maintains them on the `gh-pages` branch; copy them
         # into the Jekyll build output so the single Pages deploy serves both.
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
-          if git fetch --depth=1 origin gh-pages 2>/dev/null; then
-            for f in $(git ls-tree -r --name-only origin/gh-pages -- '*.tgz' 'index.yaml'); do
-              mkdir -p "_site/$(dirname "$f")"
-              git show "origin/gh-pages:${f}" > "_site/$f"
-              echo "Copied $f"
-            done
-          else
-            echo "No gh-pages branch; skipping chart artifacts"
+          set -euo pipefail
+          repo="https://github.com/${GITHUB_REPOSITORY}"
+          # credential scoped to this repo and to these git commands only (no --global)
+          cred="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
+          cfg="-c url.${cred}.insteadOf=${repo}"
+          # distinguish "branch absent" from "fetch failed"
+          if ! git ${cfg} ls-remote --exit-code "${repo}" refs/heads/gh-pages >/dev/null 2>&1; then
+            echo "::warning::gh-pages branch not found; skipping Helm chart artifacts"
+            exit 0
+          fi
+          # shallow-fetch the branch into an isolated scratch repo
+          scratch="$(mktemp -d)"
+          git ${cfg} init -q "$scratch"
+          git ${cfg} -C "$scratch" remote add origin "${repo}"
+          git ${cfg} -C "$scratch" fetch -q --depth=1 origin gh-pages
+          # NUL-delimited copy so filenames with spaces/globs are handled safely
+          mkdir -p _site
+          copied=0
+          while IFS= read -r -d '' f; do
+            mkdir -p "_site/$(dirname "$f")"
+            git -C "$scratch" show "FETCH_HEAD:$f" > "_site/$f"
+            echo "Copied $f"
+            copied=$((copied + 1))
+          done < <(git -C "$scratch" ls-tree -r -z --name-only FETCH_HEAD -- '*.tgz' 'index.yaml')
+          if [ "$copied" -eq 0 ]; then
+            echo "::error::gh-pages present but no index.yaml / .tgz found to copy"
+            exit 1
           fi
 
       - name: Upload artifact
