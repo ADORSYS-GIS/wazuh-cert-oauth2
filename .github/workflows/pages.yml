@@ -41,6 +41,50 @@ jobs:
         env:
           JEKYLL_ENV: production
 
+      - name: Copy Helm chart repo artifacts into the site
+        # Serve the chart repository (index.yaml + .tgz packages) alongside the
+        # docs. chart-releaser maintains them on the `gh-pages` branch; copy them
+        # into the Jekyll build output so the single Pages deploy serves both.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          repo="https://github.com/${GITHUB_REPOSITORY}"
+          # credential scoped to this repo and to these git commands only (no --global)
+          cred="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
+          cfg="-c url.${cred}.insteadOf=${repo}"
+          # distinguish "branch absent" (exit 2) from "check failed" (other)
+          set +e
+          git ${cfg} ls-remote --exit-code "${repo}" refs/heads/gh-pages >/dev/null 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 2 ]; then
+            echo "::warning::gh-pages branch not found; skipping Helm chart artifacts"
+            exit 0
+          elif [ "$rc" -ne 0 ]; then
+            echo "::error::failed to check gh-pages branch (ls-remote exit $rc)"
+            exit "$rc"
+          fi
+          # shallow-fetch the branch into an isolated scratch repo
+          scratch="$(mktemp -d)"
+          git ${cfg} init -q "$scratch"
+          git ${cfg} -C "$scratch" remote add origin "${repo}"
+          git ${cfg} -C "$scratch" fetch -q --depth=1 origin gh-pages
+          # NUL-delimited copy so filenames with spaces/globs are handled safely
+          mkdir -p _site
+          copied=0
+          while IFS= read -r -d '' f; do
+            mkdir -p "_site/$(dirname "$f")"
+            git -C "$scratch" show "FETCH_HEAD:$f" > "_site/$f"
+            echo "Copied $f"
+            copied=$((copied + 1))
+          done < <(git -C "$scratch" ls-tree -r -z --name-only FETCH_HEAD -- '*.tgz' 'index.yaml')
+          if [ "$copied" -eq 0 ]; then
+            echo "::error::gh-pages present but no index.yaml / .tgz found to copy"
+            exit 1
+          fi
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
 
