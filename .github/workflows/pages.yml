@@ -41,6 +41,24 @@ jobs:
         env:
           JEKYLL_ENV: production
 
+      - name: Copy Helm chart repo artifacts into the site
+        # Serve the chart repository (index.yaml + .tgz packages) alongside the
+        # docs. chart-releaser maintains them on the `gh-pages` branch; copy them
+        # into the Jekyll build output so the single Pages deploy serves both.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+          if git fetch --depth=1 origin gh-pages 2>/dev/null; then
+            for f in $(git ls-tree -r --name-only origin/gh-pages -- '*.tgz' 'index.yaml'); do
+              mkdir -p "_site/$(dirname "$f")"
+              git show "origin/gh-pages:${f}" > "_site/$f"
+              echo "Copied $f"
+            done
+          else
+            echo "No gh-pages branch; skipping chart artifacts"
+          fi
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
 
