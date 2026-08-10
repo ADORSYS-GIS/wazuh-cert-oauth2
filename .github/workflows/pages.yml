@@ -2,7 +2,7 @@ name: Build and Deploy Jekyll site to GitHub Pages
 
 on:
   push:
-    branches: ["main", "docs-jekyll-site"]
+    branches: ["main"]
     paths:
       - '_config.yml'
       - 'Gemfile'
