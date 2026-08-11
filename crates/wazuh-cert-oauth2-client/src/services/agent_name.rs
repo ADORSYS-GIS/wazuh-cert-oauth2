@@ -16,7 +16,7 @@ pub fn generate_agent_name(claim_name: &str) -> String {
         long_machine_id
     };
 
-    format!("{}-{}", &name, small_machine_id).replace(|c: char| !c.is_ascii_alphanumeric(), "-")
+    format!("{}-{}", name, small_machine_id).replace(|c: char| !c.is_ascii_alphanumeric(), "-")
 }
 
 #[cfg(test)]

@@ -25,7 +25,7 @@ jobs:
 
       - name: Run ShellCheck on bash scripts
         run: |
-          find scripts -name "*.sh" -type f | xargs shellcheck --severity=warning || true
+          find scripts -name "*.sh" -type f -print0 | xargs -0 shellcheck --severity=warning || true
 
       - name: Install PSScriptAnalyzer
         shell: pwsh
@@ -49,6 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -74,7 +75,7 @@ jobs:
           args: --output CHANGELOG.md
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v7
+        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # crazy-max/ghaction-import-gpg@v7
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
@@ -82,13 +83,25 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Commit and push changes
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          if [[ -n $(git status --porcelain) ]]; then
-            git add CHANGELOG.md checksums.sha256
-            git commit -S -m "docs: update CHANGELOG.md and checksums [skip ci]"
-            git push origin ${{ github.head_ref || github.ref_name }}
-          else
+          set -eux
+          if [[ -z $(git status --porcelain) ]]; then
             echo "No changes to commit"
+            exit 0
+          fi
+          git add CHANGELOG.md checksums.sha256
+          git commit -S -m "docs: update CHANGELOG.md and checksums [skip ci]"
+          if [[ "$TARGET_BRANCH" == "main" ]]; then
+            BRANCH="bot/update-checksums-${GITHUB_RUN_ID}"
+            git checkout -b "$BRANCH"
+            git push origin "$BRANCH"
+            gh pr create --base main --head "$BRANCH" \
+              --title "docs: update CHANGELOG.md and checksums" \
+              --body "Automated update of CHANGELOG.md and checksums.sha256"
+          else
+            git push origin "$TARGET_BRANCH"
           fi
 
   test-scripts:

@@ -200,13 +200,25 @@ jobs:
 
       - name: Commit and push changes
         if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
-          if [[ -n $(git status --porcelain) ]]; then
-            git add CHANGELOG.md checksums.sha256
-            git commit -m "docs: update CHANGELOG.md and checksums [skip ci]"
-            git push origin ${{ github.head_ref || github.ref_name }}
-          else
+          set -eux
+          if [[ -z $(git status --porcelain) ]]; then
             echo "No changes to commit"
+            exit 0
+          fi
+          git add CHANGELOG.md checksums.sha256
+          git commit -m "docs: update CHANGELOG.md and checksums [skip ci]"
+          if [[ "$TARGET_BRANCH" == "main" ]]; then
+            BRANCH="bot/update-checksums-${GITHUB_RUN_ID}"
+            git checkout -b "$BRANCH"
+            git push origin "$BRANCH"
+            gh pr create --base main --head "$BRANCH" \
+              --title "docs: update CHANGELOG.md and checksums" \
+              --body "Automated update of CHANGELOG.md and checksums.sha256"
+          else
+            git push origin "$TARGET_BRANCH"
           fi
       
       - name: Upload Checksums
