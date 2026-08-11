@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[6a9df55](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6a9df551d605432df05c9b33e7cfac92338087a0)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[99603d1](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/99603d1d6fb165f35b0ad080eb92a9661b867ea8)
 
 ### Bug Fixes
 
@@ -14,16 +14,22 @@ All notable changes to this project will be documented in this file.
 - Remove unnecessary setup for Pages in GitHub Actions workflow ([`5ab6d55`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5ab6d551b9c46cdfef89d2c2673fbcb7f395e8a6))
 - Resolve lint pipeline failures ([`1935197`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1935197f02759260366174a0efadd1f68f72cc78))
 - Healthcheck liveness + remaining lint blockers ([`6a9df55`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6a9df551d605432df05c9b33e7cfac92338087a0))
+- Annotate cache-poisoning in build-nginx-sidecar ([`afcfa15`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/afcfa15ce218c9d888c9179a5dedd40090c34536))
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`8ea9f96`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8ea9f9617d0f8a46d642160dc5429f7e21ecf916))
+- Update CHANGELOG.md and checksums [skip ci] ([`dfa67c6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/dfa67c6a3f8f1a9ce90576ca7a7d6adf3871b4e9))
 
 ### Features
 
 - Add Jekyll site configuration and documentation structure ([`a2260f5`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a2260f5fb8b7a6c2d37f54459c01c7c8ca496c3e))
 - Feat: update GitHub Actions workflow and permissions for Jekyll site deployment ([`abd9a82`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/abd9a8285df50c4cf12c9357e069404c493207f1))
 - Enhance GitHub Actions workflows for Helm chart deployment and Jekyll site integration ([`7a2e10d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7a2e10d23d77fd719d93338fcc3d39fae488b1d8))
+
+### Miscellaneous Tasks
+
+- Harden GitHub Actions workflows ([`99603d1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/99603d1d6fb165f35b0ad080eb92a9661b867ea8))
 
 ## 0.4.6 - 2026-07-31
 
