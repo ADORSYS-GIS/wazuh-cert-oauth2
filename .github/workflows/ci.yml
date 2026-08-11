@@ -33,6 +33,8 @@ jobs:
       packages: read
       # To report GitHub Actions status checks
       statuses: write
+      # To let super-linter post its lint summary comment on PRs
+      pull-requests: write
 
     steps:
       - name: Checkout repository

@@ -1,0 +1,10 @@
+# rustls-webpki / webpki vulnerabilities in Cargo.lock, transitively pulled in
+# via Rocket 0.5 -> rocket_http -> rustls 0.21 / rustls-webpki 0.101.
+# No safe upgrade exists without an upstream Rocket (or rustls 0.22+) bump.
+# Tracked by the Postgres migration epic; mirrored in deny.toml advisories.
+# https://github.com/advisories/GHSA-82j2-j2ch-gfr8
+GHSA-82j2-j2ch-gfr8
+# https://github.com/advisories/GHSA-965h-392x-2mh5
+GHSA-965h-392x-2mh5
+# https://github.com/advisories/GHSA-xgp8-3hg3-c2mh
+GHSA-xgp8-3hg3-c2mh

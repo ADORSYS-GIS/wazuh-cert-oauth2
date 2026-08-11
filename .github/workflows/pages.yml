@@ -22,7 +22,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: "0"
           persist-credentials: 'false'
@@ -50,10 +50,10 @@ jobs:
           repo="https://github.com/${GITHUB_REPOSITORY}"
           # credential scoped to this repo and to these git commands only (no --global)
           cred="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}"
-          cfg="-c url.${cred}.insteadOf=${repo}"
+          cfg=(-c "url.${cred}.insteadOf=${repo}")
           # distinguish "branch absent" (exit 2) from "check failed" (other)
           set +e
-          git ${cfg} ls-remote --exit-code "${repo}" refs/heads/gh-pages >/dev/null 2>&1
+          git "${cfg[@]}" ls-remote --exit-code "${repo}" refs/heads/gh-pages >/dev/null 2>&1
           rc=$?
           set -e
           if [ "$rc" -eq 2 ]; then
@@ -65,9 +65,9 @@ jobs:
           fi
           # shallow-fetch the branch into an isolated scratch repo
           scratch="$(mktemp -d)"
-          git ${cfg} init -q "$scratch"
-          git ${cfg} -C "$scratch" remote add origin "${repo}"
-          git ${cfg} -C "$scratch" fetch -q --depth=1 origin gh-pages
+          git "${cfg[@]}" init -q "$scratch"
+          git "${cfg[@]}" -C "$scratch" remote add origin "${repo}"
+          git "${cfg[@]}" -C "$scratch" fetch -q --depth=1 origin gh-pages
           # NUL-delimited copy so filenames with spaces/globs are handled safely
           mkdir -p _site
           copied=0

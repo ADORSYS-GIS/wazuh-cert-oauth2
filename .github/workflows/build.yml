@@ -145,4 +145,6 @@ jobs:
 
       - name: Sign image (Cosign keyless)
         if: github.event_name != 'pull_request'
-        run: cosign sign --yes --recursive ${{ steps.img.outputs.ref }}
+        run: cosign sign --yes --recursive "${STEPS_IMG_OUTPUTS_REF}"
+        env:
+          STEPS_IMG_OUTPUTS_REF: ${{ steps.img.outputs.ref }}

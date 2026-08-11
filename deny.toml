@@ -14,5 +14,17 @@ allow = [
 
 [advisories]
 ignore = [
-    "RUSTSEC-2023-0071" # https://rustsec.org/advisories/RUSTSEC-2023-0071
+    "RUSTSEC-2023-0071", # https://rustsec.org/advisories/RUSTSEC-2023-0071
+    # Transitively pulled in via Rocket 0.5 -> rocket_http -> rustls 0.21 /
+    # rustls-webpki 0.101 / rustls-pemfile 1.x. There is no safe upgrade without
+    # an upstream Rocket (or rustls 0.22+) bump. Tracked by the Postgres
+    # migration epic; revisit once Rocket moves off rustls 0.21.
+    # https://rustsec.org/advisories/RUSTSEC-2025-0134
+    "RUSTSEC-2025-0134", # rustls-pemfile is unmaintained
+    # https://rustsec.org/advisories/RUSTSEC-2026-0098
+    "RUSTSEC-2026-0098", # rustls-webpki name constraints for URI names
+    # https://rustsec.org/advisories/RUSTSEC-2026-0099
+    "RUSTSEC-2026-0099", # rustls-webpki wildcard name constraints
+    # https://rustsec.org/advisories/RUSTSEC-2026-0104
+    "RUSTSEC-2026-0104", # rustls-webpki panic on malformed CRL
 ]
