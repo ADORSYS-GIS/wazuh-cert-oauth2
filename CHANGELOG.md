@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[99603d1](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/99603d1d6fb165f35b0ad080eb92a9661b867ea8)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[aac3bd8](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/aac3bd8b4529da3cb10d41995cc3af8181c8a02a)
 
 ### Bug Fixes
 
@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 
 - Update CHANGELOG.md and checksums [skip ci] ([`8ea9f96`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8ea9f9617d0f8a46d642160dc5429f7e21ecf916))
 - Update CHANGELOG.md and checksums [skip ci] ([`dfa67c6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/dfa67c6a3f8f1a9ce90576ca7a7d6adf3871b4e9))
+- Update CHANGELOG.md and checksums [skip ci] ([`769589b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/769589bf016b1183964bc615d2cc6e56c9bc859f))
 
 ### Features
 
@@ -30,6 +31,7 @@ All notable changes to this project will be documented in this file.
 ### Miscellaneous Tasks
 
 - Harden GitHub Actions workflows ([`99603d1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/99603d1d6fb165f35b0ad080eb92a9661b867ea8))
+- Fix actionlint shellcheck on gh release step; correct checkout version pin ([`aac3bd8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/aac3bd8b4529da3cb10d41995cc3af8181c8a02a))
 
 ## 0.4.6 - 2026-07-31
 
