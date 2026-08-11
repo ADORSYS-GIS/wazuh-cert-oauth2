@@ -16,6 +16,6 @@ RUN chmod +x /opt/sidecar/entrypoint.sh /opt/sidecar/fetch-crl.sh
 
 USER nginx
 
-HEALTHCHECK CMD curl -fsS http://localhost/ || exit 1
+HEALTHCHECK CMD ["/bin/sh", "-c", "test -s /var/run/nginx.pid && kill -0 \"\$(cat /var/run/nginx.pid)\" || exit 1"]
 
 ENTRYPOINT ["/opt/sidecar/entrypoint.sh"]

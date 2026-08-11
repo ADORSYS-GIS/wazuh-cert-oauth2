@@ -276,9 +276,9 @@ jobs:
         id: prerelease
         run: |
           if [[ "${GITHUB_REF#refs/tags/}" == *"rc"* ]]; then
-            echo "PRERELEASE=true" >> $GITHUB_OUTPUT
+            echo "PRERELEASE=true" >> "$GITHUB_OUTPUT"
           else
-            echo "PRERELEASE=false" >> $GITHUB_OUTPUT
+            echo "PRERELEASE=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create Release and Upload Assets

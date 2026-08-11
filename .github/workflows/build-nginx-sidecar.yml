@@ -74,6 +74,9 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.lowercase }}
 
       - name: Cache Docker layers
+        # Restrict cache to trusted refs so untrusted (contributor) branch
+        # pushes cannot poison the shared build cache.
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: /tmp/.buildx-cache
