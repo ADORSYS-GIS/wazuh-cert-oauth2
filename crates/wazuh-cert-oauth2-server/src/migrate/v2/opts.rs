@@ -10,4 +10,10 @@ pub struct MigrateV2Opt {
     /// PostgreSQL connection string (system of record).
     #[arg(long, env = "DATABASE_URL", required = true)]
     pub database_url: String,
+
+    /// Allow re-importing into a database that already contains ledger data.
+    /// Without this flag the import refuses to run if `ledger_entry` is
+    /// non-empty, to avoid duplicating `ledger_event` audit rows on re-runs.
+    #[arg(long, env = "MIGRATE_V2_FORCE", default_value_t = false)]
+    pub force: bool,
 }

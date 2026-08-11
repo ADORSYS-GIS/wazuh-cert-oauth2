@@ -36,6 +36,18 @@ pub async fn run_migration(opt: MigrateV2Opt) -> AppResult<()> {
         .await
         .map_err(|e| AppError::UpstreamError(format!("failed to run migrations: {}", e)))?;
 
+    // Idempotency guard: refuse to re-import into a non-empty ledger unless
+    // --force is given, to avoid duplicating ledger_event audit rows.
+    let existing: i64 = sqlx::query_scalar("SELECT count(*) FROM ledger_entry")
+        .fetch_one(&pool)
+        .await
+        .map_err(|e| AppError::UpstreamError(format!("failed to check ledger state: {}", e)))?;
+    if existing > 0 && !opt.force {
+        return Err(AppError::UpstreamError(format!(
+            "ledger already contains {existing} entries; refusing to re-import (use --force to override)"
+        )));
+    }
+
     let mut tx = pool
         .begin()
         .await

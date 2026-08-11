@@ -43,7 +43,7 @@ async fn main() -> AppResult<()> {
     };
 
     match opt.command {
-        Command::Migrate(migrate_opt) => {
+        Command::MigrateV1(migrate_opt) => {
             migrate::v1::runner::run_migration(migrate_opt).await?;
             Ok(())
         }

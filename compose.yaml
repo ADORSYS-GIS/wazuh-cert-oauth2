@@ -54,8 +54,10 @@ services:
       start_period: 10s
       retries: 3
     depends_on:
-      - keycloak
-      - postgres
+      keycloak:
+        condition: service_started
+      postgres:
+        condition: service_healthy
 
   # Optional one-shot migration job for local testing
   migrate:
@@ -82,7 +84,7 @@ services:
       OUTPUT_LEDGER_PATH: "/data/ledger-migrated.csv"
       UNRESOLVED_PATH: "/data/unresolved.csv"
       REPORT_PATH: "/data/migration-report.txt"
-    command: ["migrate"]
+    command: ["migrate-v1"]
     user: "${UID:-}:${GID:-}"
     volumes:
       - oauth2:/data
