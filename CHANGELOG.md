@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[1935197](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1935197f02759260366174a0efadd1f68f72cc78)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[6a9df55](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6a9df551d605432df05c9b33e7cfac92338087a0)
 
 ### Bug Fixes
 
@@ -13,6 +13,11 @@ All notable changes to this project will be documented in this file.
 - Improve error handling for gh-pages branch check in GitHub Actions workflow ([`ff2fedd`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ff2fedd83ef6ad480e1cf2d477f1ed6ca3f51866))
 - Remove unnecessary setup for Pages in GitHub Actions workflow ([`5ab6d55`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5ab6d551b9c46cdfef89d2c2673fbcb7f395e8a6))
 - Resolve lint pipeline failures ([`1935197`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1935197f02759260366174a0efadd1f68f72cc78))
+- Healthcheck liveness + remaining lint blockers ([`6a9df55`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6a9df551d605432df05c9b33e7cfac92338087a0))
+
+### Documentation
+
+- Update CHANGELOG.md and checksums [skip ci] ([`8ea9f96`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8ea9f9617d0f8a46d642160dc5429f7e21ecf916))
 
 ### Features
 
