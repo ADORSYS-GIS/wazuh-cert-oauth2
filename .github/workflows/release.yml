@@ -165,6 +165,7 @@ jobs:
           fetch-depth: "0"
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref || github.ref_name }}
+          persist-credentials: 'false'
 
       - name: Download Artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
@@ -202,12 +203,14 @@ jobs:
         if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
         env:
           TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -eux
+          set -euo pipefail
           if [[ -z $(git status --porcelain) ]]; then
             echo "No changes to commit"
             exit 0
           fi
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git add CHANGELOG.md checksums.sha256
           git commit -m "docs: update CHANGELOG.md and checksums [skip ci]"
           if [[ "$TARGET_BRANCH" == "main" ]]; then
@@ -220,7 +223,7 @@ jobs:
           else
             git push origin "$TARGET_BRANCH"
           fi
-      
+
       - name: Upload Checksums
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
@@ -282,14 +285,24 @@ jobs:
           fi
 
       - name: Create Release and Upload Assets
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
-        with:
-          files: |
-            ./target/**/*
-            ./checksums.sha256
-          body: ${{ steps.git_cliff.outputs.content }}
-          prerelease: ${{ steps.prerelease.outputs.PRERELEASE }}
-          tag_name: ${{ steps.get_version.outputs.VERSION }}
-          name: Release ${{ steps.get_version.outputs.VERSION }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+          PRERELEASE: ${{ steps.prerelease.outputs.PRERELEASE }}
+          RELEASE_NOTES: ${{ steps.git_cliff.outputs.content }}
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          printf '%s\n' "$RELEASE_NOTES" > /tmp/release-notes.md
+          ASSETS+(./target/**/*)
+          ASSETS+=(./checksums.sha256)
+          if [[ "$PRERELEASE" == "true" ]]; then
+            gh release create "$VERSION" "${ASSETS[@]}" \
+              --title "Release $VERSION" \
+              --notes-file /tmp/release-notes.md \
+              --prerelease
+          else
+            gh release create "$VERSION" "${ASSETS[@]}" \
+              --title "Release $VERSION" \
+              --notes-file /tmp/release-notes.md
+          fi
