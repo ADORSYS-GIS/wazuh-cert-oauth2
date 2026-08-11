@@ -1,25 +1,46 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-wazuh}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-wazuh}"
+      POSTGRES_DB: "${POSTGRES_DB:-wazuh}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wazuh} -d ${POSTGRES_DB:-wazuh}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
   oauth2:
     build:
       context: .
       dockerfile: ./Dockerfile
       target: oauth2
     ports:
-      - "8000:8000"
+      - "${OAUTH2_PORT:-8000}:8000"
     environment:
-      RUST_LOG: "info"
+      RUST_LOG: "${RUST_LOG:-info}"
       ROCKET_ADDRESS: "0.0.0.0"
 
-      OAUTH_ISSUER: "http://keycloak:9100/realms/dev"
+      OAUTH_ISSUER: "${OAUTH_ISSUER:-http://keycloak:9100/realms/dev}"
 
       ROOT_CA_PATH: "/data/root-ca.pem"
       ROOT_CA_KEY_PATH: "/data/root-ca-key.pem"
+      # Ledger backend is configurable: when DATABASE_URL is set the server
+      # uses PostgreSQL as the system of record; otherwise it falls back to
+      # the on-disk CSV ledger at LEDGER_PATH (local-dev / emergency).
+      DATABASE_URL: "${DATABASE_URL:-postgres://wazuh:wazuh@postgres:5432/wazuh}"
       LEDGER_PATH: "/data/ledger.csv"
 
       CRL_PATH: "/data/issuing.crl"
-      CRL_DIST_URL: "http://localhost:8000/crl/issuing.crl"
-      WEBHOOK_BASE_URL: "http://webhook:8000"
-      WEBHOOK_BEARER_TOKEN: ""
+      CRL_DIST_URL: "${CRL_DIST_URL:-http://localhost:8000/crl/issuing.crl}"
+      WEBHOOK_BASE_URL: "${WEBHOOK_BASE_URL:-http://webhook:8000}"
+      WEBHOOK_BEARER_TOKEN: "${WEBHOOK_BEARER_TOKEN:-}"
     user: "${UID:-}:${GID:-}"
     volumes:
       - oauth2:/data
@@ -34,6 +55,7 @@ services:
       retries: 3
     depends_on:
       - keycloak
+      - postgres
 
   # Optional one-shot migration job for local testing
   migrate:
@@ -42,19 +64,19 @@ services:
       dockerfile: ./Dockerfile
       target: oauth2
     environment:
-      RUST_LOG: "info"
+      RUST_LOG: "${RUST_LOG:-info}"
 
-      WAZUH_MANAGER_URL: ""
-      WAZUH_API_USER: ""
-      WAZUH_API_PASSWORD: ""
-      WAZUH_TLS_VERIFY: "false"
+      WAZUH_MANAGER_URL: "${WAZUH_MANAGER_URL:-}"
+      WAZUH_API_USER: "${WAZUH_API_USER:-}"
+      WAZUH_API_PASSWORD: "${WAZUH_API_PASSWORD:-}"
+      WAZUH_TLS_VERIFY: "${WAZUH_TLS_VERIFY:-false}"
 
-      KEYCLOAK_ADMIN_URL: ""
-      KEYCLOAK_REALM: ""
-      KEYCLOAK_AUTH_METHOD: "client-credentials"
-      KEYCLOAK_CLIENT_ID: "cert-migration"
-      KEYCLOAK_CLIENT_SECRET: "cert-migration-secret"
-      KEYCLOAK_TLS_VERIFY: "false"
+      KEYCLOAK_ADMIN_URL: "${KEYCLOAK_ADMIN_URL:-}"
+      KEYCLOAK_REALM: "${KEYCLOAK_REALM:-}"
+      KEYCLOAK_AUTH_METHOD: "${KEYCLOAK_AUTH_METHOD:-client-credentials}"
+      KEYCLOAK_CLIENT_ID: "${KEYCLOAK_CLIENT_ID:-cert-migration}"
+      KEYCLOAK_CLIENT_SECRET: "${KEYCLOAK_CLIENT_SECRET:-cert-migration-secret}"
+      KEYCLOAK_TLS_VERIFY: "${KEYCLOAK_TLS_VERIFY:-false}"
 
       INPUT_LEDGER_PATH: "/data/ledger.csv"
       OUTPUT_LEDGER_PATH: "/data/ledger-migrated.csv"
@@ -74,34 +96,33 @@ services:
       dockerfile: ./Dockerfile
       target: webhook
     ports:
-      - "8100:8000"
+      - "${WEBHOOK_PORT:-8100}:8000"
     environment:
-      RUST_LOG: "info"
+      RUST_LOG: "${RUST_LOG:-info}"
       ROCKET_ADDRESS: "0.0.0.0"
 
-      OAUTH_ISSUER: "http://keycloak:9100/realms/dev"
-      OAUTH_CLIENT_ID: "test-client-secret"
-      OAUTH_CLIENT_SECRET: "some-secret"
+      OAUTH_ISSUER: "${OAUTH_ISSUER:-http://keycloak:9100/realms/dev}"
+      OAUTH_CLIENT_ID: "${OAUTH_CLIENT_ID:-test-client-secret}"
+      OAUTH_CLIENT_SECRET: "${OAUTH_CLIENT_SECRET:-some-secret}"
 
-      SERVER_BASE_URL: "http://oauth2:8000"
+      SERVER_BASE_URL: "${SERVER_BASE_URL:-http://oauth2:8000}"
       SPOOL_DIR: "/data/spool"
 
-      WEBHOOK_BASIC_USER: "user"
-      WEBHOOK_BASIC_PASSWORD: "password"
-      WEBHOOK_BEARER_TOKEN: ""
+      WEBHOOK_BASIC_USER: "${WEBHOOK_BASIC_USER:-user}"
+      WEBHOOK_BASIC_PASSWORD: "${WEBHOOK_BASIC_PASSWORD:-password}"
+      WEBHOOK_BEARER_TOKEN: "${WEBHOOK_BEARER_TOKEN:-}"
 
-      GITHUB_TOKEN: ""
-      GITHUB_REPO_OWNER: ""
-      GITHUB_REPO_NAME: ""
-      KEYCLOAK_ADMIN_BASE_URL: "http://keycloak:9100/admin/realms/dev"
-      WAZUH_MANAGER_URL: ""
-      WAZUH_API_USER: ""
-      WAZUH_API_PASSWORD: ""
-      WAZUH_API_TOKEN: ""
-      WAZUH_EVICTION_GRACE_SECONDS: 30
-      WAZUH_API_TLS_VERIFY: "true"
-      WAZUH_API_CA_BUNDLE: ""
-      SPOOL_EVICT_TTL_SECS: "86400"
+      GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
+      GITHUB_REPO_OWNER: "${GITHUB_REPO_OWNER:-}"
+      GITHUB_REPO_NAME: "${GITHUB_REPO_NAME:-}"
+      KEYCLOAK_ADMIN_BASE_URL: "${KEYCLOAK_ADMIN_BASE_URL:-http://keycloak:9100/admin/realms/dev}"
+      WAZUH_MANAGER_URL: "${WAZUH_MANAGER_URL:-}"
+      WAZUH_API_USER: "${WAZUH_API_USER:-}"
+      WAZUH_API_PASSWORD: "${WAZUH_API_PASSWORD:-}"
+      WAZUH_API_TOKEN: "${WAZUH_API_TOKEN:-}"
+      WAZUH_EVICTION_GRACE_SECONDS: "${WAZUH_EVICTION_GRACE_SECONDS:-30}"
+      WAZUH_API_TLS_VERIFY: "${WAZUH_API_TLS_VERIFY:-true}"
+      SPOOL_EVICT_TTL_SECS: "${SPOOL_EVICT_TTL_SECS:-86400}"
       SPOOL_DEAD_LETTER_DIR: "/data/dead-letter"
     user: "${UID:-}:${GID:-}"
     volumes:
@@ -119,15 +140,15 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.3
     ports:
-      - "9100:9100"
+      - "${KEYCLOAK_PORT:-9100}:9100"
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: password
+      KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:-admin}"
+      KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:-password}"
       KC_LOG_CONSOLE_COLOR: "true"
       KC_HTTP_PORT: 9100
       WEBHOOK_HTTP_BASE_PATH: "http://webhook:8000/api/webhook"
-      WEBHOOK_HTTP_AUTH_USERNAME: "user"
-      WEBHOOK_HTTP_AUTH_PASSWORD: "password"
+      WEBHOOK_HTTP_AUTH_USERNAME: "${WEBHOOK_BASIC_USER:-user}"
+      WEBHOOK_HTTP_AUTH_PASSWORD: "${WEBHOOK_BASIC_PASSWORD:-password}"
     entrypoint: /bin/sh
     command:
       - -c
@@ -193,6 +214,7 @@ services:
 
 volumes:
   spi:
+  pgdata:
   webhook:
     driver: local
     driver_opts:

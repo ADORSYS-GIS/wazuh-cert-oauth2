@@ -165,6 +165,10 @@ cert:
 
             ROOT_CA_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca.pem'
             ROOT_CA_KEY_PATH: '/usr/share/wazuh-cert-oauth2/certs/root-ca-key.pem'
+            # Ledger backend is configurable: when DATABASE_URL is set the
+            # server uses PostgreSQL as the system of record; otherwise it
+            # falls back to the on-disk CSV ledger at LEDGER_PATH.
+            DATABASE_URL: ''
             LEDGER_PATH: '/usr/share/wazuh-cert-oauth2/data/ledger.csv'
 
             CRL_PATH: '/usr/share/wazuh-cert-oauth2/data/issuing.crl'
