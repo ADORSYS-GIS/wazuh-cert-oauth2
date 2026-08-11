@@ -4,13 +4,45 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[15f618f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/15f618f769a61449d856cd91a5457dc22603266a)...[0c6297c](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0c6297cfc83908c1703454d5262832567ec15cff)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[1935197](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1935197f02759260366174a0efadd1f68f72cc78)
+
+### Bug Fixes
+
+- Update GitHub Actions workflow to trigger only on main branch and enhance Makefile for gem cache initialization ([`775b237`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/775b237bf1d9c049647e36b5d21b40c059cab64a))
+- Improve Helm chart artifact fetching in GitHub Actions workflow ([`1abb3e6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1abb3e6de01c98d5436da21ed7f4d9c180c560bd))
+- Improve error handling for gh-pages branch check in GitHub Actions workflow ([`ff2fedd`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ff2fedd83ef6ad480e1cf2d477f1ed6ca3f51866))
+- Remove unnecessary setup for Pages in GitHub Actions workflow ([`5ab6d55`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5ab6d551b9c46cdfef89d2c2673fbcb7f395e8a6))
+- Resolve lint pipeline failures ([`1935197`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1935197f02759260366174a0efadd1f68f72cc78))
+
+### Features
+
+- Add Jekyll site configuration and documentation structure ([`a2260f5`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a2260f5fb8b7a6c2d37f54459c01c7c8ca496c3e))
+- Feat: update GitHub Actions workflow and permissions for Jekyll site deployment ([`abd9a82`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/abd9a8285df50c4cf12c9357e069404c493207f1))
+- Enhance GitHub Actions workflows for Helm chart deployment and Jekyll site integration ([`7a2e10d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7a2e10d23d77fd719d93338fcc3d39fae488b1d8))
+
+## 0.4.6 - 2026-07-31
+
+[c7f2bb3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c7f2bb303ad4ab5a6bfbe4f5148fe04acbe84287)...[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)
+
+### Bug Fixes
+
+- Remove unused Keycloak admin credentials from values.yaml ([`7431328`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7431328f87cb4c2b63c7520ed2384f8b40273560))
+
+## wazuh-cert-server-0.4.6 - 2026-07-31
+
+[15f618f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/15f618f769a61449d856cd91a5457dc22603266a)...[c7f2bb3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c7f2bb303ad4ab5a6bfbe4f5148fe04acbe84287)
+
+### Bug Fixes
+
+- Update migration container configuration to use correct image paths and secret references ([`2138204`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2138204d231902d9f294d5f69afc5895d0119853))
+- Update migration container image repository and tag to use specific values ([`9269b89`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9269b8952c2efcb17ca440c2af361b8bb1c2b7ef))
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`28b39a9`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/28b39a9c6325085de8e0aabfb9e8f3d44b1b2e57))
 - Update CHANGELOG.md and checksums [skip ci] ([`ddda99a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ddda99ae8e9b3e7f7925ffabb640cec4e225001e))
 - Update CHANGELOG.md and checksums [skip ci] ([`742b7f5`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/742b7f5071dda37ce308e779002c22c03f4638ee))
+- Update CHANGELOG.md and checksums [skip ci] ([`879beaf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/879beaf00fd5c6819ccee9f2bbaae7f7503d5ef0))
 
 ### Features
 
@@ -20,6 +52,11 @@ All notable changes to this project will be documented in this file.
 - Enhance migration process with detailed match statuses and server command integration ([`355f44b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/355f44bf18e258bb20a60630a6867fb12e7c0edf))
 - Enhance agent listing with pagination and total count handling ([`0296c8e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0296c8ea0da1264a69ba76921ce66a1a03064639))
 - Add migration service with Keycloak integration and user representation model ([`0c6297c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0c6297cfc83908c1703454d5262832567ec15cff))
+- Add migration container configuration with environment variables and apply cargo clippy ([`9f863b7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9f863b7ef126d24a6facbe4f74f7c3c25f8ab758))
+
+### Miscellaneous Tasks
+
+- Update version to 0.4.6 across configuration and script files ([`39e93ed`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/39e93ede65caad1b0675c60a7cb85faa7b0cc3a1))
 
 ## wazuh-cert-webhook-0.4.5 - 2026-07-20
 
