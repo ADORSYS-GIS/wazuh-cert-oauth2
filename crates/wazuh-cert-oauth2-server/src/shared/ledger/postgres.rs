@@ -115,13 +115,12 @@ impl LedgerStore for PostgresLedgerStore {
         let serial = normalize_serial(&serial_hex);
         let mut tx = self.pool.begin().await.map_err(db_err)?;
 
-        let existing: Option<(bool,)> = sqlx::query_as(
-            "SELECT revoked FROM ledger_entry WHERE serial_hex = $1 FOR UPDATE",
-        )
-        .bind(&serial)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(db_err)?;
+        let existing: Option<(bool,)> =
+            sqlx::query_as("SELECT revoked FROM ledger_entry WHERE serial_hex = $1 FOR UPDATE")
+                .bind(&serial)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(db_err)?;
 
         match existing {
             Some((true,)) => {
@@ -245,66 +244,48 @@ impl LedgerStore for PostgresLedgerStore {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn find_by_subject(&self, subject: &str) -> Vec<LedgerEntry> {
-        match sqlx::query(&format!(
+    async fn find_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
+        let rows = sqlx::query(&format!(
             "SELECT {ENTRY_COLS} FROM ledger_entry WHERE subject = $1 ORDER BY issued_at_unix"
         ))
         .bind(subject)
         .fetch_all(&self.pool)
         .await
-        {
-            Ok(rows) => rows.iter().map(map_row).collect(),
-            Err(e) => {
-                tracing::error!("find_by_subject failed: {}", e);
-                Vec::new()
-            }
-        }
+        .map_err(db_err)?;
+        Ok(rows.iter().map(map_row).collect())
     }
 
     #[tracing::instrument(skip(self))]
-    async fn find_active(&self) -> Vec<LedgerEntry> {
-        match sqlx::query(&format!(
+    async fn find_active(&self) -> AppResult<Vec<LedgerEntry>> {
+        let rows = sqlx::query(&format!(
             "SELECT {ENTRY_COLS} FROM ledger_entry WHERE revoked = FALSE ORDER BY issued_at_unix"
         ))
         .fetch_all(&self.pool)
         .await
-        {
-            Ok(rows) => rows.iter().map(map_row).collect(),
-            Err(e) => {
-                tracing::error!("find_active failed: {}", e);
-                Vec::new()
-            }
-        }
+        .map_err(db_err)?;
+        Ok(rows.iter().map(map_row).collect())
     }
 
     #[tracing::instrument(skip(self))]
-    async fn find_revoked(&self) -> Vec<LedgerEntry> {
-        match sqlx::query(&format!(
+    async fn find_revoked(&self) -> AppResult<Vec<LedgerEntry>> {
+        let rows = sqlx::query(&format!(
             "SELECT {ENTRY_COLS} FROM ledger_entry WHERE revoked = TRUE ORDER BY issued_at_unix"
         ))
         .fetch_all(&self.pool)
         .await
-        {
-            Ok(rows) => rows.iter().map(map_row).collect(),
-            Err(e) => {
-                tracing::error!("find_revoked failed: {}", e);
-                Vec::new()
-            }
-        }
+        .map_err(db_err)?;
+        Ok(rows.iter().map(map_row).collect())
     }
 
     #[tracing::instrument(skip(self))]
-    async fn find_all(&self) -> Vec<LedgerEntry> {
-        match sqlx::query(&format!("SELECT {ENTRY_COLS} FROM ledger_entry ORDER BY issued_at_unix"))
-            .fetch_all(&self.pool)
-            .await
-        {
-            Ok(rows) => rows.iter().map(map_row).collect(),
-            Err(e) => {
-                tracing::error!("find_all failed: {}", e);
-                Vec::new()
-            }
-        }
+    async fn find_all(&self) -> AppResult<Vec<LedgerEntry>> {
+        let rows = sqlx::query(&format!(
+            "SELECT {ENTRY_COLS} FROM ledger_entry ORDER BY issued_at_unix"
+        ))
+        .fetch_all(&self.pool)
+        .await
+        .map_err(db_err)?;
+        Ok(rows.iter().map(map_row).collect())
     }
 }
 
@@ -328,10 +309,7 @@ mod tests {
             .connect(&url)
             .await
             .expect("connect to test database");
-        sqlx::migrate!()
-            .run(&pool)
-            .await
-            .expect("run migrations");
+        sqlx::migrate!().run(&pool).await.expect("run migrations");
         Some(PostgresLedgerStore::new(pool))
     }
 
@@ -346,7 +324,9 @@ mod tests {
 
     #[tokio::test]
     async fn postgres_records_and_revokes_entries() {
-        let Some(store) = test_store().await else { return };
+        let Some(store) = test_store().await else {
+            return;
+        };
         let subject = unique_subject("pg-subject");
 
         store
@@ -361,7 +341,10 @@ mod tests {
             .await
             .expect("record_issued should succeed");
 
-        let by_subject = store.find_by_subject(&subject).await;
+        let by_subject = store
+            .find_by_subject(&subject)
+            .await
+            .expect("find_by_subject");
         assert_eq!(by_subject.len(), 1);
         assert_eq!(by_subject[0].serial_hex, "ABCD01");
         assert!(!by_subject[0].revoked);
@@ -371,7 +354,7 @@ mod tests {
             .await
             .expect("mark_revoked should succeed");
 
-        let revoked = store.find_revoked().await;
+        let revoked = store.find_revoked().await.expect("find_revoked");
         let entry = revoked
             .iter()
             .find(|e| e.serial_hex == "ABCD01")
@@ -382,14 +365,16 @@ mod tests {
 
     #[tokio::test]
     async fn postgres_revoke_unknown_serial_creates_stub() {
-        let Some(store) = test_store().await else { return };
+        let Some(store) = test_store().await else {
+            return;
+        };
 
         store
             .mark_revoked("UNKNOWN01".to_string(), Some("preemptive".to_string()), 300)
             .await
             .expect("mark_revoked should succeed");
 
-        let revoked = store.find_revoked().await;
+        let revoked = store.find_revoked().await.expect("find_revoked");
         let entry = revoked
             .iter()
             .find(|e| e.serial_hex == "UNKNOWN01")
@@ -401,7 +386,9 @@ mod tests {
 
     #[tokio::test]
     async fn postgres_check_and_revoke_active_is_atomic() {
-        let Some(store) = test_store().await else { return };
+        let Some(store) = test_store().await else {
+            return;
+        };
         let subject = unique_subject("pg-rotate");
 
         store
@@ -422,7 +409,10 @@ mod tests {
             .expect("check_and_revoke_active");
         assert_eq!(names, Some(vec!["agent-1".to_string()]));
 
-        let active = store.find_by_subject(&subject).await;
+        let active = store
+            .find_by_subject(&subject)
+            .await
+            .expect("find_by_subject");
         assert!(
             active.iter().all(|e| e.revoked),
             "no active certs for subject after auto-rotate"
@@ -438,7 +428,9 @@ mod tests {
 
     #[tokio::test]
     async fn postgres_check_and_revoke_active_conflicts_without_overwrite() {
-        let Some(store) = test_store().await else { return };
+        let Some(store) = test_store().await else {
+            return;
+        };
         let subject = unique_subject("pg-conflict");
 
         store
@@ -457,7 +449,9 @@ mod tests {
 
     #[tokio::test]
     async fn postgres_serial_is_normalized_to_uppercase() {
-        let Some(store) = test_store().await else { return };
+        let Some(store) = test_store().await else {
+            return;
+        };
         let subject = unique_subject("pg-case");
 
         store
@@ -465,7 +459,10 @@ mod tests {
             .await
             .expect("record_issued");
 
-        let by_subject = store.find_by_subject(&subject).await;
+        let by_subject = store
+            .find_by_subject(&subject)
+            .await
+            .expect("find_by_subject");
         assert_eq!(by_subject.len(), 1);
         assert_eq!(by_subject[0].serial_hex, "ABCD02");
     }

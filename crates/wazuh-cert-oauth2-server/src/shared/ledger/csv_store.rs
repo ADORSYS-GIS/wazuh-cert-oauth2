@@ -106,40 +106,43 @@ impl LedgerStore for CsvLedgerStore {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn find_by_subject(&self, subject: &str) -> Vec<LedgerEntry> {
-        self.inner
+    async fn find_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
+        Ok(self
+            .inner
             .read()
             .await
             .iter()
             .filter(|e| e.subject == subject)
             .cloned()
-            .collect()
+            .collect())
     }
 
     #[tracing::instrument(skip(self))]
-    async fn find_active(&self) -> Vec<LedgerEntry> {
-        self.inner
+    async fn find_active(&self) -> AppResult<Vec<LedgerEntry>> {
+        Ok(self
+            .inner
             .read()
             .await
             .iter()
             .filter(|e| !e.revoked)
             .cloned()
-            .collect()
+            .collect())
     }
 
     #[tracing::instrument(skip(self))]
-    async fn find_revoked(&self) -> Vec<LedgerEntry> {
-        self.inner
+    async fn find_revoked(&self) -> AppResult<Vec<LedgerEntry>> {
+        Ok(self
+            .inner
             .read()
             .await
             .iter()
             .filter(|e| e.revoked)
             .cloned()
-            .collect()
+            .collect())
     }
 
     #[tracing::instrument(skip(self))]
-    async fn find_all(&self) -> Vec<LedgerEntry> {
-        self.inner.read().await.clone()
+    async fn find_all(&self) -> AppResult<Vec<LedgerEntry>> {
+        Ok(self.inner.read().await.clone())
     }
 }

@@ -63,7 +63,10 @@ async fn resolve_targets(
         };
     };
     if let Some(subj) = subject {
-        let entries = ledger.find_by_subject(&subj).await;
+        let entries = ledger.find_by_subject(&subj).await.map_err(|e| {
+            error!("Failed to look up subject {}: {}", subj, e);
+            Status::InternalServerError
+        })?;
         // Only target certificates that are not already revoked
         let active_entries: Vec<_> = entries.into_iter().filter(|e| !e.revoked).collect();
         info!("found {} active entries for subject", active_entries.len());
@@ -86,7 +89,10 @@ async fn rebuild_crl_now(
         error!("Failed to load CA for CRL rebuild: {}", e);
         Status::InternalServerError
     })?;
-    let revs = ledger.revoked_as_revocations().await;
+    let revs = ledger.revoked_as_revocations().await.map_err(|e| {
+        error!("Failed to load revocations for CRL rebuild: {}", e);
+        Status::InternalServerError
+    })?;
     info!("rebuilding CRL with {} revocations", revs.len());
     crl.request_rebuild(ca_cert, ca_key, revs)
         .await

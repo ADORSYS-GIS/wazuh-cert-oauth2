@@ -8,8 +8,8 @@ pub use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 
 mod commands;
 pub(crate) mod csv;
-pub(crate) mod csv_utils;
 mod csv_store;
+pub(crate) mod csv_utils;
 mod loader;
 mod postgres;
 mod worker;
@@ -51,10 +51,10 @@ pub trait LedgerStore: Send + Sync {
         revoked_at_unix: u64,
     ) -> AppResult<Option<Vec<String>>>;
 
-    async fn find_by_subject(&self, subject: &str) -> Vec<LedgerEntry>;
-    async fn find_active(&self) -> Vec<LedgerEntry>;
-    async fn find_revoked(&self) -> Vec<LedgerEntry>;
-    async fn find_all(&self) -> Vec<LedgerEntry>;
+    async fn find_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>>;
+    async fn find_active(&self) -> AppResult<Vec<LedgerEntry>>;
+    async fn find_revoked(&self) -> AppResult<Vec<LedgerEntry>>;
+    async fn find_all(&self) -> AppResult<Vec<LedgerEntry>>;
 }
 
 /// Selects which ledger backend to use.
@@ -116,7 +116,7 @@ impl Ledger {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn find_by_subject(&self, subject: &str) -> Vec<LedgerEntry> {
+    pub async fn find_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
         self.store.find_by_subject(subject).await
     }
 
@@ -132,32 +132,35 @@ impl Ledger {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn find_active(&self) -> Vec<LedgerEntry> {
+    pub async fn find_active(&self) -> AppResult<Vec<LedgerEntry>> {
         self.store.find_active().await
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn find_revoked(&self) -> Vec<LedgerEntry> {
+    pub async fn find_revoked(&self) -> AppResult<Vec<LedgerEntry>> {
         self.store.find_revoked().await
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn find_all(&self) -> Vec<LedgerEntry> {
+    pub async fn find_all(&self) -> AppResult<Vec<LedgerEntry>> {
         self.store.find_all().await
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn revoked_as_revocations(&self) -> Vec<crate::shared::crl::RevocationEntry> {
-        self.store
+    pub async fn revoked_as_revocations(
+        &self,
+    ) -> AppResult<Vec<crate::shared::crl::RevocationEntry>> {
+        Ok(self
+            .store
             .find_revoked()
-            .await
+            .await?
             .into_iter()
             .map(|e| crate::shared::crl::RevocationEntry {
                 serial_hex: e.serial_hex,
                 reason: e.reason,
                 revoked_at_unix: e.revoked_at_unix.unwrap_or_default(),
             })
-            .collect()
+            .collect())
     }
 }
 
@@ -206,7 +209,10 @@ mod tests {
             .await
             .expect("record_issued should succeed");
 
-        let by_subject = ledger.find_by_subject("subject-a").await;
+        let by_subject = ledger
+            .find_by_subject("subject-a")
+            .await
+            .expect("find_by_subject should succeed");
         assert_eq!(by_subject.len(), 1);
         assert_eq!(by_subject[0].serial_hex, "ABCD01");
         assert!(!by_subject[0].revoked);
@@ -216,7 +222,10 @@ mod tests {
             .await
             .expect("mark_revoked should succeed");
 
-        let revocations = ledger.revoked_as_revocations().await;
+        let revocations = ledger
+            .revoked_as_revocations()
+            .await
+            .expect("revoked_as_revocations should succeed");
         assert_eq!(revocations.len(), 1);
         assert_eq!(revocations[0].serial_hex, "ABCD01");
         assert_eq!(revocations[0].reason.as_deref(), Some("manual"));
@@ -236,7 +245,10 @@ mod tests {
             .await
             .expect("mark_revoked should succeed");
 
-        let revocations = ledger.revoked_as_revocations().await;
+        let revocations = ledger
+            .revoked_as_revocations()
+            .await
+            .expect("revoked_as_revocations should succeed");
         assert_eq!(revocations.len(), 1);
         assert_eq!(revocations[0].serial_hex, "UNKNOWN01");
         assert_eq!(revocations[0].reason.as_deref(), Some("preemptive"));
@@ -275,13 +287,19 @@ mod tests {
             "no agent name was stored, so names should be empty"
         );
 
-        let active = ledger.find_active().await;
+        let active = ledger
+            .find_active()
+            .await
+            .expect("find_active should succeed");
         assert!(
             active.is_empty(),
             "no active certs should remain after auto-rotate"
         );
 
-        let revocations = ledger.revoked_as_revocations().await;
+        let revocations = ledger
+            .revoked_as_revocations()
+            .await
+            .expect("revoked_as_revocations should succeed");
         assert_eq!(revocations.len(), 1);
         assert_eq!(revocations[0].serial_hex, "CERT01");
         assert_eq!(

@@ -103,7 +103,10 @@ pub async fn get_crl(
                 return Err(Status::InternalServerError);
             }
         };
-        let revs = ledger.revoked_as_revocations().await;
+        let revs = ledger.revoked_as_revocations().await.map_err(|e| {
+            error!("Failed to load revocations for CRL rebuild: {}", e);
+            Status::InternalServerError
+        })?;
         if let Err(e) = crl.request_rebuild(ca_cert, ca_key, revs).await {
             error!("Failed to rebuild CRL: {}", e);
             return Err(Status::InternalServerError);
@@ -229,11 +232,14 @@ async fn serve_crl_or_long_poll(
 pub async fn get_revocations(
     _token: crate::handlers::middle::JwtToken,
     ledger: &State<Ledger>,
-) -> Json<Vec<RevocationEntry>> {
+) -> Result<Json<Vec<RevocationEntry>>, Status> {
     info!("GET /api/revocations requested");
-    let revs = ledger.revoked_as_revocations().await;
+    let revs = ledger.revoked_as_revocations().await.map_err(|e| {
+        error!("Failed to load revocations: {}", e);
+        Status::InternalServerError
+    })?;
     debug!("revocations count: {}", revs.len());
-    Json(revs)
+    Ok(Json(revs))
 }
 
 fn is_crl_expired(bytes: &[u8]) -> bool {

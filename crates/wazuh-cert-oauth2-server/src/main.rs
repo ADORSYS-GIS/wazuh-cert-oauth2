@@ -78,12 +78,13 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
 
     // Ledger backend: PostgreSQL when DATABASE_URL is set (system of record),
     // otherwise fall back to the on-disk CSV ledger for local-dev / tests.
-    let ledger = match database_url {
-        Some(url) => {
+    // An empty DATABASE_URL (e.g. a chart default of '') is treated as unset.
+    let ledger = match database_url.as_deref().map(str::trim) {
+        Some(url) if !url.is_empty() => {
             info!("using PostgreSQL ledger backend");
             let pool = sqlx::postgres::PgPoolOptions::new()
                 .max_connections(5)
-                .connect(&url)
+                .connect(url)
                 .await
                 .map_err(|e| {
                     AppError::UpstreamError(format!("failed to connect to database: {}", e))
@@ -91,12 +92,10 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
             sqlx::migrate!()
                 .run(&pool)
                 .await
-                .map_err(|e| {
-                    AppError::UpstreamError(format!("failed to run migrations: {}", e))
-                })?;
+                .map_err(|e| AppError::UpstreamError(format!("failed to run migrations: {}", e)))?;
             Ledger::new(LedgerBackend::Postgres(pool)).await?
         }
-        None => {
+        _ => {
             info!("using CSV ledger backend (no DATABASE_URL configured)");
             Ledger::new(LedgerBackend::Csv(ledger_path.into())).await?
         }

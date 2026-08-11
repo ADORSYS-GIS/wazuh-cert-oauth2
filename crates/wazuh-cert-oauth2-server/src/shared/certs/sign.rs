@@ -72,7 +72,7 @@ pub async fn sign_csr(
         if let Some(names) = old_agent_names {
             // Rebuild the CRL immediately
             let (ca_cert, ca_key) = ca.get().await?;
-            let revs = ledger.revoked_as_revocations().await;
+            let revs = ledger.revoked_as_revocations().await?;
             crl.request_rebuild(ca_cert, ca_key, revs).await?;
             // Notify the webhook to evict the stale Wazuh agent entries (fire-and-forget)
             if let Some(notifier) = webhook {
