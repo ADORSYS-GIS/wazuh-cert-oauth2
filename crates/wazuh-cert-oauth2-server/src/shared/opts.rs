@@ -16,10 +16,11 @@ pub enum Command {
     /// Run the OAuth2 certificate server
     Serve(ServeOpt),
     /// Backfill Wazuh agent names for existing ledger entries
-    #[command(name = "migrate-v1", alias = "migrate")]
-    MigrateV1(crate::migrate::v1::opts::MigrateOpt),
+    #[command(name = "backfill-agent-names", alias = "migrate-v1", alias = "migrate")]
+    BackfillAgentNames(crate::migrate::v1::opts::MigrateOpt),
     /// One-time import of the CSV ledger into PostgreSQL
-    MigrateV2(crate::migrate::v2::opts::MigrateV2Opt),
+    #[command(name = "import-ledger", alias = "migrate-v2")]
+    ImportLedger(crate::migrate::v2::opts::MigrateV2Opt),
 }
 
 #[derive(Parser, Debug)]

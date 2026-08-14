@@ -43,11 +43,11 @@ async fn main() -> AppResult<()> {
     };
 
     match opt.command {
-        Command::MigrateV1(migrate_opt) => {
+        Command::BackfillAgentNames(migrate_opt) => {
             migrate::v1::runner::run_migration(migrate_opt).await?;
             Ok(())
         }
-        Command::MigrateV2(migrate_opt) => {
+        Command::ImportLedger(migrate_opt) => {
             migrate::v2::runner::run_migration(migrate_opt).await?;
             Ok(())
         }

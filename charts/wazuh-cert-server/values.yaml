@@ -102,7 +102,7 @@ cert:
             pullPolicy: IfNotPresent
           command:
             - /app/server
-            - migrate-v1
+            - import-ledger
           env:
             RUST_LOG: "debug"
             ROOT_CA_PATH: "/usr/share/wazuh-cert-oauth2/certs/root-ca.pem"

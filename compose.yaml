@@ -84,7 +84,7 @@ services:
       OUTPUT_LEDGER_PATH: "/data/ledger-migrated.csv"
       UNRESOLVED_PATH: "/data/unresolved.csv"
       REPORT_PATH: "/data/migration-report.txt"
-    command: ["migrate-v1"]
+    command: ["import-ledger"]
     user: "${UID:-}:${GID:-}"
     volumes:
       - oauth2:/data

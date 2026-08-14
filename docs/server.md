@@ -76,12 +76,12 @@ CSV columns: `subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,i
 
 ### One-time CSV → PostgreSQL import
 
-To migrate an existing CSV ledger into PostgreSQL, run the `migrate-v2`
+To migrate an existing CSV ledger into PostgreSQL, run the `import-ledger`
 subcommand (applies migrations and bulk-inserts into both tables in a single
 transaction):
 
 ```bash
-INPUT_LEDGER_PATH=/data/ledger.csv DATABASE_URL=postgres://... wazuh-cert-oauth2-server migrate-v2
+INPUT_LEDGER_PATH=/data/ledger.csv DATABASE_URL=postgres://... wazuh-cert-oauth2-server import-ledger
 ```
 
 ## Logging
