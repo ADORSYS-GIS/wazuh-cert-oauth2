@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[0083133](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0083133e934e759d0a25c53a420b62b04c137a49)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[e62995f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e62995f00ead25bc3d199ccb6ca0a4472f493b27)
 
 ### Bug Fixes
 
@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 - Resolve lint pipeline failures ([`1935197`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1935197f02759260366174a0efadd1f68f72cc78))
 - Healthcheck liveness + remaining lint blockers ([`6a9df55`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6a9df551d605432df05c9b33e7cfac92338087a0))
 - Annotate cache-poisoning in build-nginx-sidecar ([`afcfa15`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/afcfa15ce218c9d888c9179a5dedd40090c34536))
+- Propagate ledger read errors and handle empty DATABASE_URL (#292) ([`6425a89`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6425a8965b21c5def8a58826df167cd61281c7f1))
+- Address review P2s; rename migrate to migrate-v1 (#292) ([`93033c3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/93033c3ce09fb932ecd7e24ab2e7f3326d0644af))
 
 ### Documentation
 
@@ -23,6 +25,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`769589b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/769589bf016b1183964bc615d2cc6e56c9bc859f))
 - Update CHANGELOG.md and checksums [skip ci] ([`afe84bf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/afe84bf1e21a9798e04745c88d85072ee7cfa24c))
 - Update CHANGELOG.md and checksums [skip ci] ([`6ed755a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6ed755aa7aa08b706f781e18187693f8c2034d93))
+- Update CHANGELOG.md and checksums [skip ci] ([`d756227`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/d7562276893ebec68bb2fc405b7c0967b9b4913d))
 
 ### Features
 
@@ -35,6 +38,10 @@ All notable changes to this project will be documented in this file.
 
 - Harden GitHub Actions workflows ([`99603d1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/99603d1d6fb165f35b0ad080eb92a9661b867ea8))
 - Fix actionlint shellcheck on gh release step; correct checkout version pin ([`aac3bd8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/aac3bd8b4529da3cb10d41995cc3af8181c8a02a))
+
+### Refactor
+
+- Rename migration commands to meaningful names ([`c962671`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c962671472d5035efd17cdda50499c4ac337152f))
 
 ## 0.4.6 - 2026-07-31
 
