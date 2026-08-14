@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[32d1a21](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/32d1a21b3f4a2126e1e86dbe1f6701495d34ee43)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[0083133](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0083133e934e759d0a25c53a420b62b04c137a49)
 
 ### Bug Fixes
 
@@ -22,12 +22,14 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`dfa67c6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/dfa67c6a3f8f1a9ce90576ca7a7d6adf3871b4e9))
 - Update CHANGELOG.md and checksums [skip ci] ([`769589b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/769589bf016b1183964bc615d2cc6e56c9bc859f))
 - Update CHANGELOG.md and checksums [skip ci] ([`afe84bf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/afe84bf1e21a9798e04745c88d85072ee7cfa24c))
+- Update CHANGELOG.md and checksums [skip ci] ([`6ed755a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6ed755aa7aa08b706f781e18187693f8c2034d93))
 
 ### Features
 
 - Add Jekyll site configuration and documentation structure ([`a2260f5`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a2260f5fb8b7a6c2d37f54459c01c7c8ca496c3e))
 - Feat: update GitHub Actions workflow and permissions for Jekyll site deployment ([`abd9a82`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/abd9a8285df50c4cf12c9357e069404c493207f1))
 - Enhance GitHub Actions workflows for Helm chart deployment and Jekyll site integration ([`7a2e10d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7a2e10d23d77fd719d93338fcc3d39fae488b1d8))
+- Replace CSV ledger with PostgreSQL backend (#292) ([`0083133`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0083133e934e759d0a25c53a420b62b04c137a49))
 
 ### Miscellaneous Tasks
 

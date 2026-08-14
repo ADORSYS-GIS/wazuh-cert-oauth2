@@ -12,7 +12,7 @@ The central backend that validates OIDC tokens, signs CSRs using a Root CA, and 
 ## Purpose
 
 - Signs agent CSRs using an issuing CA.
-- Maintains a ledger of issued/revoked certificates (CSV on disk).
+- Maintains a ledger of issued/revoked certificates (PostgreSQL, or CSV as a local-dev fallback).
 - Rebuilds and serves the CRL.
 - Validates incoming requests with OIDC (discovery + JWKS), with optional audience checks.
 
@@ -47,20 +47,42 @@ The central backend that validates OIDC tokens, signs CSRs using a Root CA, and 
 | `--jwks-ttl-secs` | `JWKS_TTL_SECS` | `300` | JWKS cache TTL. |
 | `--ca-cache-ttl-secs` | `CA_CACHE_TTL_SECS` | `300` | CA cert/key cache TTL. |
 | `--crl-dist-url` | `CRL_DIST_URL` | (optional) | CDP URL to embed in issued certs. |
-| `--crl-path` | `CRL_PATH` | `/data/issuing.crl` | CRL file path to write. |
-| `--ledger-path` | `LEDGER_PATH` | `/data/ledger.csv` | Issued/revoked ledger path. |
+| `--crl-path` | `CRL_PATH` | `/data/issuing.crl` | CRL file path to write (local-dev fallback). |
+| `--ledger-path` | `LEDGER_PATH` | `/data/ledger.csv` | CSV ledger path (local-dev fallback). |
+| `--database-url` | `DATABASE_URL` | (optional) | PostgreSQL DSN. When set, the ledger uses PostgreSQL as the system of record; otherwise it falls back to the CSV ledger at `LEDGER_PATH`. |
 | `--webhook-base-url` | `WEBHOOK_BASE_URL` | (optional) | Base URL of the webhook (for eviction notifications). |
 | `--webhook-bearer-token` | `WEBHOOK_BEARER_TOKEN` | (optional) | Bearer token for the webhook. |
 
 ## Data and persistence
 
-Mount a writable volume at `/data` (or adjust paths) so the CRL and ledger persist.
+The ledger backend is configurable:
+
+- **PostgreSQL (recommended for multi-replica):** set `DATABASE_URL`. The server
+  applies `sqlx` migrations on startup and stores the ledger in two tables —
+  `ledger_event` (append-only audit log) and `ledger_entry` (materialized current
+  state). This is the system of record and enables running multiple server
+  replicas against a shared database.
+- **CSV (local-dev / emergency fallback):** when `DATABASE_URL` is unset, the
+  server uses the on-disk CSV ledger at `LEDGER_PATH`.
+
+Mount a writable volume at `/data` (or adjust paths) so the CRL and CSV ledger
+persist when using the fallback backend.
 
 ### Ledger fields
 
 CSV columns: `subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm`.
 
 `issuer` and `realm` are optional; older rows may omit them and are handled gracefully.
+
+### One-time CSV → PostgreSQL import
+
+To migrate an existing CSV ledger into PostgreSQL, run the `import-ledger`
+subcommand (applies migrations and bulk-inserts into both tables in a single
+transaction):
+
+```bash
+INPUT_LEDGER_PATH=/data/ledger.csv DATABASE_URL=postgres://... wazuh-cert-oauth2-server import-ledger
+```
 
 ## Logging
 

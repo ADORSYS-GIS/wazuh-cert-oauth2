@@ -19,7 +19,7 @@ mod models;
 mod shared;
 use crate::models::ca_config::CaProvider;
 use crate::shared::crl::CrlState;
-use crate::shared::ledger::Ledger;
+use crate::shared::ledger::{Ledger, LedgerBackend};
 use crate::shared::opts::{Command, Opt, ServeOpt};
 use clap::Parser;
 use mimalloc::MiMalloc;
@@ -43,8 +43,12 @@ async fn main() -> AppResult<()> {
     };
 
     match opt.command {
-        Command::Migrate(migrate_opt) => {
+        Command::BackfillAgentNames(migrate_opt) => {
             migrate::v1::runner::run_migration(migrate_opt).await?;
+            Ok(())
+        }
+        Command::ImportLedger(migrate_opt) => {
+            migrate::v2::runner::run_migration(migrate_opt).await?;
             Ok(())
         }
         Command::Serve(serve_opt) => run_server(serve_opt).await,
@@ -63,6 +67,7 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
         crl_dist_url,
         crl_path,
         ledger_path,
+        database_url,
         webhook_base_url,
         webhook_bearer_token,
     } = opt;
@@ -70,6 +75,31 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
 
     // Shared HTTP client service with connection pooling
     let http_client = HttpClient::new_with_defaults()?;
+
+    // Ledger backend: PostgreSQL when DATABASE_URL is set (system of record),
+    // otherwise fall back to the on-disk CSV ledger for local-dev / tests.
+    // An empty DATABASE_URL (e.g. a chart default of '') is treated as unset.
+    let ledger = match database_url.as_deref().map(str::trim) {
+        Some(url) if !url.is_empty() => {
+            info!("using PostgreSQL ledger backend");
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(5)
+                .connect(url)
+                .await
+                .map_err(|e| {
+                    AppError::UpstreamError(format!("failed to connect to database: {}", e))
+                })?;
+            sqlx::migrate!()
+                .run(&pool)
+                .await
+                .map_err(|e| AppError::UpstreamError(format!("failed to run migrations: {}", e)))?;
+            Ledger::new(LedgerBackend::Postgres(pool)).await?
+        }
+        _ => {
+            info!("using CSV ledger backend (no DATABASE_URL configured)");
+            Ledger::new(LedgerBackend::Csv(ledger_path.into())).await?
+        }
+    };
 
     let webhook_notifier = webhook_base_url.map(|base_url| {
         crate::shared::webhook_notifier::WebhookNotifier::new(
@@ -94,7 +124,7 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
             Duration::from_secs(ca_cache_ttl_secs),
             crl_dist_url,
         ))
-        .manage(Ledger::new(ledger_path.into()).await?)
+        .manage(ledger)
         .manage(CrlState::new(crl_path.into()).await?)
         .manage(webhook_notifier)
         .attach(CrlEtagFairing)

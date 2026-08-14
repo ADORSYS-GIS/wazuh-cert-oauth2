@@ -189,7 +189,8 @@ The client will attempt to open the authorization URL in your system's default b
 | `--root-ca-path` | `ROOT_CA_PATH` | (Required) | Path to Root CA cert (PEM). |
 | `--root-ca-key-path` | `ROOT_CA_KEY_PATH` | (Required) | Path to Root CA key (PEM). |
 | `--crl-path` | `CRL_PATH` | `/data/issuing.crl` | Path where CRL is written. |
-| `--ledger-path` | `LEDGER_PATH` | `/data/ledger.csv` | Path to the issuance ledger. |
+| `--ledger-path` | `LEDGER_PATH` | `/data/ledger.csv` | CSV ledger path (local-dev fallback). |
+| `--database-url` | `DATABASE_URL` | (Optional) | PostgreSQL DSN. When set, the ledger uses PostgreSQL as the system of record; otherwise it falls back to the CSV ledger at `LEDGER_PATH`. |
 | `--webhook-base-url`| `WEBHOOK_BASE_URL` | (Optional) | Base URL of the Webhook Proxy. |
 | `--webhook-bearer-token`| `WEBHOOK_BEARER_TOKEN`| (Optional) | Bearer token for the Webhook Proxy. |
 

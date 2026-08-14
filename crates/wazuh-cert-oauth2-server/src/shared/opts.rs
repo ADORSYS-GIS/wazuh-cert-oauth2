@@ -16,7 +16,11 @@ pub enum Command {
     /// Run the OAuth2 certificate server
     Serve(ServeOpt),
     /// Backfill Wazuh agent names for existing ledger entries
-    Migrate(crate::migrate::v1::opts::MigrateOpt),
+    #[command(name = "backfill-agent-names", alias = "migrate-v1", alias = "migrate")]
+    BackfillAgentNames(crate::migrate::v1::opts::MigrateOpt),
+    /// One-time import of the CSV ledger into PostgreSQL
+    #[command(name = "import-ledger", alias = "migrate-v2")]
+    ImportLedger(crate::migrate::v2::opts::MigrateV2Opt),
 }
 
 #[derive(Parser, Debug)]
@@ -50,6 +54,12 @@ pub struct ServeOpt {
 
     #[arg(long, env = "LEDGER_PATH", default_value = "/data/ledger.csv")]
     pub ledger_path: String,
+
+    /// PostgreSQL connection string. When set, the ledger (and later CRL)
+    /// use PostgreSQL as the system of record. When unset, the on-disk CSV
+    /// ledger is used as a local-dev / emergency fallback.
+    #[arg(long, env = "DATABASE_URL")]
+    pub database_url: Option<String>,
 
     /// Base URL of the webhook service for eviction notifications on auto-rotate override.
     #[arg(long, env = "WEBHOOK_BASE_URL")]

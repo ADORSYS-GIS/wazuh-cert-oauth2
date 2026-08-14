@@ -24,6 +24,8 @@ reqwest.workspace = true
 serde_json.workspace = true
 diacritics.workspace = true
 chrono.workspace = true
+sqlx.workspace = true
+async-trait.workspace = true
 
 [dependencies.wazuh-cert-oauth2-model]
 features = ["rocket", "openssl"]
