@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[e62995f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e62995f00ead25bc3d199ccb6ca0a4472f493b27)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[7e90546](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7e90546d7212e8813589c60d81f7e6a3bd7a20c9)
 
 ### Bug Fixes
 
@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`afe84bf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/afe84bf1e21a9798e04745c88d85072ee7cfa24c))
 - Update CHANGELOG.md and checksums [skip ci] ([`6ed755a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6ed755aa7aa08b706f781e18187693f8c2034d93))
 - Update CHANGELOG.md and checksums [skip ci] ([`d756227`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/d7562276893ebec68bb2fc405b7c0967b9b4913d))
+- Update CHANGELOG.md and checksums [skip ci] ([`0517a74`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0517a74b20741776a1fc93da30f4b2b4c56d79af))
 
 ### Features
 
@@ -33,6 +34,7 @@ All notable changes to this project will be documented in this file.
 - Feat: update GitHub Actions workflow and permissions for Jekyll site deployment ([`abd9a82`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/abd9a8285df50c4cf12c9357e069404c493207f1))
 - Enhance GitHub Actions workflows for Helm chart deployment and Jekyll site integration ([`7a2e10d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7a2e10d23d77fd719d93338fcc3d39fae488b1d8))
 - Replace CSV ledger with PostgreSQL backend (#292) ([`0083133`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0083133e934e759d0a25c53a420b62b04c137a49))
+- CRL storage to PostgreSQL (#294) ([`7e90546`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7e90546d7212e8813589c60d81f7e6a3bd7a20c9))
 
 ### Miscellaneous Tasks
 
