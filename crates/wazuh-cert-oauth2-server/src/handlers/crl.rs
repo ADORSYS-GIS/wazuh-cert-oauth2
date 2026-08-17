@@ -204,6 +204,10 @@ async fn serve_crl_or_long_poll(
                         .read_crl()
                         .await
                         .map_err(|_| Status::InternalServerError)?;
+                    if bytes.is_empty() {
+                        error!("CRL watch channel closed and no cached CRL available");
+                        return Err(Status::InternalServerError);
+                    }
                     let fresh_etag = compute_etag(&bytes);
                     return if fresh_etag == etag {
                         Ok(CrlOrNotModified::NotModified(etag))

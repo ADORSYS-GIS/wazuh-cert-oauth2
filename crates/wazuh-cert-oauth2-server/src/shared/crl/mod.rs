@@ -81,6 +81,18 @@ fn spawn_crl_listener(pool: PgPool, rebuild_notify: watch::Sender<CrlWatchValue>
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                 continue;
             }
+            // Re-sync on (re)connect: notifications committed while the
+            // listener was disconnected are missed (NOTIFY is best-effort),
+            // so reload the latest CRL from the cache to avoid serving a
+            // stale in-memory CRL.
+            match load_crl_from_cache(&pool).await {
+                Ok(Some((etag, body))) => {
+                    debug!("crl listener re-synced from cache (etag={})", etag);
+                    rebuild_notify.send_replace((etag, Some(body)));
+                }
+                Ok(None) => {}
+                Err(e) => error!("failed to reload CRL from cache on reconnect: {}", e),
+            }
             while let Ok(notification) = listener.recv().await {
                 debug!(
                     "crl_changed notification received: {:?}",
