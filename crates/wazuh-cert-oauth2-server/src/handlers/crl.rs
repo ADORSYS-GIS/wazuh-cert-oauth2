@@ -16,7 +16,6 @@ use std::io::Cursor;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time;
 use tracing::{debug, error, info};
-use wazuh_cert_oauth2_model::models::errors::AppError;
 
 /// Maximum time (seconds) the server holds a long-poll connection open while
 /// waiting for the CRL to change.
@@ -81,12 +80,11 @@ pub async fn get_crl(
             cached.to_vec()
         }
         None => {
-            debug!("No cached CRL; reading from disk");
-            match crl.read_crl_file().await {
+            debug!("No cached CRL; reading from backend");
+            match crl.read_crl().await {
                 Ok(b) => b,
-                Err(AppError::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
                 Err(e) => {
-                    error!("Failed to read CRL file: {}", e);
+                    error!("Failed to read CRL: {}", e);
                     return Err(Status::InternalServerError);
                 }
             }
@@ -196,12 +194,14 @@ async fn serve_crl_or_long_poll(
                 }
                 Ok(Err(_)) => {
                     // Watch channel closed — worker died. The notification
-                    // mechanism has failed, but the CRL on disk may still be
-                    // valid. Read fresh from disk to serve the latest state,
+                    // mechanism has failed, but the CRL may still be valid.
+                    // Read fresh from the backend to serve the latest state,
                     // while still alerting the operator via the error log.
-                    error!("CRL watch channel closed during long-poll; falling back to disk read");
+                    error!(
+                        "CRL watch channel closed during long-poll; falling back to backend read"
+                    );
                     bytes = crl
-                        .read_crl_file()
+                        .read_crl()
                         .await
                         .map_err(|_| Status::InternalServerError)?;
                     let fresh_etag = compute_etag(&bytes);

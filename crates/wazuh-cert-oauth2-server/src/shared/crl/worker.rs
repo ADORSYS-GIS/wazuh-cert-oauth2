@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use openssl::pkey::{PKey, Private};
@@ -8,6 +7,7 @@ use tokio::sync::{mpsc, oneshot, watch};
 use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
+use super::CrlBackend;
 use super::CrlWatchValue;
 use super::RevocationEntry;
 use super::compute_etag;
@@ -23,7 +23,7 @@ pub(super) enum Command {
 }
 
 pub(super) fn spawn_crl_worker(
-    path: PathBuf,
+    backend: CrlBackend,
     mut rx: mpsc::Receiver<Command>,
     rebuild_notify: watch::Sender<CrlWatchValue>,
 ) {
@@ -36,9 +36,14 @@ pub(super) fn spawn_crl_worker(
                     entries_snapshot,
                     respond_to,
                 } => {
-                    let res =
-                        apply_rebuild(&path, &ca_cert, &ca_key, entries_snapshot, &rebuild_notify)
-                            .await;
+                    let res = apply_rebuild(
+                        &backend,
+                        &ca_cert,
+                        &ca_key,
+                        entries_snapshot,
+                        &rebuild_notify,
+                    )
+                    .await;
                     let _ = respond_to.send(res);
                 }
             }
@@ -47,7 +52,7 @@ pub(super) fn spawn_crl_worker(
 }
 
 async fn apply_rebuild(
-    path: &PathBuf,
+    backend: &CrlBackend,
     ca_cert: &X509,
     ca_key: &PKey<Private>,
     entries_snapshot: Vec<RevocationEntry>,
@@ -66,25 +71,52 @@ async fn apply_rebuild(
         ffi::sort_and_sign(crl, ca_key)?;
         ffi::encode_der_and_free(crl)?
     };
-    let tmp = path.with_extension("crl.tmp");
-    debug!(
-        "Writing CRL ({} bytes) to temporary file: {}",
-        bytes.len(),
-        tmp.display()
-    );
-    fs::write(&tmp, &bytes).await?;
-    fs::rename(tmp, path).await?;
+
+    persist(backend, &bytes).await?;
 
     let etag = compute_etag(&bytes);
-
-    info!(
-        "CRL updated at {} (took {:?}, etag={})",
-        path.display(),
-        started.elapsed(),
-        etag
-    );
+    info!("CRL updated (took {:?}, etag={})", started.elapsed(), etag);
 
     rebuild_notify.send_replace((etag, Some(Arc::new(bytes))));
 
+    Ok(())
+}
+
+/// Persist the signed CRL to the configured backend.
+async fn persist(backend: &CrlBackend, bytes: &[u8]) -> AppResult<()> {
+    match backend {
+        CrlBackend::File(path) => {
+            let tmp = path.with_extension("crl.tmp");
+            debug!(
+                "Writing CRL ({} bytes) to temporary file: {}",
+                bytes.len(),
+                tmp.display()
+            );
+            fs::write(&tmp, bytes).await?;
+            fs::rename(tmp, path).await?;
+            info!("CRL written to {}", path.display());
+        }
+        CrlBackend::Postgres { pool } => {
+            let etag = compute_etag(bytes);
+            let mut tx = pool.begin().await?;
+            // Atomically bump the generation counter on conflict.
+            sqlx::query(
+                "INSERT INTO crl_cache (id, der, etag, generation) VALUES (1, $1, $2, 1)
+                 ON CONFLICT (id) DO UPDATE SET
+                   der = EXCLUDED.der,
+                   etag = EXCLUDED.etag,
+                   generation = crl_cache.generation + 1,
+                   updated_at = now()",
+            )
+            .bind(bytes)
+            .bind(&etag)
+            .execute(&mut *tx)
+            .await?;
+            tx.commit().await?;
+            // Notify other replicas to refresh their local cache.
+            let _ = sqlx::query("NOTIFY crl_changed").execute(pool).await;
+            info!("CRL persisted to crl_cache (etag={})", etag);
+        }
+    }
     Ok(())
 }

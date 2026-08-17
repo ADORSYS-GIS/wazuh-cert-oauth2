@@ -18,7 +18,7 @@ mod migrate;
 mod models;
 mod shared;
 use crate::models::ca_config::CaProvider;
-use crate::shared::crl::CrlState;
+use crate::shared::crl::{CrlBackend, CrlState};
 use crate::shared::ledger::{Ledger, LedgerBackend};
 use crate::shared::opts::{Command, Opt, ServeOpt};
 use clap::Parser;
@@ -76,12 +76,13 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
     // Shared HTTP client service with connection pooling
     let http_client = HttpClient::new_with_defaults()?;
 
-    // Ledger backend: PostgreSQL when DATABASE_URL is set (system of record),
-    // otherwise fall back to the on-disk CSV ledger for local-dev / tests.
-    // An empty DATABASE_URL (e.g. a chart default of '') is treated as unset.
-    let ledger = match database_url.as_deref().map(str::trim) {
+    // Storage backends: PostgreSQL when DATABASE_URL is set (system of
+    // record), otherwise fall back to the on-disk CSV ledger / file CRL for
+    // local-dev / tests. An empty DATABASE_URL (e.g. a chart default of '')
+    // is treated as unset. The pool is shared between the ledger and CRL.
+    let (ledger, crl_backend) = match database_url.as_deref().map(str::trim) {
         Some(url) if !url.is_empty() => {
-            info!("using PostgreSQL ledger backend");
+            info!("using PostgreSQL storage backend");
             let pool = sqlx::postgres::PgPoolOptions::new()
                 .max_connections(5)
                 .connect(url)
@@ -93,11 +94,15 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
                 .run(&pool)
                 .await
                 .map_err(|e| AppError::UpstreamError(format!("failed to run migrations: {}", e)))?;
-            Ledger::new(LedgerBackend::Postgres(pool)).await?
+            let ledger = Ledger::new(LedgerBackend::Postgres(pool.clone())).await?;
+            let crl_backend = CrlBackend::Postgres { pool };
+            (ledger, crl_backend)
         }
         _ => {
-            info!("using CSV ledger backend (no DATABASE_URL configured)");
-            Ledger::new(LedgerBackend::Csv(ledger_path.into())).await?
+            info!("using CSV/file storage backend (no DATABASE_URL configured)");
+            let ledger = Ledger::new(LedgerBackend::Csv(ledger_path.into())).await?;
+            let crl_backend = CrlBackend::File(crl_path.into());
+            (ledger, crl_backend)
         }
     };
 
@@ -125,7 +130,7 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
             crl_dist_url,
         ))
         .manage(ledger)
-        .manage(CrlState::new(crl_path.into()).await?)
+        .manage(CrlState::new(crl_backend).await?)
         .manage(webhook_notifier)
         .attach(CrlEtagFairing)
         .mount("/", routes![health, get_crl])

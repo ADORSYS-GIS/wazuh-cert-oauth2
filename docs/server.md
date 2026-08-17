@@ -68,6 +68,23 @@ The ledger backend is configurable:
 Mount a writable volume at `/data` (or adjust paths) so the CRL and CSV ledger
 persist when using the fallback backend.
 
+### CRL
+
+The CRL is a **derived artifact**: it is rebuilt from the ledger's revoked
+entries (`ledger_entry WHERE revoked = true`) and served from
+`GET /crl/issuing.crl` with ETag / long-poll support.
+
+- **PostgreSQL backend:** the signed CRL (DER + ETag + a generation counter) is
+  stored in the shared `crl_cache` table. Any replica may rebuild on demand; a
+  `NOTIFY crl_changed` signal tells the other replicas to drop their local cache
+  and serve the fresh CRL, so all replicas stay consistent after a revocation.
+- **File fallback:** when `DATABASE_URL` is unset, the CRL is written to
+  `CRL_PATH` (local-dev / bootstrap only).
+
+The S3 init container and nginx file-serving sidecar are no longer on the
+critical path; they are optional/archival for deployments that still want an
+external CRL copy.
+
 ### Ledger fields
 
 CSV columns: `subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm`.

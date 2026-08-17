@@ -16,6 +16,9 @@ pub enum AppError {
     #[error("Upstream error: {0}")]
     UpstreamError(String),
 
+    #[error("Database error: {0}")]
+    DatabaseError(#[from] sqlx::Error),
+
     #[error("Conflict: {0}")]
     Conflict(String),
 
@@ -129,6 +132,7 @@ impl<'r> Responder<'r, 'static> for AppError {
 
         let status = match &self {
             AppError::UpstreamError(_) => Status::BadGateway,
+            AppError::DatabaseError(_) => Status::InternalServerError,
             AppError::Conflict(_) => Status::Conflict,
             AppError::RequestTokenError(_) => Status::ServiceUnavailable,
             AppError::CsrMissingPublicKey

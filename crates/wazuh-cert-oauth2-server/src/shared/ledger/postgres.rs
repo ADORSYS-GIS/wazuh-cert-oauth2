@@ -22,10 +22,6 @@ impl PostgresLedgerStore {
     }
 }
 
-fn db_err(e: sqlx::Error) -> AppError {
-    AppError::UpstreamError(format!("database error: {}", e))
-}
-
 fn normalize_serial(serial: &str) -> String {
     serial.to_uppercase()
 }
@@ -61,7 +57,7 @@ impl LedgerStore for PostgresLedgerStore {
         wazuh_agent_name: Option<String>,
     ) -> AppResult<()> {
         let serial = normalize_serial(&serial_hex);
-        let mut tx = self.pool.begin().await.map_err(db_err)?;
+        let mut tx = self.pool.begin().await?;
 
         sqlx::query(
             "INSERT INTO ledger_event (event_type, subject, serial_hex, issued_at_unix, issuer, realm, wazuh_agent_name)
@@ -75,7 +71,7 @@ impl LedgerStore for PostgresLedgerStore {
         .bind(&wazuh_agent_name)
         .execute(&mut *tx)
         .await
-        .map_err(db_err)?;
+        ?;
 
         sqlx::query(
             "INSERT INTO ledger_entry (serial_hex, subject, issued_at_unix, revoked, issuer, realm, wazuh_agent_name)
@@ -99,9 +95,9 @@ impl LedgerStore for PostgresLedgerStore {
         .bind(&wazuh_agent_name)
         .execute(&mut *tx)
         .await
-        .map_err(db_err)?;
+        ?;
 
-        tx.commit().await.map_err(db_err)?;
+        tx.commit().await?;
         Ok(())
     }
 
@@ -113,19 +109,18 @@ impl LedgerStore for PostgresLedgerStore {
         revoked_at_unix: u64,
     ) -> AppResult<()> {
         let serial = normalize_serial(&serial_hex);
-        let mut tx = self.pool.begin().await.map_err(db_err)?;
+        let mut tx = self.pool.begin().await?;
 
         let existing: Option<(bool,)> =
             sqlx::query_as("SELECT revoked FROM ledger_entry WHERE serial_hex = $1 FOR UPDATE")
                 .bind(&serial)
                 .fetch_optional(&mut *tx)
-                .await
-                .map_err(db_err)?;
+                .await?;
 
         match existing {
             Some((true,)) => {
                 // Already revoked — no-op (matches CSV behaviour).
-                tx.commit().await.map_err(db_err)?;
+                tx.commit().await?;
                 Ok(())
             }
             Some((false,)) => {
@@ -138,7 +133,7 @@ impl LedgerStore for PostgresLedgerStore {
                 .bind(&reason)
                 .execute(&mut *tx)
                 .await
-                .map_err(db_err)?;
+                ?;
                 sqlx::query(
                     "INSERT INTO ledger_event (event_type, serial_hex, revoked_at_unix, reason)
                      VALUES ('REVOKED', $1, $2, $3)",
@@ -147,9 +142,8 @@ impl LedgerStore for PostgresLedgerStore {
                 .bind(revoked_at_unix as i64)
                 .bind(&reason)
                 .execute(&mut *tx)
-                .await
-                .map_err(db_err)?;
-                tx.commit().await.map_err(db_err)?;
+                .await?;
+                tx.commit().await?;
                 Ok(())
             }
             None => {
@@ -163,7 +157,7 @@ impl LedgerStore for PostgresLedgerStore {
                 .bind(&reason)
                 .execute(&mut *tx)
                 .await
-                .map_err(db_err)?;
+                ?;
                 sqlx::query(
                     "INSERT INTO ledger_event (event_type, subject, serial_hex, issued_at_unix, revoked_at_unix, reason)
                      VALUES ('STUB_REVOKED', '', $1, 0, $2, $3)",
@@ -173,8 +167,8 @@ impl LedgerStore for PostgresLedgerStore {
                 .bind(&reason)
                 .execute(&mut *tx)
                 .await
-                .map_err(db_err)?;
-                tx.commit().await.map_err(db_err)?;
+                ?;
+                tx.commit().await?;
                 Ok(())
             }
         }
@@ -187,7 +181,7 @@ impl LedgerStore for PostgresLedgerStore {
         overwrite: bool,
         revoked_at_unix: u64,
     ) -> AppResult<Option<Vec<String>>> {
-        let mut tx = self.pool.begin().await.map_err(db_err)?;
+        let mut tx = self.pool.begin().await?;
 
         let rows: Vec<(String, Option<String>)> = sqlx::query_as(
             "SELECT serial_hex, wazuh_agent_name FROM ledger_entry
@@ -196,11 +190,10 @@ impl LedgerStore for PostgresLedgerStore {
         )
         .bind(&subject)
         .fetch_all(&mut *tx)
-        .await
-        .map_err(db_err)?;
+        .await?;
 
         if rows.is_empty() {
-            tx.commit().await.map_err(db_err)?;
+            tx.commit().await?;
             return Ok(None);
         }
 
@@ -225,7 +218,7 @@ impl LedgerStore for PostgresLedgerStore {
             .bind("auto-rotate (one cert per user)")
             .execute(&mut *tx)
             .await
-            .map_err(db_err)?;
+            ?;
             sqlx::query(
                 "INSERT INTO ledger_event (event_type, subject, serial_hex, revoked_at_unix, reason)
                  VALUES ('REVOKED', $1, $2, $3, $4)",
@@ -236,10 +229,10 @@ impl LedgerStore for PostgresLedgerStore {
             .bind("auto-rotate (one cert per user)")
             .execute(&mut *tx)
             .await
-            .map_err(db_err)?;
+            ?;
         }
 
-        tx.commit().await.map_err(db_err)?;
+        tx.commit().await?;
         Ok(Some(old_agent_names))
     }
 
@@ -250,8 +243,7 @@ impl LedgerStore for PostgresLedgerStore {
         ))
         .bind(subject)
         .fetch_all(&self.pool)
-        .await
-        .map_err(db_err)?;
+        .await?;
         Ok(rows.iter().map(map_row).collect())
     }
 
@@ -261,8 +253,7 @@ impl LedgerStore for PostgresLedgerStore {
             "SELECT {ENTRY_COLS} FROM ledger_entry WHERE revoked = FALSE ORDER BY issued_at_unix"
         ))
         .fetch_all(&self.pool)
-        .await
-        .map_err(db_err)?;
+        .await?;
         Ok(rows.iter().map(map_row).collect())
     }
 
@@ -272,8 +263,7 @@ impl LedgerStore for PostgresLedgerStore {
             "SELECT {ENTRY_COLS} FROM ledger_entry WHERE revoked = TRUE ORDER BY issued_at_unix"
         ))
         .fetch_all(&self.pool)
-        .await
-        .map_err(db_err)?;
+        .await?;
         Ok(rows.iter().map(map_row).collect())
     }
 
@@ -283,8 +273,7 @@ impl LedgerStore for PostgresLedgerStore {
             "SELECT {ENTRY_COLS} FROM ledger_entry ORDER BY issued_at_unix"
         ))
         .fetch_all(&self.pool)
-        .await
-        .map_err(db_err)?;
+        .await?;
         Ok(rows.iter().map(map_row).collect())
     }
 }
