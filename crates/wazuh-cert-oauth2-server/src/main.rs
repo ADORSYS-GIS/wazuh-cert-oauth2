@@ -95,7 +95,7 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
                 .await
                 .map_err(|e| AppError::UpstreamError(format!("failed to run migrations: {}", e)))?;
             let ledger = Ledger::new(LedgerBackend::Postgres(pool.clone())).await?;
-            let crl_backend = CrlBackend::Postgres { pool };
+            let crl_backend = CrlBackend::Postgres(pool);
             (ledger, crl_backend)
         }
         _ => {

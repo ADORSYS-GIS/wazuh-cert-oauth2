@@ -132,7 +132,6 @@ impl<'r> Responder<'r, 'static> for AppError {
 
         let status = match &self {
             AppError::UpstreamError(_) => Status::BadGateway,
-            AppError::DatabaseError(_) => Status::InternalServerError,
             AppError::Conflict(_) => Status::Conflict,
             AppError::RequestTokenError(_) => Status::ServiceUnavailable,
             AppError::CsrMissingPublicKey

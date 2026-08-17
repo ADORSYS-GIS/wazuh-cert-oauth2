@@ -8,7 +8,7 @@ use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use tokio::fs;
 use tokio::sync::{mpsc, oneshot, watch};
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 
 /// ETag string paired with an optional cached CRL body.
@@ -16,6 +16,7 @@ use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 type CrlWatchValue = (String, Option<Arc<Vec<u8>>>);
 
 mod ffi;
+mod postgres;
 mod worker;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,7 +45,7 @@ pub fn compute_etag(bytes: &[u8]) -> String {
 #[derive(Clone)]
 pub enum CrlBackend {
     File(PathBuf),
-    Postgres { pool: PgPool },
+    Postgres(PgPool),
 }
 
 #[derive(Clone)]
@@ -54,62 +55,6 @@ pub struct CrlState {
     rebuild_notify: watch::Sender<CrlWatchValue>,
 }
 
-/// Load the latest CRL (DER + etag) from the shared `crl_cache` table.
-async fn load_crl_from_cache(pool: &PgPool) -> AppResult<Option<(String, Arc<Vec<u8>>)>> {
-    let row: Option<(Vec<u8>, String)> =
-        sqlx::query_as("SELECT der, etag FROM crl_cache WHERE id = 1")
-            .fetch_optional(pool)
-            .await?;
-    Ok(row.map(|(der, etag)| (etag, Arc::new(der))))
-}
-
-/// Background task that listens for `crl_changed` notifications and refreshes
-/// this replica's local cache so long-poll clients get the new CRL promptly.
-fn spawn_crl_listener(pool: PgPool, rebuild_notify: watch::Sender<CrlWatchValue>) {
-    tokio::spawn(async move {
-        loop {
-            let mut listener = match sqlx::postgres::PgListener::connect_with(&pool).await {
-                Ok(l) => l,
-                Err(e) => {
-                    error!("crl listener connect failed: {}", e);
-                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                    continue;
-                }
-            };
-            if let Err(e) = listener.listen("crl_changed").await {
-                error!("crl listener listen failed: {}", e);
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                continue;
-            }
-            // Re-sync on (re)connect: notifications committed while the
-            // listener was disconnected are missed (NOTIFY is best-effort),
-            // so reload the latest CRL from the cache to avoid serving a
-            // stale in-memory CRL.
-            match load_crl_from_cache(&pool).await {
-                Ok(Some((etag, body))) => {
-                    debug!("crl listener re-synced from cache (etag={})", etag);
-                    rebuild_notify.send_replace((etag, Some(body)));
-                }
-                Ok(None) => {}
-                Err(e) => error!("failed to reload CRL from cache on reconnect: {}", e),
-            }
-            while let Ok(notification) = listener.recv().await {
-                debug!(
-                    "crl_changed notification received: {:?}",
-                    notification.payload()
-                );
-                match load_crl_from_cache(&pool).await {
-                    Ok(Some((etag, body))) => {
-                        rebuild_notify.send_replace((etag, Some(body)));
-                    }
-                    Ok(None) => {}
-                    Err(e) => error!("failed to reload CRL from cache: {}", e),
-                }
-            }
-        }
-    });
-}
-
 impl CrlState {
     #[tracing::instrument(skip(backend))]
     pub async fn new(backend: CrlBackend) -> AppResult<Self> {
@@ -117,7 +62,7 @@ impl CrlState {
             CrlBackend::File(path) => {
                 info!("Initialized CrlState (file) with path: {}", path.display())
             }
-            CrlBackend::Postgres { .. } => info!("Initialized CrlState (postgres)"),
+            CrlBackend::Postgres(_) => info!("Initialized CrlState (postgres)"),
         }
         let (tx, rx) = mpsc::channel::<worker::Command>(32);
 
@@ -125,8 +70,8 @@ impl CrlState {
         let (rebuild_tx, _) = watch::channel((initial_etag, initial_body));
         worker::spawn_crl_worker(backend.clone(), rx, rebuild_tx.clone());
 
-        if let CrlBackend::Postgres { pool } = &backend {
-            spawn_crl_listener(pool.clone(), rebuild_tx.clone());
+        if let CrlBackend::Postgres(pool) = &backend {
+            postgres::spawn_crl_listener(pool.clone(), rebuild_tx.clone());
         }
 
         Ok(Self {
@@ -154,9 +99,9 @@ impl CrlState {
                     Err(e) => Err(e.into()),
                 }
             }
-            CrlBackend::Postgres { pool } => {
+            CrlBackend::Postgres(pool) => {
                 debug!("Reading CRL from cache");
-                match load_crl_from_cache(pool).await {
+                match postgres::load_crl_from_cache(pool).await {
                     Ok(Some((_, body))) => Ok(body.to_vec()),
                     Ok(None) => Ok(Vec::new()),
                     Err(e) => Err(e),
@@ -182,7 +127,7 @@ impl CrlState {
                 Ok(bytes) => (compute_etag(&bytes), Some(Arc::new(bytes))),
                 Err(_) => (String::new(), None),
             },
-            CrlBackend::Postgres { pool } => match load_crl_from_cache(pool).await {
+            CrlBackend::Postgres(pool) => match postgres::load_crl_from_cache(pool).await {
                 Ok(Some((etag, body))) => (etag, Some(body)),
                 _ => (String::new(), None),
             },
@@ -271,7 +216,7 @@ mod tests {
             .expect("clear crl_cache");
         let (ca_cert, ca_key) = test_ca();
 
-        let state = CrlState::new(CrlBackend::Postgres { pool: pool.clone() })
+        let state = CrlState::new(CrlBackend::Postgres(pool.clone()))
             .await
             .expect("crl state");
 

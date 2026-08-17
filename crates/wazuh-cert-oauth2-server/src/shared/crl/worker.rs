@@ -96,7 +96,7 @@ async fn persist(backend: &CrlBackend, bytes: &[u8]) -> AppResult<()> {
             fs::rename(tmp, path).await?;
             info!("CRL written to {}", path.display());
         }
-        CrlBackend::Postgres { pool } => {
+        CrlBackend::Postgres(pool) => {
             let etag = compute_etag(bytes);
             let mut tx = pool.begin().await?;
             // Atomically bump the generation counter on conflict.
