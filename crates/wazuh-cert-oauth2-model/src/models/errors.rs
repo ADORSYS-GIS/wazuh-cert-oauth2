@@ -16,6 +16,7 @@ pub enum AppError {
     #[error("Upstream error: {0}")]
     UpstreamError(String),
 
+    #[cfg(feature = "postgres")]
     #[error("Database error: {0}")]
     DatabaseError(#[from] sqlx::Error),
 

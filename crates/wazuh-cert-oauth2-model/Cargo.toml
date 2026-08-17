@@ -21,7 +21,7 @@ url.workspace = true
 rand_core.workspace = true
 rand.workspace = true
 tokio = { workspace = true, features = ["sync", "time"] }
-sqlx.workspace = true
+sqlx = { workspace = true, optional = true }
 
 [dependencies.tracing-subscriber]
 workspace = true
@@ -34,6 +34,12 @@ optional = true
 [features]
 rocket = [
     "tracing-subscriber"
+]
+# Enables the sqlx-backed DatabaseError variant. Only the server crate needs
+# this; keeping it optional avoids dragging the Postgres driver into the
+# client/webhook/healthcheck binaries.
+postgres = [
+    "dep:sqlx"
 ]
 
 [dev-dependencies]

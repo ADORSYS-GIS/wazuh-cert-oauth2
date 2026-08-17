@@ -28,5 +28,5 @@ sqlx.workspace = true
 async-trait.workspace = true
 
 [dependencies.wazuh-cert-oauth2-model]
-features = ["rocket", "openssl"]
+features = ["rocket", "openssl", "postgres"]
 workspace = true
