@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[7e90546](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7e90546d7212e8813589c60d81f7e6a3bd7a20c9)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[3aea1af](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3aea1af3efd0667b0708577862e36fcb085e40ad)
 
 ### Bug Fixes
 
@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - Annotate cache-poisoning in build-nginx-sidecar ([`afcfa15`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/afcfa15ce218c9d888c9179a5dedd40090c34536))
 - Propagate ledger read errors and handle empty DATABASE_URL (#292) ([`6425a89`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6425a8965b21c5def8a58826df167cd61281c7f1))
 - Address review P2s; rename migrate to migrate-v1 (#292) ([`93033c3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/93033c3ce09fb932ecd7e24ab2e7f3326d0644af))
+- Re-sync CRL cache on listener reconnect; 500 on empty fallback (#294) ([`caecacc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/caecacccd670b055a10b49787784c350bb8a566d))
 
 ### Documentation
 
@@ -27,6 +28,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`6ed755a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6ed755aa7aa08b706f781e18187693f8c2034d93))
 - Update CHANGELOG.md and checksums [skip ci] ([`d756227`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/d7562276893ebec68bb2fc405b7c0967b9b4913d))
 - Update CHANGELOG.md and checksums [skip ci] ([`0517a74`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0517a74b20741776a1fc93da30f4b2b4c56d79af))
+- Update CHANGELOG.md and checksums [skip ci] ([`c2a111b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c2a111b12a5d26666ce59ef92f804d1a62c24c7f))
 
 ### Features
 
@@ -44,6 +46,8 @@ All notable changes to this project will be documented in this file.
 ### Refactor
 
 - Rename migration commands to meaningful names ([`c962671`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c962671472d5035efd17cdda50499c4ac337152f))
+- Clean up CRL module and error mapping (#294) ([`038c065`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/038c06556d48f10c0afda9c81bf497861b2fa4ce))
+- Make sqlx an optional dependency (#294) ([`3aea1af`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3aea1af3efd0667b0708577862e36fcb085e40ad))
 
 ## 0.4.6 - 2026-07-31
 
