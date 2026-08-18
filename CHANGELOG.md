@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[cbc8f88](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cbc8f8822a1e32d8ca14ac1f37910ff013b6da34)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[ebcb7ec](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ebcb7ecce0fb166a843b7bf10e938f653809f348)
 
 ### Bug Fixes
 
@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - Propagate ledger read errors and handle empty DATABASE_URL (#292) ([`6425a89`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6425a8965b21c5def8a58826df167cd61281c7f1))
 - Address review P2s; rename migrate to migrate-v1 (#292) ([`93033c3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/93033c3ce09fb932ecd7e24ab2e7f3326d0644af))
 - Re-sync CRL cache on listener reconnect; 500 on empty fallback (#294) ([`caecacc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/caecacccd670b055a10b49787784c350bb8a566d))
+- Address CRL review comments and model feature cleanup (#294) ([`ebcb7ec`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ebcb7ecce0fb166a843b7bf10e938f653809f348))
 
 ### Documentation
 
@@ -30,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`0517a74`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0517a74b20741776a1fc93da30f4b2b4c56d79af))
 - Update CHANGELOG.md and checksums [skip ci] ([`c2a111b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c2a111b12a5d26666ce59ef92f804d1a62c24c7f))
 - Update CHANGELOG.md and checksums [skip ci] ([`cbc8f88`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cbc8f8822a1e32d8ca14ac1f37910ff013b6da34))
+- Update CHANGELOG.md and checksums [skip ci] ([`39cd1b6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/39cd1b6cf02edcaa74aa231816e3aa0dab256146))
 
 ### Features
 
