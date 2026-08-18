@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[7590ef4](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7590ef4417da60bcba88f96ed186108e65bc235a)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[a92dcd3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a92dcd3f91c63b41e9576d3b70f9b3f0b0d17eea)
 
 ### Bug Fixes
 
@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - Address review P2s; rename migrate to migrate-v1 (#292) ([`93033c3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/93033c3ce09fb932ecd7e24ab2e7f3326d0644af))
 - Re-sync CRL cache on listener reconnect; 500 on empty fallback (#294) ([`caecacc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/caecacccd670b055a10b49787784c350bb8a566d))
 - Address CRL review comments and model feature cleanup (#294) ([`ebcb7ec`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ebcb7ecce0fb166a843b7bf10e938f653809f348))
+- Use static SQL for ledger reads (sqlx 0.9) ([`9789dd8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9789dd83497c859919cedfbabe2b687548cfbf35))
 
 ### Documentation
 
@@ -35,6 +36,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`c995b01`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c995b0122a20dbdb4e984af66243a1efb0fe93b7))
 - Update CHANGELOG.md and checksums [skip ci] ([`3d20497`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3d204977958d408740e73365bc59d438ab1abff4))
 - Update CHANGELOG.md and checksums [skip ci] ([`ea4ecab`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ea4ecabd1b60857b0df17b8b5765c3af5dcaa11d))
+- Update CHANGELOG.md and checksums [skip ci] ([`313f42c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/313f42c36b14286c0c4bb323249c037e4799ffa0))
 
 ### Features
 
