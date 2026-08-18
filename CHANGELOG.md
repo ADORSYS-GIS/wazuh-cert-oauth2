@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[cb216b3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cb216b34894aabcdf3cf25c2f6c9f11b10bce36c)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[24094fe](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/24094fefe60aafcd10152615fdb9f407540ab6da)
 
 ### Bug Fixes
 
@@ -33,6 +33,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`cbc8f88`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cbc8f8822a1e32d8ca14ac1f37910ff013b6da34))
 - Update CHANGELOG.md and checksums [skip ci] ([`39cd1b6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/39cd1b6cf02edcaa74aa231816e3aa0dab256146))
 - Update CHANGELOG.md and checksums [skip ci] ([`c995b01`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c995b0122a20dbdb4e984af66243a1efb0fe93b7))
+- Update CHANGELOG.md and checksums [skip ci] ([`3d20497`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3d204977958d408740e73365bc59d438ab1abff4))
 
 ### Features
 
@@ -41,6 +42,7 @@ All notable changes to this project will be documented in this file.
 - Enhance GitHub Actions workflows for Helm chart deployment and Jekyll site integration ([`7a2e10d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7a2e10d23d77fd719d93338fcc3d39fae488b1d8))
 - Replace CSV ledger with PostgreSQL backend (#292) ([`0083133`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0083133e934e759d0a25c53a420b62b04c137a49))
 - CRL storage to PostgreSQL (#294) ([`7e90546`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7e90546d7212e8813589c60d81f7e6a3bd7a20c9))
+- Use unwrap infaillable for random number generation and pgnotify() for notification channel ([`24094fe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/24094fefe60aafcd10152615fdb9f407540ab6da))
 
 ### Miscellaneous Tasks
 
