@@ -3942,6 +3942,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "tracing",
+ "unwrap-infallible",
  "url",
  "wazuh-cert-oauth2-model",
 ]

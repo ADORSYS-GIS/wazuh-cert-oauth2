@@ -119,7 +119,8 @@ async fn persist(backend: &CrlBackend, replica_id: &str, bytes: &[u8]) -> AppRes
             // this replica's id so the listener can skip its own redundant
             // reload. If the NOTIFY fails, other replicas keep serving a
             // stale CRL until their listener reconnects — log it.
-            if let Err(e) = sqlx::query(&format!("NOTIFY crl_changed, '{}'", replica_id))
+            if let Err(e) = sqlx::query("SELECT pg_notify('crl_changed', $1)")
+                .bind(replica_id)
                 .execute(pool)
                 .await
             {

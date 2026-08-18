@@ -41,10 +41,9 @@ pub fn compute_etag(bytes: &[u8]) -> String {
 /// notifications so a replica can skip its own redundant cache reload.
 fn generate_replica_id() -> String {
     use rand::TryRng;
+    use unwrap_infallible::UnwrapInfallible;
     let mut buf = [0u8; 8];
-    rand::rng()
-        .try_fill_bytes(&mut buf)
-        .expect("thread rng should not fail");
+    rand::rng().try_fill_bytes(&mut buf).unwrap_infallible();
     buf.iter().map(|b| format!("{:02x}", b)).collect()
 }
 

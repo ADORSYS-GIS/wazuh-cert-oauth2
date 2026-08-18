@@ -26,6 +26,7 @@ diacritics.workspace = true
 chrono.workspace = true
 sqlx.workspace = true
 async-trait.workspace = true
+unwrap-infallible.workspace = true
 
 [dependencies.wazuh-cert-oauth2-model]
 features = ["rocket", "openssl", "postgres"]
