@@ -1,6 +1,6 @@
 0d74bf53f198f7281328722ec3465ac4074283c49d108aabd0fa7ec3470f33ad  wazuh-cert-oauth2-client-aarch64-unknown-linux-musl
-7c626825412dfe9c4dae5a01e2b4af998004021af8296e04ad2b978699a3aec5  wazuh-cert-oauth2-client-aarch64-pc-windows-msvc.exe
-c189e06bc6ec7c68aa402016905a4fdb4a8ce5cd598fd87b9a98d0bad0789e99  wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe
+b34b64da318215daff64f52055133745423368d6cb17774020c63ae1040a7ba1  wazuh-cert-oauth2-client-aarch64-pc-windows-msvc.exe
+7b14669559c18b329e41fd7ad11e64537795fe2343fc3a1f8e33fd75cfe729e1  wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe
 5e93669de2ab95f753d8b8afb591c2ec5170d20427a6ca0d432533269c102bf8  wazuh-cert-oauth2-client-x86_64-apple-darwin
 0df184cd8c72bec10bb704f34cbf5a3b38f751d4f6f6ba879a6f6eb70e393ec8  wazuh-cert-oauth2-client-aarch64-apple-darwin
 4ab5c3a97dc57eae52029978f4aef54e2ff4cf5cff1e26fdc9278927055e916f  wazuh-cert-oauth2-client-x86_64-unknown-linux-musl
