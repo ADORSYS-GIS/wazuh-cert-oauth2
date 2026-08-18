@@ -42,8 +42,6 @@ fn map_row(row: &sqlx::postgres::PgRow) -> LedgerEntry {
     }
 }
 
-const ENTRY_COLS: &str = "subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name";
-
 #[async_trait]
 impl LedgerStore for PostgresLedgerStore {
     #[tracing::instrument(skip(self))]
@@ -238,9 +236,10 @@ impl LedgerStore for PostgresLedgerStore {
 
     #[tracing::instrument(skip(self))]
     async fn find_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
-        let rows = sqlx::query(&format!(
-            "SELECT {ENTRY_COLS} FROM ledger_entry WHERE subject = $1 ORDER BY issued_at_unix"
-        ))
+        let rows = sqlx::query(
+            "SELECT subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
+             FROM ledger_entry WHERE subject = $1 ORDER BY issued_at_unix",
+        )
         .bind(subject)
         .fetch_all(&self.pool)
         .await?;
@@ -249,9 +248,10 @@ impl LedgerStore for PostgresLedgerStore {
 
     #[tracing::instrument(skip(self))]
     async fn find_active(&self) -> AppResult<Vec<LedgerEntry>> {
-        let rows = sqlx::query(&format!(
-            "SELECT {ENTRY_COLS} FROM ledger_entry WHERE revoked = FALSE ORDER BY issued_at_unix"
-        ))
+        let rows = sqlx::query(
+            "SELECT subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
+             FROM ledger_entry WHERE revoked = FALSE ORDER BY issued_at_unix",
+        )
         .fetch_all(&self.pool)
         .await?;
         Ok(rows.iter().map(map_row).collect())
@@ -259,9 +259,10 @@ impl LedgerStore for PostgresLedgerStore {
 
     #[tracing::instrument(skip(self))]
     async fn find_revoked(&self) -> AppResult<Vec<LedgerEntry>> {
-        let rows = sqlx::query(&format!(
-            "SELECT {ENTRY_COLS} FROM ledger_entry WHERE revoked = TRUE ORDER BY issued_at_unix"
-        ))
+        let rows = sqlx::query(
+            "SELECT subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
+             FROM ledger_entry WHERE revoked = TRUE ORDER BY issued_at_unix",
+        )
         .fetch_all(&self.pool)
         .await?;
         Ok(rows.iter().map(map_row).collect())
@@ -269,9 +270,10 @@ impl LedgerStore for PostgresLedgerStore {
 
     #[tracing::instrument(skip(self))]
     async fn find_all(&self) -> AppResult<Vec<LedgerEntry>> {
-        let rows = sqlx::query(&format!(
-            "SELECT {ENTRY_COLS} FROM ledger_entry ORDER BY issued_at_unix"
-        ))
+        let rows = sqlx::query(
+            "SELECT subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
+             FROM ledger_entry ORDER BY issued_at_unix",
+        )
         .fetch_all(&self.pool)
         .await?;
         Ok(rows.iter().map(map_row).collect())

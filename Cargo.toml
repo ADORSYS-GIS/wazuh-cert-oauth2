@@ -43,7 +43,7 @@ mimalloc = "0"
 sha2 = "0.11"
 chrono = "0.4"
 
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "migrate", "chrono", "macros", "uuid", "tls-rustls-ring-webpki"] }
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "postgres", "migrate", "chrono", "macros", "uuid", "tls-rustls-ring-webpki"] }
 async-trait = "0.1"
 
 [profile.prod]
