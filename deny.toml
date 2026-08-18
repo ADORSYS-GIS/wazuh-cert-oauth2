@@ -28,4 +28,10 @@ ignore = [
     "RUSTSEC-2026-0099", # rustls-webpki wildcard name constraints
     # https://rustsec.org/advisories/RUSTSEC-2026-0104
     "RUSTSEC-2026-0104", # rustls-webpki panic on malformed CRL
+    # https://rustsec.org/advisories/RUSTSEC-2026-0258
+    # h2 unbounded empty DATA frames. h2 0.4.x is patched (0.4.16), but the
+    # 0.3.x line used by Rocket 0.5 -> hyper 0.14 has no patched release; a
+    # fix requires an upstream Rocket/hyper bump. Tracked by the Postgres
+    # migration epic.
+    "RUSTSEC-2026-0258",
 ]
