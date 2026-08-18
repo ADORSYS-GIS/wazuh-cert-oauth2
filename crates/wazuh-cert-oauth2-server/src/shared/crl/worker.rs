@@ -4,7 +4,7 @@ use openssl::pkey::{PKey, Private};
 use openssl::x509::X509;
 use tokio::fs;
 use tokio::sync::{mpsc, oneshot, watch};
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
 use super::CrlBackend;
@@ -24,6 +24,7 @@ pub(super) enum Command {
 
 pub(super) fn spawn_crl_worker(
     backend: CrlBackend,
+    replica_id: String,
     mut rx: mpsc::Receiver<Command>,
     rebuild_notify: watch::Sender<CrlWatchValue>,
 ) {
@@ -38,6 +39,7 @@ pub(super) fn spawn_crl_worker(
                 } => {
                     let res = apply_rebuild(
                         &backend,
+                        &replica_id,
                         &ca_cert,
                         &ca_key,
                         entries_snapshot,
@@ -53,6 +55,7 @@ pub(super) fn spawn_crl_worker(
 
 async fn apply_rebuild(
     backend: &CrlBackend,
+    replica_id: &str,
     ca_cert: &X509,
     ca_key: &PKey<Private>,
     entries_snapshot: Vec<RevocationEntry>,
@@ -72,7 +75,7 @@ async fn apply_rebuild(
         ffi::encode_der_and_free(crl)?
     };
 
-    persist(backend, &bytes).await?;
+    persist(backend, replica_id, &bytes).await?;
 
     let etag = compute_etag(&bytes);
     info!("CRL updated (took {:?}, etag={})", started.elapsed(), etag);
@@ -83,7 +86,7 @@ async fn apply_rebuild(
 }
 
 /// Persist the signed CRL to the configured backend.
-async fn persist(backend: &CrlBackend, bytes: &[u8]) -> AppResult<()> {
+async fn persist(backend: &CrlBackend, replica_id: &str, bytes: &[u8]) -> AppResult<()> {
     match backend {
         CrlBackend::File(path) => {
             let tmp = path.with_extension("crl.tmp");
@@ -98,8 +101,8 @@ async fn persist(backend: &CrlBackend, bytes: &[u8]) -> AppResult<()> {
         }
         CrlBackend::Postgres(pool) => {
             let etag = compute_etag(bytes);
-            let mut tx = pool.begin().await?;
-            // Atomically bump the generation counter on conflict.
+            // A single statement is already atomic under Postgres' implicit
+            // per-statement transaction, so no explicit tx is needed.
             sqlx::query(
                 "INSERT INTO crl_cache (id, der, etag, generation) VALUES (1, $1, $2, 1)
                  ON CONFLICT (id) DO UPDATE SET
@@ -110,11 +113,18 @@ async fn persist(backend: &CrlBackend, bytes: &[u8]) -> AppResult<()> {
             )
             .bind(bytes)
             .bind(&etag)
-            .execute(&mut *tx)
+            .execute(pool)
             .await?;
-            tx.commit().await?;
-            // Notify other replicas to refresh their local cache.
-            let _ = sqlx::query("NOTIFY crl_changed").execute(pool).await;
+            // Notify other replicas to refresh their local cache, carrying
+            // this replica's id so the listener can skip its own redundant
+            // reload. If the NOTIFY fails, other replicas keep serving a
+            // stale CRL until their listener reconnects — log it.
+            if let Err(e) = sqlx::query(&format!("NOTIFY crl_changed, '{}'", replica_id))
+                .execute(pool)
+                .await
+            {
+                error!("failed to send crl_changed notification: {}", e);
+            }
             info!("CRL persisted to crl_cache (etag={})", etag);
         }
     }

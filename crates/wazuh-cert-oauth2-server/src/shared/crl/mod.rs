@@ -37,6 +37,17 @@ pub fn compute_etag(bytes: &[u8]) -> String {
         .collect::<String>()
 }
 
+/// Generate a random per-process replica id, used to tag `crl_changed`
+/// notifications so a replica can skip its own redundant cache reload.
+fn generate_replica_id() -> String {
+    use rand::TryRng;
+    let mut buf = [0u8; 8];
+    rand::rng()
+        .try_fill_bytes(&mut buf)
+        .expect("thread rng should not fail");
+    buf.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
 /// Where the CRL artifact is persisted.
 ///
 /// - [`CrlBackend::File`]: local-dev / bootstrap fallback (writes DER to disk).
@@ -66,12 +77,13 @@ impl CrlState {
         }
         let (tx, rx) = mpsc::channel::<worker::Command>(32);
 
-        let (initial_etag, initial_body) = Self::compute_initial(&backend).await;
+        let (initial_etag, initial_body) = Self::compute_initial(&backend).await?;
         let (rebuild_tx, _) = watch::channel((initial_etag, initial_body));
-        worker::spawn_crl_worker(backend.clone(), rx, rebuild_tx.clone());
+        let replica_id = generate_replica_id();
+        worker::spawn_crl_worker(backend.clone(), replica_id.clone(), rx, rebuild_tx.clone());
 
         if let CrlBackend::Postgres(pool) = &backend {
-            postgres::spawn_crl_listener(pool.clone(), rebuild_tx.clone());
+            postgres::spawn_crl_listener(pool.clone(), replica_id, rebuild_tx.clone());
         }
 
         Ok(Self {
@@ -121,15 +133,20 @@ impl CrlState {
         self.rebuild_notify.subscribe()
     }
 
-    async fn compute_initial(backend: &CrlBackend) -> CrlWatchValue {
+    async fn compute_initial(backend: &CrlBackend) -> AppResult<CrlWatchValue> {
         match backend {
             CrlBackend::File(path) => match fs::read(path).await {
-                Ok(bytes) => (compute_etag(&bytes), Some(Arc::new(bytes))),
-                Err(_) => (String::new(), None),
+                Ok(bytes) => Ok((compute_etag(&bytes), Some(Arc::new(bytes)))),
+                // Missing file is a cold start (empty CRL); other I/O errors
+                // are real failures and should surface rather than silently
+                // starting with an empty CRL.
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok((String::new(), None)),
+                Err(e) => Err(e.into()),
             },
             CrlBackend::Postgres(pool) => match postgres::load_crl_from_cache(pool).await {
-                Ok(Some((etag, body))) => (etag, Some(body)),
-                _ => (String::new(), None),
+                Ok(Some((etag, body))) => Ok((etag, Some(body))),
+                Ok(None) => Ok((String::new(), None)),
+                Err(e) => Err(e),
             },
         }
     }

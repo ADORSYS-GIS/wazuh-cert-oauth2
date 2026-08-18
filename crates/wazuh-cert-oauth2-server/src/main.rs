@@ -84,7 +84,9 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
         Some(url) if !url.is_empty() => {
             info!("using PostgreSQL storage backend");
             let pool = sqlx::postgres::PgPoolOptions::new()
-                .max_connections(5)
+                // Sized to account for the long-lived CRL PgListener
+                // connection plus concurrent ledger/CRL operations.
+                .max_connections(10)
                 .connect(url)
                 .await
                 .map_err(|e| {

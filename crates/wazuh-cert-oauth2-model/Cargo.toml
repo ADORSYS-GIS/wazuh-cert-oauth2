@@ -32,8 +32,13 @@ workspace = true
 optional = true
 
 [features]
+# Each optional dependency is enabled via an explicit `dep:`-based feature so
+# the implicit per-dependency features are not exposed publicly.
 rocket = [
-    "tracing-subscriber"
+    "dep:tracing-subscriber"
+]
+openssl = [
+    "dep:openssl"
 ]
 # Enables the sqlx-backed DatabaseError variant. Only the server crate needs
 # this; keeping it optional avoids dragging the Postgres driver into the

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use sqlx::PgPool;
 use tokio::sync::watch;
@@ -21,22 +22,39 @@ pub(super) async fn load_crl_from_cache(
 
 /// Background task that listens for `crl_changed` notifications and refreshes
 /// this replica's local cache so long-poll clients get the new CRL promptly.
-pub(super) fn spawn_crl_listener(pool: PgPool, rebuild_notify: watch::Sender<CrlWatchValue>) {
+///
+/// `replica_id` is this replica's identity; notifications carrying it are this
+/// replica's own rebuilds (already reflected in the local watch channel), so
+/// they are skipped to avoid a redundant cache reload.
+pub(super) fn spawn_crl_listener(
+    pool: PgPool,
+    replica_id: String,
+    rebuild_notify: watch::Sender<CrlWatchValue>,
+) {
     tokio::spawn(async move {
+        // Exponential backoff (capped) for connect/listen retries so a
+        // degraded pool isn't hammered with connection attempts.
+        let mut backoff = Duration::from_secs(1);
         loop {
             let mut listener = match sqlx::postgres::PgListener::connect_with(&pool).await {
-                Ok(l) => l,
+                Ok(l) => {
+                    backoff = Duration::from_secs(1);
+                    l
+                }
                 Err(e) => {
                     error!("crl listener connect failed: {}", e);
-                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    tokio::time::sleep(backoff).await;
+                    backoff = (backoff * 2).min(Duration::from_secs(30));
                     continue;
                 }
             };
             if let Err(e) = listener.listen("crl_changed").await {
                 error!("crl listener listen failed: {}", e);
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                tokio::time::sleep(backoff).await;
+                backoff = (backoff * 2).min(Duration::from_secs(30));
                 continue;
             }
+            backoff = Duration::from_secs(1);
             // Re-sync on (re)connect: notifications committed while the
             // listener was disconnected are missed (NOTIFY is best-effort),
             // so reload the latest CRL from the cache to avoid serving a
@@ -50,6 +68,10 @@ pub(super) fn spawn_crl_listener(pool: PgPool, rebuild_notify: watch::Sender<Crl
                 Err(e) => error!("failed to reload CRL from cache on reconnect: {}", e),
             }
             while let Ok(notification) = listener.recv().await {
+                if notification.payload() == replica_id {
+                    // Our own rebuild — the worker already updated the watch.
+                    continue;
+                }
                 debug!(
                     "crl_changed notification received: {:?}",
                     notification.payload()

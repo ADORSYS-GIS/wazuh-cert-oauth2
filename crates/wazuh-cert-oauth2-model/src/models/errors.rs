@@ -133,6 +133,8 @@ impl<'r> Responder<'r, 'static> for AppError {
 
         let status = match &self {
             AppError::UpstreamError(_) => Status::BadGateway,
+            #[cfg(feature = "postgres")]
+            AppError::DatabaseError(_) => Status::BadGateway,
             AppError::Conflict(_) => Status::Conflict,
             AppError::RequestTokenError(_) => Status::ServiceUnavailable,
             AppError::CsrMissingPublicKey
