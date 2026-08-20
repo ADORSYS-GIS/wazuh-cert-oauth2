@@ -2,12 +2,16 @@ use std::path::Path;
 use tokio::fs;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
+
 /// Replace the body of every `<tag>...</tag>` pair in a config file.
 ///
 /// Done in-process (no `sed`/`gsed` subprocess) so enrollment doesn't depend on
 /// `PATH` or gnu-sed. The file is rewritten atomically via temp file + rename,
-/// preserving the original mode.
-pub async fn replace_tag(file_path: &str, tag: &str, value: &str) -> AppResult<()> {
+/// preserving the original mode, owner, and group. Returns `true` if at least
+/// one element was replaced, `false` if the tag was absent (file left unchanged).
+pub async fn replace_tag(file_path: &str, tag: &str, value: &str) -> AppResult<bool> {
     let path = Path::new(file_path);
     let contents = fs::read_to_string(path).await?;
 
@@ -37,17 +41,22 @@ pub async fn replace_tag(file_path: &str, tag: &str, value: &str) -> AppResult<(
             "No <{}> element found in {}, leaving it unchanged",
             tag, file_path
         );
-        return Ok(());
+        return Ok(false);
     }
 
     // Write atomically via a unique temp file + rename so an interrupted write
     // can't leave the config truncated and a stale temp file can't clobber the
-    // target. The temp file inherits the target's permissions.
-    let original_permissions = fs::metadata(path).await?.permissions();
+    // target. The temp file inherits the target's mode, owner, and group.
+    let metadata = fs::metadata(path).await?;
     let tmp = unique_temp_path(path);
     let write = async {
         fs::write(&tmp, out.as_bytes()).await?;
-        fs::set_permissions(&tmp, original_permissions).await?;
+        fs::set_permissions(&tmp, metadata.permissions()).await?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::chown;
+            chown(&tmp, Some(metadata.uid()), Some(metadata.gid()))?;
+        }
         fs::rename(&tmp, path).await
     }
     .await;
@@ -56,7 +65,7 @@ pub async fn replace_tag(file_path: &str, tag: &str, value: &str) -> AppResult<(
     }
     write?;
 
-    Ok(())
+    Ok(true)
 }
 
 /// A unique temp path in the same directory as `path`, so the atomic rename
@@ -81,35 +90,38 @@ mod tests {
         path
     }
 
-    async fn run(contents: &str, name: &str) -> String {
+    async fn run(contents: &str, name: &str) -> (String, bool) {
         let path = with_file(contents, name).await;
-        replace_tag(path.to_str().unwrap(), "agent_name", "new-name")
+        let replaced = replace_tag(path.to_str().unwrap(), "agent_name", "new-name")
             .await
             .unwrap();
         let out = tokio::fs::read_to_string(&path).await.unwrap();
         tokio::fs::remove_file(&path).await.ok();
-        out
+        (out, replaced)
     }
 
     #[tokio::test]
     async fn replaces_existing_value() {
-        let out = run("<c><agent_name>old</agent_name></c>", "existing").await;
+        let (out, replaced) = run("<c><agent_name>old</agent_name></c>", "existing").await;
+        assert!(replaced);
         assert_eq!(out, "<c><agent_name>new-name</agent_name></c>");
     }
 
     #[tokio::test]
     async fn fills_empty_element() {
-        let out = run("<c><agent_name></agent_name></c>", "empty").await;
+        let (out, replaced) = run("<c><agent_name></agent_name></c>", "empty").await;
+        assert!(replaced);
         assert_eq!(out, "<c><agent_name>new-name</agent_name></c>");
     }
 
     #[tokio::test]
     async fn replaces_every_occurrence() {
-        let out = run(
+        let (out, replaced) = run(
             "<agent_name>a</agent_name>\n<x/>\n<agent_name>b</agent_name>",
             "multi",
         )
         .await;
+        assert!(replaced);
         assert_eq!(
             out,
             "<agent_name>new-name</agent_name>\n<x/>\n<agent_name>new-name</agent_name>"
@@ -119,13 +131,17 @@ mod tests {
     #[tokio::test]
     async fn leaves_file_untouched_when_tag_absent() {
         let src = "<c><server>1.2.3.4</server></c>";
-        assert_eq!(run(src, "absent").await, src);
+        let (out, replaced) = run(src, "absent").await;
+        assert!(!replaced);
+        assert_eq!(out, src);
     }
 
     #[tokio::test]
     async fn leaves_unclosed_tag_untouched() {
         let src = "<c><agent_name>oops</c>";
-        assert_eq!(run(src, "unclosed").await, src);
+        let (out, replaced) = run(src, "unclosed").await;
+        assert!(!replaced);
+        assert_eq!(out, src);
     }
 
     #[tokio::test]
