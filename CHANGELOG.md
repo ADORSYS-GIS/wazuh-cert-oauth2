@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[c8fa4a5](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c8fa4a5d8bbe8f02c734b951611b48d0ff0f632f)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[791fae3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/791fae34e41f8c72db33b1e59bec1eadd0624929)
 
 ### Bug Fixes
 
@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Re-sync CRL cache on listener reconnect; 500 on empty fallback (#294) ([`caecacc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/caecacccd670b055a10b49787784c350bb8a566d))
 - Address CRL review comments and model feature cleanup (#294) ([`ebcb7ec`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ebcb7ecce0fb166a843b7bf10e938f653809f348))
 - Use static SQL for ledger reads (sqlx 0.9) ([`9789dd8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9789dd83497c859919cedfbabe2b687548cfbf35))
+- Set agent name in-process instead of shelling out to gsed (#169) ([`791fae3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/791fae34e41f8c72db33b1e59bec1eadd0624929))
 
 ### Documentation
 
@@ -38,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`ea4ecab`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ea4ecabd1b60857b0df17b8b5765c3af5dcaa11d))
 - Update CHANGELOG.md and checksums [skip ci] ([`313f42c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/313f42c36b14286c0c4bb323249c037e4799ffa0))
 - Update CHANGELOG.md and checksums [skip ci] ([`5d4b006`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5d4b006ec88b7732e94b550dc7978ee72f6f2bd7))
+- Update CHANGELOG.md and checksums [skip ci] ([`63ff9c1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/63ff9c12671ca75147481fcb49598770b055d29c))
 
 ### Features
 
