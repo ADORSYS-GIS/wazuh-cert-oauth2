@@ -4,16 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[6801930](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6801930a348eb6feb5355474e4cb198cfdd073ba)...[4052226](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/40522268c059f0c5f0f8e241bdf4a55e41f73482)
+[6801930](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6801930a348eb6feb5355474e4cb198cfdd073ba)...[5eb5377](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5eb53772a0dca331639632df33469d63b849673a)
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`0583b5c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0583b5c45cde71b7c2a76762fb70fe23a1d596a2))
 - Update CHANGELOG.md and checksums [skip ci] ([`22201af`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/22201af40b160e5d7743a0b4b61f801a7629ee8f))
+- Update CHANGELOG.md and checksums [skip ci] ([`0abd406`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0abd4064878fc7f36a2c4ccbdcaed55f33f78451))
 
 ### Features
 
 - Add default AR_BIN_DIR variable for active-response scripts ([`4052226`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/40522268c059f0c5f0f8e241bdf4a55e41f73482))
+- Implement modular IdP and authentication providers with FerrisKey support and updated webhook configuration ([`5eb5377`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5eb53772a0dca331639632df33469d63b849673a))
 
 ## 0.4.3-rc.3 - 2026-05-15
 
