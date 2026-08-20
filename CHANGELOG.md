@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[791fae3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/791fae34e41f8c72db33b1e59bec1eadd0624929)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[ad83874](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ad83874d7e435ceafa3f5675fb0651ecb4bb6e7f)
 
 ### Bug Fixes
 
@@ -20,7 +20,7 @@ All notable changes to this project will be documented in this file.
 - Re-sync CRL cache on listener reconnect; 500 on empty fallback (#294) ([`caecacc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/caecacccd670b055a10b49787784c350bb8a566d))
 - Address CRL review comments and model feature cleanup (#294) ([`ebcb7ec`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ebcb7ecce0fb166a843b7bf10e938f653809f348))
 - Use static SQL for ledger reads (sqlx 0.9) ([`9789dd8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9789dd83497c859919cedfbabe2b687548cfbf35))
-- Set agent name in-process instead of shelling out to gsed (#169) ([`791fae3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/791fae34e41f8c72db33b1e59bec1eadd0624929))
+- Set agent name in-process instead of shelling out to gsed (#169) ([`ad83874`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ad83874d7e435ceafa3f5675fb0651ecb4bb6e7f))
 
 ### Documentation
 
