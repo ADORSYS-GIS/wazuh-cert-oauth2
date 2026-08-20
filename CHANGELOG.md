@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[ad83874](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ad83874d7e435ceafa3f5675fb0651ecb4bb6e7f)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[05b647d](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/05b647df89da182194cad8ad172e4d37d75d1554)
 
 ### Bug Fixes
 
@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Address CRL review comments and model feature cleanup (#294) ([`ebcb7ec`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ebcb7ecce0fb166a843b7bf10e938f653809f348))
 - Use static SQL for ledger reads (sqlx 0.9) ([`9789dd8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9789dd83497c859919cedfbabe2b687548cfbf35))
 - Set agent name in-process instead of shelling out to gsed (#169) ([`ad83874`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ad83874d7e435ceafa3f5675fb0651ecb4bb6e7f))
+- Enhance replace_tag function to return success status and improve error handling ([`05b647d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/05b647df89da182194cad8ad172e4d37d75d1554))
 
 ### Documentation
 
@@ -40,6 +41,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`313f42c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/313f42c36b14286c0c4bb323249c037e4799ffa0))
 - Update CHANGELOG.md and checksums [skip ci] ([`5d4b006`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5d4b006ec88b7732e94b550dc7978ee72f6f2bd7))
 - Update CHANGELOG.md and checksums [skip ci] ([`63ff9c1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/63ff9c12671ca75147481fcb49598770b055d29c))
+- Update CHANGELOG.md and checksums [skip ci] ([`814be69`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/814be6988cb3c8b6241f69dc9c9cfa6a201e957c))
 
 ### Features
 
