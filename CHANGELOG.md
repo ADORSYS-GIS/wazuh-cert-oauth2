@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## 0.4.6-rc.1 - 2026-08-21
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[c8fa4a5](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c8fa4a5d8bbe8f02c734b951611b48d0ff0f632f)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[7da8704](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7da8704465ea0dfd747c1a55ff274026702644a9)
 
 ### Bug Fixes
 
@@ -20,6 +20,9 @@ All notable changes to this project will be documented in this file.
 - Re-sync CRL cache on listener reconnect; 500 on empty fallback (#294) ([`caecacc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/caecacccd670b055a10b49787784c350bb8a566d))
 - Address CRL review comments and model feature cleanup (#294) ([`ebcb7ec`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ebcb7ecce0fb166a843b7bf10e938f653809f348))
 - Use static SQL for ledger reads (sqlx 0.9) ([`9789dd8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9789dd83497c859919cedfbabe2b687548cfbf35))
+- Set agent name in-process instead of shelling out to gsed (#169) ([`ad83874`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ad83874d7e435ceafa3f5675fb0651ecb4bb6e7f))
+- Enhance replace_tag function to return success status and improve error handling ([`05b647d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/05b647df89da182194cad8ad172e4d37d75d1554))
+- Add --clobber option to gh release create command ([`7da8704`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7da8704465ea0dfd747c1a55ff274026702644a9))
 
 ### Documentation
 
@@ -38,6 +41,9 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`ea4ecab`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ea4ecabd1b60857b0df17b8b5765c3af5dcaa11d))
 - Update CHANGELOG.md and checksums [skip ci] ([`313f42c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/313f42c36b14286c0c4bb323249c037e4799ffa0))
 - Update CHANGELOG.md and checksums [skip ci] ([`5d4b006`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5d4b006ec88b7732e94b550dc7978ee72f6f2bd7))
+- Update CHANGELOG.md and checksums [skip ci] ([`63ff9c1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/63ff9c12671ca75147481fcb49598770b055d29c))
+- Update CHANGELOG.md and checksums [skip ci] ([`814be69`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/814be6988cb3c8b6241f69dc9c9cfa6a201e957c))
+- Update CHANGELOG.md and checksums [skip ci] ([`1e08efd`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e08efd27fc26f1c5d75ee3e501b5c0fef5d2742))
 
 ### Features
 
@@ -52,6 +58,7 @@ All notable changes to this project will be documented in this file.
 
 - Harden GitHub Actions workflows ([`99603d1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/99603d1d6fb165f35b0ad080eb92a9661b867ea8))
 - Fix actionlint shellcheck on gh release step; correct checkout version pin ([`aac3bd8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/aac3bd8b4529da3cb10d41995cc3af8181c8a02a))
+- Empty line to trigger release job ([`2c5d16f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2c5d16fa4f708b8fb209502a8e43b8110fe905d8))
 
 ### Refactor
 
