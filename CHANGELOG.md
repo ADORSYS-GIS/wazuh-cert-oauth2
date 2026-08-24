@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## 0.4.6-rc.1 - 2026-08-21
+## Unreleased
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[7da8704](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7da8704465ea0dfd747c1a55ff274026702644a9)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[444824d](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/444824dbf2a01dd955fc9cfb645a36fcb15c9d71)
 
 ### Bug Fixes
 
@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file.
 - Set agent name in-process instead of shelling out to gsed (#169) ([`ad83874`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ad83874d7e435ceafa3f5675fb0651ecb4bb6e7f))
 - Enhance replace_tag function to return success status and improve error handling ([`05b647d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/05b647df89da182194cad8ad172e4d37d75d1554))
 - Add --clobber option to gh release create command ([`7da8704`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7da8704465ea0dfd747c1a55ff274026702644a9))
+- Add --clobber option to gh release upload command ([`3436971`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/343697183d8e14ad63fe2413a93001d59f39992f))
 
 ### Documentation
 
@@ -44,6 +45,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`63ff9c1`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/63ff9c12671ca75147481fcb49598770b055d29c))
 - Update CHANGELOG.md and checksums [skip ci] ([`814be69`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/814be6988cb3c8b6241f69dc9c9cfa6a201e957c))
 - Update CHANGELOG.md and checksums [skip ci] ([`1e08efd`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e08efd27fc26f1c5d75ee3e501b5c0fef5d2742))
+- Update CHANGELOG.md and checksums [skip ci] ([`907eb33`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/907eb33f2cabcd745e6037973fb73d6c3c3d1ddc))
 
 ### Features
 
