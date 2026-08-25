@@ -198,7 +198,9 @@ mod tests {
             .connect(&url)
             .await
             .expect("connect to test database");
-        sqlx::migrate!().run(&pool).await.expect("run migrations");
+        wazuh_cert_oauth2_model::run_crl_migrations(&pool)
+            .await
+            .expect("run migrations");
         Some(pool)
     }
 

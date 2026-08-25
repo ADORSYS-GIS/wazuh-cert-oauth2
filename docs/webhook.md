@@ -41,7 +41,8 @@ See [Agent eviction](../features-eviction) for the full feature walkthrough, inc
 | Flag | Env Variable | Default | Purpose |
 | :--- | :--- | :--- | :--- |
 | `--server-base-url` | `SERVER_BASE_URL` | (required) | Base URL of the server. |
-| `--spool-dir` | `SPOOL_DIR` | `/data/spool` | Directory for queued revoke requests. |
+| `--database-url` | `DATABASE_URL` | (optional) | PostgreSQL DSN. When set, the spool uses PostgreSQL (multi-replica safe); otherwise it falls back to the on-disk JSON spool directory at `SPOOL_DIR`. |
+| `--spool-dir` | `SPOOL_DIR` | `/data/spool` | Directory for queued revoke requests (local-dev fallback). |
 | `--retry-attempts` | `RETRY_ATTEMPTS` | `5` | Max retry attempts per revoke. |
 | `--retry-base-ms` | `RETRY_BASE_MS` | `500` | Initial backoff. |
 | `--retry-max-ms` | `RETRY_MAX_MS` | `8000` | Maximum backoff. |
@@ -78,7 +79,19 @@ Any set option is accepted:
 
 ## Data and persistence
 
-Mount a writable volume at `/data` (or adjust `--spool-dir`) for durable spooling.
+The spool backend is configurable:
+
+- **PostgreSQL (recommended for multi-replica):** set `DATABASE_URL`. The webhook
+  stores spool items in the shared `spool_item` table and claims them with
+  `SELECT ... FOR UPDATE SKIP LOCKED`, so multiple webhook replicas can run
+  safely without double-processing. Dead-lettering is in-table
+  (`state = 'dead_letter'`).
+- **Directory (local-dev / fallback):** when `DATABASE_URL` is unset, the webhook
+  uses the on-disk JSON spool directory at `SPOOL_DIR`, with a dead-letter
+  directory for expired eviction items.
+
+Mount a writable volume at `/data` (or adjust `--spool-dir`) for durable spooling
+when using the directory fallback.
 
 ```bash
 wazuh-cert-oauth2-webhook --help

@@ -92,8 +92,10 @@ async fn run_server(opt: ServeOpt) -> AppResult<()> {
                 .map_err(|e| {
                     AppError::UpstreamError(format!("failed to connect to database: {}", e))
                 })?;
-            sqlx::migrate!()
-                .run(&pool)
+            wazuh_cert_oauth2_model::run_ledger_migrations(&pool)
+                .await
+                .map_err(|e| AppError::UpstreamError(format!("failed to run migrations: {}", e)))?;
+            wazuh_cert_oauth2_model::run_crl_migrations(&pool)
                 .await
                 .map_err(|e| AppError::UpstreamError(format!("failed to run migrations: {}", e)))?;
             let ledger = Ledger::new(LedgerBackend::Postgres(pool.clone())).await?;

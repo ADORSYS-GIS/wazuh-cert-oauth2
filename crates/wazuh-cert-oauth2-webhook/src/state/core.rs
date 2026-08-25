@@ -201,15 +201,15 @@ impl ProxyState {
     }
 
     pub async fn queue_revoke(&self, req: RevokeRequest) -> AppResult<()> {
-        spool::queue_revoke_to_spool_dir(self, req).await
+        spool::queue_revoke(self, req).await
     }
 
     pub async fn queue_github_ticket(&self, ticket: GitHubTicket) -> AppResult<()> {
-        spool::queue_github_ticket_to_spool_dir(self, ticket).await
+        spool::queue_github_ticket(self, ticket).await
     }
 
     pub async fn queue_evict(&self, req: EvictRequest) -> AppResult<()> {
-        spool::queue_evict_to_spool_dir(self, req).await
+        spool::queue_evict(self, req).await
     }
 
     pub async fn fetch_ledger_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
@@ -291,14 +291,16 @@ mod tests {
     ) -> ProxyState {
         ProxyState::new(
             "https://server.example".to_string(),
-            unique_spool_dir(),
+            crate::state::SpoolBackend::Dir {
+                dir: unique_spool_dir(),
+                dead_letter_dir: std::path::PathBuf::from("/tmp/wazuh-webhook-dead-letter-test"),
+            },
             HttpClient::new_with_defaults().expect("http client"),
             2,
             Duration::from_millis(5),
             Duration::from_millis(20),
             Duration::from_secs(1),
             Duration::from_secs(86400),
-            std::path::PathBuf::from("/tmp/wazuh-webhook-dead-letter-test"),
             None,
             None,
             None,

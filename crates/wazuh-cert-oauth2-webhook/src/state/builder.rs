@@ -5,20 +5,19 @@ use tokio::sync::RwLock;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
 use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
-use super::{ProxyState, WazuhApiClient, oauth, utils};
+use super::{ProxyState, SpoolBackend, WazuhApiClient, oauth, spool, utils};
 
 impl ProxyState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         server_base_url: String,
-        spool_dir: PathBuf,
+        spool_backend: SpoolBackend,
         http: HttpClient,
         retry_attempts: u32,
         retry_base: Duration,
         retry_max: Duration,
         spool_interval: Duration,
         spool_evict_ttl: Duration,
-        spool_dead_letter_dir: PathBuf,
         static_bearer: Option<String>,
         oauth_issuer: Option<String>,
         oauth_client_id: Option<String>,
@@ -42,15 +41,24 @@ impl ProxyState {
         wazuh_api_tls_verify: bool,
         wazuh_api_ca_bundle: Option<PathBuf>,
     ) -> AppResult<Self> {
-        utils::ensure_spool_dir(&spool_dir);
-        // Reject a DLQ path that collides with the spool directory.
-        if spool_dead_letter_dir == spool_dir {
-            return Err(AppError::ValidationError(format!(
-                "SPOOL_DEAD_LETTER_DIR ({}) must not be the same as SPOOL_DIR ({})",
-                spool_dead_letter_dir.display(),
-                spool_dir.display(),
-            )));
-        }
+        // Validate the directory backend and build the spool store.
+        let spool: Arc<dyn spool::SpoolStore> = match spool_backend {
+            SpoolBackend::Dir {
+                dir,
+                dead_letter_dir,
+            } => {
+                utils::ensure_spool_dir(&dir);
+                if dead_letter_dir == dir {
+                    return Err(AppError::ValidationError(format!(
+                        "SPOOL_DEAD_LETTER_DIR ({}) must not be the same as SPOOL_DIR ({})",
+                        dead_letter_dir.display(),
+                        dir.display(),
+                    )));
+                }
+                Arc::new(spool::DirSpoolStore::new(dir, dead_letter_dir))
+            }
+            SpoolBackend::Postgres(pool) => Arc::new(spool::PostgresSpoolStore::new(pool)),
+        };
         let oauth = oauth::build_oauth(
             oauth_issuer,
             oauth_client_id,
@@ -71,14 +79,13 @@ impl ProxyState {
         });
         Ok(Self {
             server_base_url,
-            spool_dir,
+            spool,
             http,
             retry_attempts,
             retry_base,
             retry_max,
             spool_interval,
             spool_evict_ttl,
-            spool_dead_letter_dir,
             static_bearer,
             oauth,
             revoke_reason: keycloak_revoke_reason,

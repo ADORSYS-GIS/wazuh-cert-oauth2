@@ -1,15 +1,21 @@
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rand::TryRng;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use tracing::{debug, error, info, warn};
-use unwrap_infallible::UnwrapInfallible;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 use super::ProxyState;
 use super::wazuh_api::EvictionOutcome;
+
+mod dir;
+mod postgres;
+
+pub use dir::DirSpoolStore;
+pub use postgres::PostgresSpoolStore;
 
 /// Represents a pending GitHub ticket.
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -34,240 +40,215 @@ pub struct EvictRequest {
     pub delete_after_unix: Option<u64>,
 }
 
-#[derive(Serialize, Deserialize)]
-enum SpoolItem {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) enum SpoolItem {
     RevokeRequest { req: RevokeRequest },
     GitHubTicket { ticket: GitHubTicket },
     EvictRequest { req: EvictRequest },
 }
 
-#[tracing::instrument(skip(state, item))]
-async fn queue_item_to_spool_dir(
-    state: &ProxyState,
-    item: SpoolItem,
-    prefix: &str,
-) -> AppResult<()> {
-    let data = serde_json::to_vec(&item)?;
-    let ms = SystemTime::now()
+/// Postgres ENUM for the `spool_item.item_type` column.
+#[derive(sqlx::Type, Debug, Clone, Copy)]
+#[sqlx(type_name = "spool_item_type", rename_all = "snake_case")]
+pub enum SpoolItemType {
+    Revoke,
+    GithubTicket,
+    Evict,
+}
+
+impl SpoolItem {
+    fn item_type(&self) -> SpoolItemType {
+        match self {
+            SpoolItem::RevokeRequest { .. } => SpoolItemType::Revoke,
+            SpoolItem::GitHubTicket { .. } => SpoolItemType::GithubTicket,
+            SpoolItem::EvictRequest { .. } => SpoolItemType::Evict,
+        }
+    }
+}
+
+impl std::fmt::Display for SpoolItemType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            SpoolItemType::Revoke => "revoke",
+            SpoolItemType::GithubTicket => "github_ticket",
+            SpoolItemType::Evict => "evict",
+        };
+        write!(f, "{}", s)
+    }
+}
+
+/// Selects the spool storage backend.
+#[derive(Clone)]
+pub enum SpoolBackend {
+    /// On-disk JSON directory (local-dev / tests / fallback).
+    Dir {
+        dir: std::path::PathBuf,
+        dead_letter_dir: std::path::PathBuf,
+    },
+    /// PostgreSQL `spool_item` table (system of record for multi-replica).
+    Postgres(PgPool),
+}
+
+/// A spool item claimed for processing.
+pub struct ClaimedItem {
+    pub id: String,
+    pub item: SpoolItem,
+    pub triggered_at_unix: u64,
+}
+
+/// Storage backend for the reliable-delivery spool.
+#[async_trait]
+pub trait SpoolStore: Send + Sync {
+    async fn enqueue(
+        &self,
+        item: SpoolItem,
+        triggered_at_unix: u64,
+        delete_after_unix: Option<u64>,
+    ) -> AppResult<()>;
+
+    /// Claim the next due pending item. For Postgres this uses
+    /// `SELECT ... FOR UPDATE SKIP LOCKED` so concurrent replicas don't
+    /// double-process.
+    async fn claim_next(&self) -> AppResult<Option<ClaimedItem>>;
+
+    async fn mark_done(&self, id: &str) -> AppResult<()>;
+    async fn mark_dead_letter(&self, id: &str, error: &str) -> AppResult<()>;
+    async fn update_item(
+        &self,
+        id: &str,
+        item: &SpoolItem,
+        delete_after_unix: Option<u64>,
+    ) -> AppResult<()>;
+}
+
+fn now_unix() -> u64 {
+    SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
-        .as_millis();
-    let mut buf = [0u8; 8];
-    rand::rng().try_fill_bytes(&mut buf).unwrap_infallible();
-    let mut rid = String::with_capacity(buf.len() * 2);
-    for b in buf {
-        rid.push_str(&format!("{:02x}", b));
-    }
-    let filename = format!("{}-{}-{}.json", prefix, ms, rid);
-    let path = state.spool_dir.join(&filename);
-    let tmp = state.spool_dir.join(format!("{}.tmp", filename));
-    tokio::fs::write(&tmp, data).await?;
-    tokio::fs::rename(&tmp, &path).await?;
-    Ok(())
+        .as_secs()
 }
 
-pub async fn queue_revoke_to_spool_dir(state: &ProxyState, req: RevokeRequest) -> AppResult<()> {
-    queue_item_to_spool_dir(state, SpoolItem::RevokeRequest { req }, "revoke").await
+// ---------------------------------------------------------------------------
+// Queue entry points
+// ---------------------------------------------------------------------------
+
+pub async fn queue_revoke(state: &ProxyState, req: RevokeRequest) -> AppResult<()> {
+    state
+        .spool
+        .enqueue(SpoolItem::RevokeRequest { req }, now_unix(), None)
+        .await
 }
 
-pub async fn queue_github_ticket_to_spool_dir(
-    state: &ProxyState,
-    ticket: GitHubTicket,
-) -> AppResult<()> {
-    queue_item_to_spool_dir(state, SpoolItem::GitHubTicket { ticket }, "ticket").await
+pub async fn queue_github_ticket(state: &ProxyState, ticket: GitHubTicket) -> AppResult<()> {
+    state
+        .spool
+        .enqueue(SpoolItem::GitHubTicket { ticket }, now_unix(), None)
+        .await
 }
 
-pub async fn queue_evict_to_spool_dir(state: &ProxyState, req: EvictRequest) -> AppResult<()> {
-    queue_item_to_spool_dir(state, SpoolItem::EvictRequest { req }, "evict").await
+pub async fn queue_evict(state: &ProxyState, req: EvictRequest) -> AppResult<()> {
+    let delete_after = req.delete_after_unix;
+    state
+        .spool
+        .enqueue(SpoolItem::EvictRequest { req }, now_unix(), delete_after)
+        .await
 }
+
+// ---------------------------------------------------------------------------
+// Processor
+// ---------------------------------------------------------------------------
 
 #[tracing::instrument(skip(state))]
 pub async fn spawn_spool_processor(state: ProxyState) -> AppResult<()> {
     info!(
-        "spool processor running; dir={} interval={:?}",
-        state.spool_dir.display(),
+        "spool processor running; interval={:?}",
         state.spool_interval
     );
-    // Ensure the dead-letter directory exists.
-    let dlq_dir = state.spool_dead_letter_dir.clone();
-    if let Err(e) = tokio::fs::create_dir_all(&dlq_dir).await {
-        warn!(
-            "failed to create dead-letter dir {}: {}",
-            dlq_dir.display(),
-            e
-        );
-    }
     loop {
-        if let Err(e) = process_once(&state, &dlq_dir).await {
+        if let Err(e) = process_once(&state).await {
             error!("error in spool cycle: {}", e);
         }
         tokio::time::sleep(state.spool_interval).await;
     }
 }
 
-#[tracing::instrument(skip(state, dlq_dir))]
-async fn process_once(state: &ProxyState, dlq_dir: &Path) -> AppResult<()> {
-    let mut dir = match tokio::fs::read_dir(&state.spool_dir).await {
-        Ok(d) => d,
-        Err(e) => {
-            warn!("spool read_dir failed: {}", e);
-            return Ok(());
-        }
-    };
-    while let Some(entry) = dir.next_entry().await? {
-        let path = entry.path();
-        if !is_json(&path) {
-            continue;
-        }
-        match tokio::fs::read(&path).await {
-            Ok(bytes) => match serde_json::from_slice::<SpoolItem>(&bytes) {
-                Ok(item) => {
-                    debug!("processing spool file: {}", path.display());
-                    match item {
-                        SpoolItem::RevokeRequest { req } => {
-                            match state.forward_revoke_with_retry(req).await {
-                                Ok(()) => {
-                                    debug!("successfully processed {}; removing", path.display());
-                                    let _ = tokio::fs::remove_file(&path).await;
-                                }
-                                Err(e) => warn!("still failing for {}: {}", path.display(), e),
-                            }
-                        }
-                        SpoolItem::GitHubTicket { ticket } => {
-                            match state.forward_github_ticket_with_retry(ticket).await {
-                                Ok(()) => {
-                                    debug!("successfully processed {}; removing", path.display());
-                                    let _ = tokio::fs::remove_file(&path).await;
-                                }
-                                Err(e) => warn!("still failing for {}: {}", path.display(), e),
-                            }
-                        }
-                        SpoolItem::EvictRequest { req } => {
-                            // Skip if grace period hasn't elapsed yet.
-                            if let Some(delete_after) = req.delete_after_unix {
-                                let now = SystemTime::now()
-                                    .duration_since(UNIX_EPOCH)
-                                    .unwrap_or_default()
-                                    .as_secs();
-                                if now < delete_after {
-                                    debug!(
-                                        "eviction for {} not yet due ({}s remaining)",
-                                        req.subject,
-                                        delete_after - now
-                                    );
-                                    continue;
-                                }
-                            }
+#[tracing::instrument(skip(state))]
+async fn process_once(state: &ProxyState) -> AppResult<()> {
+    while let Some(claimed) = state.spool.claim_next().await? {
+        let id = claimed.id;
+        let triggered_at = claimed.triggered_at_unix;
+        match claimed.item {
+            SpoolItem::RevokeRequest { req } => match state.forward_revoke_with_retry(req).await {
+                Ok(()) => state.spool.mark_done(&id).await?,
+                Err(e) => warn!("still failing for {}: {}", id, e),
+            },
+            SpoolItem::GitHubTicket { ticket } => {
+                match state.forward_github_ticket_with_retry(ticket).await {
+                    Ok(()) => state.spool.mark_done(&id).await?,
+                    Err(e) => warn!("still failing for {}: {}", id, e),
+                }
+            }
+            SpoolItem::EvictRequest { req } => {
+                // Skip if grace period hasn't elapsed yet.
+                if let Some(delete_after) = req.delete_after_unix {
+                    let now = now_unix();
+                    if now < delete_after {
+                        debug!(
+                            "eviction for {} not yet due ({}s remaining)",
+                            req.subject,
+                            delete_after - now
+                        );
+                        continue;
+                    }
+                }
 
-                            // Capture fields needed for TTL check before `req` is moved.
-                            let triggered_at = req.triggered_at_unix;
-                            let req_subject = req.subject.clone();
-
-                            match state.run_eviction_from_state(req).await {
-                                Ok(EvictionOutcome::Done) => {
-                                    debug!("eviction complete; removing {}", path.display());
-                                    let _ = tokio::fs::remove_file(&path).await;
-                                }
-                                Ok(EvictionOutcome::Pending(updated_req)) => {
-                                    // Re-write spool file with updated agent_id and delete_after_unix.
-                                    let updated = SpoolItem::EvictRequest { req: updated_req };
-                                    match serde_json::to_vec(&updated) {
-                                        Ok(data) => {
-                                            let tmp = path.with_extension("json.tmp");
-                                            if let Err(e) = tokio::fs::write(&tmp, &data).await {
-                                                error!(
-                                                    "failed to write temp spool file {}: {}",
-                                                    tmp.display(),
-                                                    e
-                                                );
-                                            } else if let Err(e) =
-                                                tokio::fs::rename(&tmp, &path).await
-                                            {
-                                                error!(
-                                                    "failed to rename temp spool file {} -> {}: {}",
-                                                    tmp.display(),
-                                                    path.display(),
-                                                    e
-                                                );
-                                                // Clean up the orphaned temp file
-                                                let _ = tokio::fs::remove_file(&tmp).await;
-                                            }
-                                        }
-                                        Err(e) => {
-                                            error!("failed to serialize updated spool item: {}", e)
-                                        }
-                                    }
-                                }
-                                Err(e) => {
-                                    let now = SystemTime::now()
-                                        .duration_since(UNIX_EPOCH)
-                                        .unwrap_or_default()
-                                        .as_secs();
-                                    let age = now.saturating_sub(triggered_at);
-                                    let ttl = state.spool_evict_ttl.as_secs();
-                                    if age > ttl {
-                                        // Prefix with a timestamp to avoid DLQ filename collisions.
-                                        let dlq_filename = format!(
-                                            "{}-{}",
-                                            now,
-                                            path.file_name().unwrap_or_default().to_string_lossy()
-                                        );
-                                        let dlq_path = dlq_dir.join(&dlq_filename);
-                                        error!(
-                                            subject = %req_subject,
-                                            path = %path.display(),
-                                            dead_letter_path = %dlq_path.display(),
-                                            age_secs = age,
-                                            ttl_secs = ttl,
-                                            error = %e,
-                                            "Eviction spool item exceeded TTL; moving to dead-letter directory",
-                                        );
-                                        if let Err(rename_err) =
-                                            tokio::fs::rename(&path, &dlq_path).await
-                                        {
-                                            error!(
-                                                subject = %req_subject,
-                                                src = %path.display(),
-                                                dst = %dlq_path.display(),
-                                                error = %rename_err,
-                                                "Failed to move expired spool item to dead-letter directory; \
-                                                 leaving in spool for next cycle",
-                                            );
-                                        }
-                                    } else {
-                                        warn!(
-                                            "eviction still failing for {} (age {}s, TTL {}s): {}",
-                                            path.display(),
-                                            age,
-                                            ttl,
-                                            e
-                                        );
-                                    }
-                                }
-                            }
+                let req_subject = req.subject.clone();
+                match state.run_eviction_from_state(req).await {
+                    Ok(EvictionOutcome::Done) => state.spool.mark_done(&id).await?,
+                    Ok(EvictionOutcome::Pending(updated_req)) => {
+                        let updated = SpoolItem::EvictRequest {
+                            req: updated_req.clone(),
+                        };
+                        state
+                            .spool
+                            .update_item(&id, &updated, updated_req.delete_after_unix)
+                            .await?;
+                    }
+                    Err(e) => {
+                        let now = now_unix();
+                        let age = now.saturating_sub(triggered_at);
+                        let ttl = state.spool_evict_ttl.as_secs();
+                        if age > ttl {
+                            error!(
+                                subject = %req_subject,
+                                id = %id,
+                                age_secs = age,
+                                ttl_secs = ttl,
+                                error = %e,
+                                "Eviction spool item exceeded TTL; dead-lettering",
+                            );
+                            state.spool.mark_dead_letter(&id, &e.to_string()).await?;
+                        } else {
+                            warn!(
+                                "eviction still failing for {} (age {}s, TTL {}s): {}",
+                                id, age, ttl, e
+                            );
                         }
                     }
                 }
-                Err(e) => {
-                    warn!("invalid spool item {}; deleting: {}", path.display(), e);
-                    let _ = tokio::fs::remove_file(&path).await;
-                }
-            },
-            Err(e) => warn!("failed to read {}: {}", path.display(), e),
+            }
         }
     }
     Ok(())
 }
 
-fn is_json(p: &Path) -> bool {
+pub(crate) fn is_json(p: &Path) -> bool {
     p.extension().and_then(|s| s.to_str()).unwrap_or("") == "json"
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        EvictRequest, SpoolItem, process_once, queue_evict_to_spool_dir, queue_revoke_to_spool_dir,
-    };
+    use super::{EvictRequest, SpoolBackend, SpoolItem, process_once, queue_evict, queue_revoke};
     use crate::state::ProxyState;
     use std::path::PathBuf;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -283,6 +264,14 @@ mod tests {
         std::env::temp_dir().join(format!("wazuh-webhook-spool-test-{}", nanos))
     }
 
+    fn unique_dlq_dir() -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("time should be monotonic")
+            .as_nanos();
+        std::env::temp_dir().join(format!("wazuh-webhook-dlq-test-{}", nanos))
+    }
+
     fn build_state(spool_dir: PathBuf) -> ProxyState {
         build_state_with(
             spool_dir,
@@ -290,14 +279,6 @@ mod tests {
             unique_dlq_dir(),
             Duration::from_secs(86400),
         )
-    }
-
-    fn unique_dlq_dir() -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time should be monotonic")
-            .as_nanos();
-        std::env::temp_dir().join(format!("wazuh-webhook-dlq-test-{}", nanos))
     }
 
     /// Like `build_state` but allows setting `wazuh_manager_url` so that
@@ -312,14 +293,16 @@ mod tests {
     ) -> ProxyState {
         ProxyState::new(
             "https://server.example".to_string(),
-            spool_dir,
+            SpoolBackend::Dir {
+                dir: spool_dir,
+                dead_letter_dir: dlq_dir,
+            },
             HttpClient::new_with_defaults().expect("http client"),
             2,
             Duration::from_millis(5),
             Duration::from_millis(20),
             Duration::from_secs(1),
             ttl,
-            dlq_dir,
             None,
             None,
             None,
@@ -369,7 +352,7 @@ mod tests {
         let spool_dir = unique_spool_dir();
         let state = build_state(spool_dir.clone());
 
-        queue_revoke_to_spool_dir(
+        queue_revoke(
             &state,
             RevokeRequest {
                 serial_hex: None,
@@ -400,7 +383,7 @@ mod tests {
             delete_after_unix: None,
         };
 
-        queue_evict_to_spool_dir(&state, req.clone())
+        queue_evict(&state, req.clone())
             .await
             .expect("queue should succeed");
 
@@ -451,7 +434,7 @@ mod tests {
             agent_id: None,
             delete_after_unix: None,
         };
-        queue_evict_to_spool_dir(&state, req)
+        queue_evict(&state, req)
             .await
             .expect("queue should succeed");
 
@@ -461,7 +444,7 @@ mod tests {
 
         // Process the spool — eviction fails (no credentials) and the item
         // is past TTL, so it should be moved to the dead-letter directory.
-        process_once(&state, &dlq_dir)
+        process_once(&state)
             .await
             .expect("process_once should succeed");
 
@@ -522,11 +505,11 @@ mod tests {
             agent_id: None,
             delete_after_unix: None,
         };
-        queue_evict_to_spool_dir(&state, req)
+        queue_evict(&state, req)
             .await
             .expect("queue should succeed");
 
-        process_once(&state, &dlq_dir)
+        process_once(&state)
             .await
             .expect("process_once should succeed");
 
@@ -544,14 +527,16 @@ mod tests {
         let spool_dir = unique_spool_dir();
         let result = ProxyState::new(
             "https://server.example".to_string(),
-            spool_dir.clone(),
+            SpoolBackend::Dir {
+                dir: spool_dir.clone(),
+                dead_letter_dir: spool_dir.clone(), // same as spool_dir — should fail
+            },
             HttpClient::new_with_defaults().expect("http client"),
             2,
             Duration::from_millis(5),
             Duration::from_millis(20),
             Duration::from_secs(1),
             Duration::from_secs(86400),
-            spool_dir.clone(), // same as spool_dir — should fail
             None,
             None,
             None,

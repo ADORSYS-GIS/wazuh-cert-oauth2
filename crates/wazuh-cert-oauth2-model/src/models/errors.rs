@@ -35,6 +35,9 @@ pub enum AppError {
     #[error("UTF-8 conversion error: {0}")]
     Utf8(#[from] std::string::FromUtf8Error),
 
+    #[error("Invalid integer: {0}")]
+    ParseInt(#[from] std::num::ParseIntError),
+
     // JWT / OIDC
     #[error("JWT error: {0}")]
     JwtError(#[from] jsonwebtoken::errors::Error),

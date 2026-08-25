@@ -300,7 +300,9 @@ mod tests {
             .connect(&url)
             .await
             .expect("connect to test database");
-        sqlx::migrate!().run(&pool).await.expect("run migrations");
+        wazuh_cert_oauth2_model::run_ledger_migrations(&pool)
+            .await
+            .expect("run migrations");
         Some(PostgresLedgerStore::new(pool))
     }
 

@@ -19,7 +19,9 @@ rand.workspace = true
 base64.workspace = true
 unwrap-infallible.workspace = true
 reqwest.workspace = true
+sqlx.workspace = true
+async-trait.workspace = true
 
 [dependencies.wazuh-cert-oauth2-model]
 workspace = true
-features = ["rocket"]
+features = ["rocket", "postgres"]

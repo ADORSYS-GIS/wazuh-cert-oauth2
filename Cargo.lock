@@ -3925,6 +3925,7 @@ dependencies = [
 name = "wazuh-cert-oauth2-webhook"
 version = "0.4.6"
 dependencies = [
+ "async-trait",
  "base64 0.23.1",
  "clap",
  "mimalloc",
@@ -3934,6 +3935,7 @@ dependencies = [
  "rocket",
  "serde",
  "serde_json",
+ "sqlx",
  "tokio",
  "tracing",
  "unwrap-infallible",
