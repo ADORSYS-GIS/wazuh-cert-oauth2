@@ -57,7 +57,8 @@ services:
       keycloak:
         condition: service_started
       # If you are NOT using PostgreSQL (CSV/file fallback), comment out the
-      # postgres dependency below so the service doesn't wait for a DB.
+      # postgres dependency below AND set DATABASE_URL to empty, otherwise the
+      # service will still try to connect to Postgres on startup.
       postgres:
         condition: service_healthy
 
@@ -146,7 +147,8 @@ services:
       keycloak:
         condition: service_started
       # If you are NOT using PostgreSQL (on-disk spool fallback), comment out
-      # the postgres dependency below so the service doesn't wait for a DB.
+      # the postgres dependency below AND set DATABASE_URL to empty, otherwise
+      # the service will still try to connect to Postgres on startup.
       postgres:
         condition: service_healthy
 

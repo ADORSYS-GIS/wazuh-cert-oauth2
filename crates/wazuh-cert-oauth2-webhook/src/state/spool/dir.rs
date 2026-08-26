@@ -10,6 +10,11 @@ use wazuh_cert_oauth2_model::models::errors::AppResult;
 use super::{ClaimedItem, SpoolItem, SpoolStore, is_json, now_unix};
 
 /// On-disk JSON directory spool (local-dev / tests / fallback).
+///
+/// Claiming renames a `.json` file to `.processing` so it is not re-claimed
+/// while being processed; `unclaim` renames it back so failed items are
+/// retried on the next cycle. Not-yet-due evictions are skipped so they don't
+/// block the rest of the spool.
 pub struct DirSpoolStore {
     dir: PathBuf,
     dead_letter_dir: PathBuf,
@@ -71,23 +76,34 @@ impl SpoolStore for DirSpoolStore {
                     continue;
                 }
             };
-            match serde_json::from_slice::<SpoolItem>(&bytes) {
-                Ok(item) => {
-                    let triggered_at_unix = match &item {
-                        SpoolItem::EvictRequest { req } => req.triggered_at_unix,
-                        _ => now_unix(),
-                    };
-                    return Ok(Some(ClaimedItem {
-                        id: path.to_string_lossy().to_string(),
-                        item,
-                        triggered_at_unix,
-                    }));
-                }
+            let item: SpoolItem = match serde_json::from_slice(&bytes) {
+                Ok(item) => item,
                 Err(e) => {
                     warn!("invalid spool item {}; deleting: {}", path.display(), e);
                     let _ = tokio::fs::remove_file(&path).await;
+                    continue;
                 }
+            };
+            // Skip not-yet-due evictions so they don't block the rest of the spool.
+            if let SpoolItem::EvictRequest { req } = &item
+                && let Some(delete_after) = req.delete_after_unix
+                && now_unix() < delete_after
+            {
+                debug!("eviction for {} not yet due; skipping", req.subject);
+                continue;
             }
+            // Claim by renaming to `.processing` so it isn't re-claimed.
+            let processing = path.with_extension("processing");
+            tokio::fs::rename(&path, &processing).await?;
+            let triggered_at_unix = match &item {
+                SpoolItem::EvictRequest { req } => req.triggered_at_unix,
+                _ => now_unix(),
+            };
+            return Ok(Some(ClaimedItem {
+                id: processing.to_string_lossy().to_string(),
+                item,
+                triggered_at_unix,
+            }));
         }
         Ok(None)
     }
@@ -100,20 +116,21 @@ impl SpoolStore for DirSpoolStore {
     }
 
     async fn mark_dead_letter(&self, id: &str, _error: &str) -> AppResult<()> {
-        let path = PathBuf::from(id);
+        let processing = PathBuf::from(id);
         let now = now_unix();
+        // Keep a `.json` extension in the DLQ so the item stays inspectable.
         let dlq_filename = format!(
-            "{}-{}",
+            "{}-{}.json",
             now,
-            path.file_name().unwrap_or_default().to_string_lossy()
+            processing.file_stem().unwrap_or_default().to_string_lossy()
         );
         let dlq_path = self.dead_letter_dir.join(&dlq_filename);
         error!(
-            path = %path.display(),
+            path = %processing.display(),
             dead_letter_path = %dlq_path.display(),
             "Moving expired spool item to dead-letter directory",
         );
-        tokio::fs::rename(&path, &dlq_path).await?;
+        tokio::fs::rename(&processing, &dlq_path).await?;
         Ok(())
     }
 
@@ -123,11 +140,21 @@ impl SpoolStore for DirSpoolStore {
         item: &SpoolItem,
         _delete_after_unix: Option<u64>,
     ) -> AppResult<()> {
-        let path = PathBuf::from(id);
+        let processing = PathBuf::from(id);
         let data = serde_json::to_vec(item)?;
-        let tmp = path.with_extension("json.tmp");
+        let tmp = processing.with_extension("json.tmp");
         tokio::fs::write(&tmp, &data).await?;
-        tokio::fs::rename(&tmp, &path).await?;
+        // Rename back to `.json` so the item can be re-claimed (e.g. after the
+        // grace deadline elapses).
+        let json_path = processing.with_extension("json");
+        tokio::fs::rename(&tmp, &json_path).await?;
+        Ok(())
+    }
+
+    async fn unclaim(&self, id: &str) -> AppResult<()> {
+        let processing = PathBuf::from(id);
+        let json_path = processing.with_extension("json");
+        tokio::fs::rename(&processing, &json_path).await?;
         Ok(())
     }
 }

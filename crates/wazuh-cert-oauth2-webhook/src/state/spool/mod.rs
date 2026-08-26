@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
@@ -119,6 +119,12 @@ pub trait SpoolStore: Send + Sync {
         item: &SpoolItem,
         delete_after_unix: Option<u64>,
     ) -> AppResult<()>;
+
+    /// Release a claimed item back to pending without processing it (e.g. a
+    /// failed forward that should be retried next cycle). For the directory
+    /// backend this un-claims the file; for Postgres it is a no-op (items stay
+    /// `in_progress` until the crash-recovery reclaim).
+    async fn unclaim(&self, id: &str) -> AppResult<()>;
 }
 
 fn now_unix() -> u64 {
@@ -180,28 +186,23 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
         match claimed.item {
             SpoolItem::RevokeRequest { req } => match state.forward_revoke_with_retry(req).await {
                 Ok(()) => state.spool.mark_done(&id).await?,
-                Err(e) => warn!("still failing for {}: {}", id, e),
+                Err(e) => {
+                    warn!("still failing for {}: {}", id, e);
+                    state.spool.unclaim(&id).await?;
+                }
             },
             SpoolItem::GitHubTicket { ticket } => {
                 match state.forward_github_ticket_with_retry(ticket).await {
                     Ok(()) => state.spool.mark_done(&id).await?,
-                    Err(e) => warn!("still failing for {}: {}", id, e),
+                    Err(e) => {
+                        warn!("still failing for {}: {}", id, e);
+                        state.spool.unclaim(&id).await?;
+                    }
                 }
             }
             SpoolItem::EvictRequest { req } => {
-                // Skip if grace period hasn't elapsed yet.
-                if let Some(delete_after) = req.delete_after_unix {
-                    let now = now_unix();
-                    if now < delete_after {
-                        debug!(
-                            "eviction for {} not yet due ({}s remaining)",
-                            req.subject,
-                            delete_after - now
-                        );
-                        continue;
-                    }
-                }
-
+                // Not-yet-due evictions are filtered out by claim_next, so we
+                // only reach here when the item is due.
                 let req_subject = req.subject.clone();
                 match state.run_eviction_from_state(req).await {
                     Ok(EvictionOutcome::Done) => state.spool.mark_done(&id).await?,

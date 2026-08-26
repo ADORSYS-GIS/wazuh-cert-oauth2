@@ -128,8 +128,10 @@ impl SpoolStore for PostgresSpoolStore {
     ) -> AppResult<()> {
         let id: i64 = id.parse()?;
         let payload = serde_json::to_value(item)?;
+        // Set state back to 'pending' so the item can be re-claimed (e.g. after
+        // the grace deadline elapses) instead of stalling in 'in_progress'.
         sqlx::query(
-            "UPDATE spool_item SET payload = $2, delete_after_unix = $3, updated_at = now()
+            "UPDATE spool_item SET payload = $2, delete_after_unix = $3, state = 'pending', updated_at = now()
              WHERE id = $1",
         )
         .bind(id)
@@ -137,6 +139,13 @@ impl SpoolStore for PostgresSpoolStore {
         .bind(delete_after_unix.map(|v| v as i64))
         .execute(&self.pool)
         .await?;
+        Ok(())
+    }
+
+    async fn unclaim(&self, _id: &str) -> AppResult<()> {
+        // No-op: failed items stay 'in_progress' until the crash-recovery
+        // reclaim returns them to 'pending' (avoids an immediate re-claim
+        // busy-loop).
         Ok(())
     }
 }
