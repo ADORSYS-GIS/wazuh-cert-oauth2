@@ -239,6 +239,10 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
                                 "eviction still failing for {} (age {}s, TTL {}s): {}",
                                 id, age, ttl, e
                             );
+                            // Return to pending so it is retried on the next
+                            // cycle (respecting the spool interval) instead of
+                            // waiting for the crash-recovery reclaim.
+                            state.spool.retry(&id).await?;
                         }
                     }
                 }
