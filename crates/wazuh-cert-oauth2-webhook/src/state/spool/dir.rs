@@ -146,4 +146,10 @@ impl SpoolStore for DirSpoolStore {
         tokio::fs::rename(&tmp, &path).await?;
         Ok(())
     }
+
+    async fn retry(&self, _id: &str) -> AppResult<()> {
+        // No-op: failed items stay on disk as `.json` and are re-listed on the
+        // next cycle.
+        Ok(())
+    }
 }

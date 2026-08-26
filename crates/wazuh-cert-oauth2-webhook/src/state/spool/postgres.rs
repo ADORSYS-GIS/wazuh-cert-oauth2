@@ -141,6 +141,18 @@ impl SpoolStore for PostgresSpoolStore {
         .await?;
         Ok(())
     }
+
+    async fn retry(&self, id: &str) -> AppResult<()> {
+        let id: i64 = id.parse()?;
+        // Return the item to 'pending' so it is retried on the next cycle
+        // (respecting the spool interval) instead of waiting for the
+        // crash-recovery reclaim.
+        sqlx::query("UPDATE spool_item SET state = 'pending', updated_at = now() WHERE id = $1")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]

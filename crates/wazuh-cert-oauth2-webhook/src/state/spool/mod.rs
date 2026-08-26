@@ -121,6 +121,13 @@ pub trait SpoolStore: Send + Sync {
         item: &SpoolItem,
         delete_after_unix: Option<u64>,
     ) -> AppResult<()>;
+
+    /// Return a failed item to pending so it is retried on the next cycle
+    /// (respecting the spool interval). For the directory backend this is a
+    /// no-op (items stay on disk and are re-listed next cycle); for Postgres
+    /// it sets `state = 'pending'` so the item isn't stuck in `in_progress`
+    /// until the crash-recovery reclaim.
+    async fn retry(&self, id: &str) -> AppResult<()>;
 }
 
 fn now_unix() -> u64 {
@@ -184,12 +191,18 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
         match claimed.item {
             SpoolItem::RevokeRequest { req } => match state.forward_revoke_with_retry(req).await {
                 Ok(()) => state.spool.mark_done(&id).await?,
-                Err(e) => warn!("still failing for {}: {}", id, e),
+                Err(e) => {
+                    warn!("still failing for {}: {}", id, e);
+                    state.spool.retry(&id).await?;
+                }
             },
             SpoolItem::GitHubTicket { ticket } => {
                 match state.forward_github_ticket_with_retry(ticket).await {
                     Ok(()) => state.spool.mark_done(&id).await?,
-                    Err(e) => warn!("still failing for {}: {}", id, e),
+                    Err(e) => {
+                        warn!("still failing for {}: {}", id, e);
+                        state.spool.retry(&id).await?;
+                    }
                 }
             }
             SpoolItem::EvictRequest { req } => {
