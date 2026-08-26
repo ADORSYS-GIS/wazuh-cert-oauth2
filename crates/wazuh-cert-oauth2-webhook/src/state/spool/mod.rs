@@ -106,10 +106,12 @@ pub trait SpoolStore: Send + Sync {
         delete_after_unix: Option<u64>,
     ) -> AppResult<()>;
 
-    /// Claim the next due pending item. For Postgres this uses
-    /// `SELECT ... FOR UPDATE SKIP LOCKED` so concurrent replicas don't
-    /// double-process.
-    async fn claim_next(&self) -> AppResult<Option<ClaimedItem>>;
+    /// Return the items to process this cycle. The processor iterates over
+    /// this snapshot once per cycle (then sleeps), so a persistently failing
+    /// item is retried next cycle rather than busy-looping. For Postgres this
+    /// atomically claims the items (sets `state = 'in_progress'` via
+    /// `FOR UPDATE SKIP LOCKED`) so concurrent replicas don't double-process.
+    async fn list_pending(&self) -> AppResult<Vec<ClaimedItem>>;
 
     async fn mark_done(&self, id: &str) -> AppResult<()>;
     async fn mark_dead_letter(&self, id: &str, error: &str) -> AppResult<()>;
@@ -119,12 +121,6 @@ pub trait SpoolStore: Send + Sync {
         item: &SpoolItem,
         delete_after_unix: Option<u64>,
     ) -> AppResult<()>;
-
-    /// Release a claimed item back to pending without processing it (e.g. a
-    /// failed forward that should be retried next cycle). For the directory
-    /// backend this un-claims the file; for Postgres it is a no-op (items stay
-    /// `in_progress` until the crash-recovery reclaim).
-    async fn unclaim(&self, id: &str) -> AppResult<()>;
 }
 
 fn now_unix() -> u64 {
@@ -180,28 +176,24 @@ pub async fn spawn_spool_processor(state: ProxyState) -> AppResult<()> {
 
 #[tracing::instrument(skip(state))]
 async fn process_once(state: &ProxyState) -> AppResult<()> {
-    while let Some(claimed) = state.spool.claim_next().await? {
+    // Process a snapshot of items once per cycle, then yield to the interval
+    // sleep. Persistently failing items are retried on the next cycle.
+    for claimed in state.spool.list_pending().await? {
         let id = claimed.id;
         let triggered_at = claimed.triggered_at_unix;
         match claimed.item {
             SpoolItem::RevokeRequest { req } => match state.forward_revoke_with_retry(req).await {
                 Ok(()) => state.spool.mark_done(&id).await?,
-                Err(e) => {
-                    warn!("still failing for {}: {}", id, e);
-                    state.spool.unclaim(&id).await?;
-                }
+                Err(e) => warn!("still failing for {}: {}", id, e),
             },
             SpoolItem::GitHubTicket { ticket } => {
                 match state.forward_github_ticket_with_retry(ticket).await {
                     Ok(()) => state.spool.mark_done(&id).await?,
-                    Err(e) => {
-                        warn!("still failing for {}: {}", id, e);
-                        state.spool.unclaim(&id).await?;
-                    }
+                    Err(e) => warn!("still failing for {}: {}", id, e),
                 }
             }
             SpoolItem::EvictRequest { req } => {
-                // Not-yet-due evictions are filtered out by claim_next, so we
+                // Not-yet-due evictions are filtered out by list_pending, so we
                 // only reach here when the item is due.
                 let req_subject = req.subject.clone();
                 match state.run_eviction_from_state(req).await {

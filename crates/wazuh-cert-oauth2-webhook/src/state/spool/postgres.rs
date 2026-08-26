@@ -53,7 +53,7 @@ impl SpoolStore for PostgresSpoolStore {
         Ok(())
     }
 
-    async fn claim_next(&self) -> AppResult<Option<ClaimedItem>> {
+    async fn list_pending(&self) -> AppResult<Vec<ClaimedItem>> {
         let now = now_unix() as i64;
         let mut tx = self.pool.begin().await?;
 
@@ -66,35 +66,35 @@ impl SpoolStore for PostgresSpoolStore {
         .execute(&mut *tx)
         .await?;
 
-        // Atomically claim the next due pending item: set state = 'in_progress'
-        // so concurrent replicas (SKIP LOCKED) never double-process it.
-        let row: Option<(i64, serde_json::Value, i64)> = sqlx::query_as(
+        // Atomically claim all due pending items: set state = 'in_progress'
+        // so concurrent replicas (SKIP LOCKED) never double-process them.
+        let rows: Vec<(i64, serde_json::Value, i64)> = sqlx::query_as(
             "UPDATE spool_item SET state = 'in_progress', updated_at = now()
-             WHERE id = (
+             WHERE id IN (
                  SELECT id FROM spool_item
                  WHERE state = 'pending'
                    AND (delete_after_unix IS NULL OR delete_after_unix <= $1)
                  ORDER BY triggered_at_unix
-                 LIMIT 1
                  FOR UPDATE SKIP LOCKED
              )
              RETURNING id, payload, triggered_at_unix",
         )
         .bind(now)
-        .fetch_optional(&mut *tx)
+        .fetch_all(&mut *tx)
         .await?;
 
         tx.commit().await?;
 
-        let Some((id, payload, triggered_at_unix)) = row else {
-            return Ok(None);
-        };
-        let item: SpoolItem = serde_json::from_value(payload)?;
-        Ok(Some(ClaimedItem {
-            id: id.to_string(),
-            item,
-            triggered_at_unix: triggered_at_unix as u64,
-        }))
+        let mut out = Vec::with_capacity(rows.len());
+        for (id, payload, triggered_at_unix) in rows {
+            let item: SpoolItem = serde_json::from_value(payload)?;
+            out.push(ClaimedItem {
+                id: id.to_string(),
+                item,
+                triggered_at_unix: triggered_at_unix as u64,
+            });
+        }
+        Ok(out)
     }
 
     async fn mark_done(&self, id: &str) -> AppResult<()> {
@@ -139,13 +139,6 @@ impl SpoolStore for PostgresSpoolStore {
         .bind(delete_after_unix.map(|v| v as i64))
         .execute(&self.pool)
         .await?;
-        Ok(())
-    }
-
-    async fn unclaim(&self, _id: &str) -> AppResult<()> {
-        // No-op: failed items stay 'in_progress' until the crash-recovery
-        // reclaim returns them to 'pending' (avoids an immediate re-claim
-        // busy-loop).
         Ok(())
     }
 }
@@ -208,8 +201,12 @@ mod tests {
             .await
             .expect("enqueue");
 
-        let claimed = store.claim_next().await.expect("claim");
-        let claimed = claimed.expect("item present");
+        let claimed = store
+            .list_pending()
+            .await
+            .expect("list")
+            .pop()
+            .expect("item present");
         match claimed.item {
             SpoolItem::RevokeRequest { req } => assert_eq!(req.subject.as_deref(), Some("u1")),
             _ => panic!("expected revoke item"),
@@ -217,7 +214,7 @@ mod tests {
 
         store.mark_done(&claimed.id).await.expect("mark done");
         assert!(
-            store.claim_next().await.expect("claim").is_none(),
+            store.list_pending().await.expect("list").is_empty(),
             "no items should remain after done"
         );
     }
@@ -235,17 +232,17 @@ mod tests {
                 .expect("enqueue");
         }
 
-        // Claim concurrently — SKIP LOCKED must give each replica a distinct item.
+        // Concurrent list_pending calls must not double-claim (SKIP LOCKED).
         let mut handles = Vec::new();
         for _ in 0..3 {
             let store = store.clone();
             handles.push(tokio::spawn(async move {
-                store.claim_next().await.expect("claim")
+                store.list_pending().await.expect("list")
             }));
         }
         let mut ids: HashSet<String> = HashSet::new();
         for h in handles {
-            if let Some(claimed) = h.await.expect("join") {
+            for claimed in h.await.expect("join") {
                 assert!(ids.insert(claimed.id), "duplicate claim!");
             }
         }
@@ -276,14 +273,19 @@ mod tests {
             .await
             .expect("enqueue");
 
-        let claimed = store.claim_next().await.expect("claim").expect("item");
+        let claimed = store
+            .list_pending()
+            .await
+            .expect("list")
+            .pop()
+            .expect("item");
         store
             .mark_dead_letter(&claimed.id, "boom")
             .await
             .expect("dead letter");
 
         // Dead-lettered item is no longer claimable.
-        assert!(store.claim_next().await.expect("claim").is_none());
+        assert!(store.list_pending().await.expect("list").is_empty());
 
         // And its state is recorded in the table.
         let id: i64 = claimed.id.parse().expect("id");

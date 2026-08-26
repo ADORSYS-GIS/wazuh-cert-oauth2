@@ -11,10 +11,10 @@ use super::{ClaimedItem, SpoolItem, SpoolStore, is_json, now_unix};
 
 /// On-disk JSON directory spool (local-dev / tests / fallback).
 ///
-/// Claiming renames a `.json` file to `.processing` so it is not re-claimed
-/// while being processed; `unclaim` renames it back so failed items are
-/// retried on the next cycle. Not-yet-due evictions are skipped so they don't
-/// block the rest of the spool.
+/// `list_pending` returns a snapshot of the pending `.json` files once per
+/// cycle; the processor iterates over it and retries failed items on the next
+/// cycle (no busy-loop). Not-yet-due evictions are skipped so they don't block
+/// the rest of the spool.
 pub struct DirSpoolStore {
     dir: PathBuf,
     dead_letter_dir: PathBuf,
@@ -56,12 +56,13 @@ impl SpoolStore for DirSpoolStore {
         Ok(())
     }
 
-    async fn claim_next(&self) -> AppResult<Option<ClaimedItem>> {
+    async fn list_pending(&self) -> AppResult<Vec<ClaimedItem>> {
+        let mut out = Vec::new();
         let mut dir = match tokio::fs::read_dir(&self.dir).await {
             Ok(d) => d,
             Err(e) => {
                 warn!("spool read_dir failed: {}", e);
-                return Ok(None);
+                return Ok(out);
             }
         };
         while let Some(entry) = dir.next_entry().await? {
@@ -92,20 +93,17 @@ impl SpoolStore for DirSpoolStore {
                 debug!("eviction for {} not yet due; skipping", req.subject);
                 continue;
             }
-            // Claim by renaming to `.processing` so it isn't re-claimed.
-            let processing = path.with_extension("processing");
-            tokio::fs::rename(&path, &processing).await?;
             let triggered_at_unix = match &item {
                 SpoolItem::EvictRequest { req } => req.triggered_at_unix,
                 _ => now_unix(),
             };
-            return Ok(Some(ClaimedItem {
-                id: processing.to_string_lossy().to_string(),
+            out.push(ClaimedItem {
+                id: path.to_string_lossy().to_string(),
                 item,
                 triggered_at_unix,
-            }));
+            });
         }
-        Ok(None)
+        Ok(out)
     }
 
     async fn mark_done(&self, id: &str) -> AppResult<()> {
@@ -116,21 +114,22 @@ impl SpoolStore for DirSpoolStore {
     }
 
     async fn mark_dead_letter(&self, id: &str, _error: &str) -> AppResult<()> {
-        let processing = PathBuf::from(id);
+        let path = PathBuf::from(id);
+        // Ensure the dead-letter directory exists before moving into it.
+        tokio::fs::create_dir_all(&self.dead_letter_dir).await?;
         let now = now_unix();
-        // Keep a `.json` extension in the DLQ so the item stays inspectable.
         let dlq_filename = format!(
-            "{}-{}.json",
+            "{}-{}",
             now,
-            processing.file_stem().unwrap_or_default().to_string_lossy()
+            path.file_name().unwrap_or_default().to_string_lossy()
         );
         let dlq_path = self.dead_letter_dir.join(&dlq_filename);
         error!(
-            path = %processing.display(),
+            path = %path.display(),
             dead_letter_path = %dlq_path.display(),
             "Moving expired spool item to dead-letter directory",
         );
-        tokio::fs::rename(&processing, &dlq_path).await?;
+        tokio::fs::rename(&path, &dlq_path).await?;
         Ok(())
     }
 
@@ -140,21 +139,11 @@ impl SpoolStore for DirSpoolStore {
         item: &SpoolItem,
         _delete_after_unix: Option<u64>,
     ) -> AppResult<()> {
-        let processing = PathBuf::from(id);
+        let path = PathBuf::from(id);
         let data = serde_json::to_vec(item)?;
-        let tmp = processing.with_extension("json.tmp");
+        let tmp = path.with_extension("json.tmp");
         tokio::fs::write(&tmp, &data).await?;
-        // Rename back to `.json` so the item can be re-claimed (e.g. after the
-        // grace deadline elapses).
-        let json_path = processing.with_extension("json");
-        tokio::fs::rename(&tmp, &json_path).await?;
-        Ok(())
-    }
-
-    async fn unclaim(&self, id: &str) -> AppResult<()> {
-        let processing = PathBuf::from(id);
-        let json_path = processing.with_extension("json");
-        tokio::fs::rename(&processing, &json_path).await?;
+        tokio::fs::rename(&tmp, &path).await?;
         Ok(())
     }
 }
