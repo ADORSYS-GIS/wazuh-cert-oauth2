@@ -5,15 +5,17 @@ use std::sync::Arc;
 use tokio::fs;
 use tokio::sync::RwLock;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
+use wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS;
 
 pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) -> AppResult<()> {
     let data = inner.read().await.clone();
     let mut out = String::new();
-    out.push_str("subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n");
+    out.push_str("subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n");
     for e in data.iter() {
         let subject = escape_csv_field(&e.subject);
         let serial = escape_csv_field(&e.serial_hex);
         let issued = e.issued_at_unix.to_string();
+        let not_after = e.not_after_unix.to_string();
         let revoked = if e.revoked { "true" } else { "false" };
         let revoked_at = e.revoked_at_unix.map(|v| v.to_string()).unwrap_or_default();
         let reason = e.reason.as_deref().unwrap_or("");
@@ -25,8 +27,17 @@ pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) 
         let agent_name = e.wazuh_agent_name.as_deref().unwrap_or("");
         let agent_name = escape_csv_field(agent_name);
         out.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{}\n",
-            subject, serial, issued, revoked, revoked_at, reason, issuer, realm, agent_name
+            "{},{},{},{},{},{},{},{},{},{}\n",
+            subject,
+            serial,
+            issued,
+            not_after,
+            revoked,
+            revoked_at,
+            reason,
+            issuer,
+            realm,
+            agent_name
         ));
     }
 
@@ -53,31 +64,64 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
         let subject = unescape_csv_field(&fields[0]);
         let serial_hex = unescape_csv_field(&fields[1]);
         let issued_at_unix = fields[2].parse::<u64>().unwrap_or_default();
-        let revoked = matches!(fields[3].as_str(), "true" | "TRUE" | "1");
-        let revoked_at_unix = if fields[4].is_empty() {
+        let default_not_after_unix =
+            issued_at_unix.saturating_add(CERTIFICATE_VALIDITY_DAYS.saturating_mul(86_400));
+
+        // Detect new format (≥9 fields) which includes not_after_unix at index 3.
+        let (
+            not_after_unix,
+            revoked_idx,
+            revoked_at_idx,
+            reason_idx,
+            issuer_idx,
+            realm_idx,
+            agent_idx,
+        ) = if fields.len() >= 9 {
+            let raw = fields[3].trim();
+            (
+                if raw.is_empty() || raw == "0" {
+                    default_not_after_unix
+                } else {
+                    raw.parse::<u64>().unwrap_or(default_not_after_unix)
+                },
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+            )
+        } else {
+            // Legacy format: no not_after_unix column. Reconstruct it from the
+            // issuing timestamp so old CSV entries remain valid until their
+            // certificate expiry window elapses.
+            (default_not_after_unix, 3, 4, 5, 6, 7, 8)
+        };
+        let revoked = matches!(fields[revoked_idx].as_str(), "true" | "TRUE" | "1");
+        let revoked_at_unix = if fields[revoked_at_idx].is_empty() {
             None
         } else {
-            Some(fields[4].parse::<u64>().unwrap_or_default())
+            Some(fields[revoked_at_idx].parse::<u64>().unwrap_or_default())
         };
         let reason = {
-            let r = unescape_csv_field(&fields[5]);
+            let r = unescape_csv_field(&fields[reason_idx]);
             if r.is_empty() { None } else { Some(r) }
         };
         // Optional fields for backward compatibility
-        let issuer = if fields.len() > 6 {
-            let v = unescape_csv_field(&fields[6]);
+        let issuer = if fields.len() > issuer_idx {
+            let v = unescape_csv_field(&fields[issuer_idx]);
             if v.is_empty() { None } else { Some(v) }
         } else {
             None
         };
-        let realm = if fields.len() > 7 {
-            let v = unescape_csv_field(&fields[7]);
+        let realm = if fields.len() > realm_idx {
+            let v = unescape_csv_field(&fields[realm_idx]);
             if v.is_empty() { None } else { Some(v) }
         } else {
             None
         };
-        let wazuh_agent_name = if fields.len() > 8 {
-            let v = unescape_csv_field(&fields[8]);
+        let wazuh_agent_name = if fields.len() > agent_idx {
+            let v = unescape_csv_field(&fields[agent_idx]);
             if v.is_empty() { None } else { Some(v) }
         } else {
             None
@@ -86,6 +130,7 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
             subject,
             serial_hex,
             issued_at_unix,
+            not_after_unix,
             revoked,
             revoked_at_unix,
             reason,
@@ -106,6 +151,7 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
     use tokio::fs;
     use tokio::sync::RwLock;
+    use wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS;
 
     fn unique_csv_path() -> PathBuf {
         let nanos = SystemTime::now()
@@ -130,6 +176,7 @@ mod tests {
         assert_eq!(row.subject, "user-a");
         assert_eq!(row.serial_hex, "ABC123");
         assert_eq!(row.issued_at_unix, 100);
+        assert_eq!(row.not_after_unix, 100 + CERTIFICATE_VALIDITY_DAYS * 86_400);
         assert!(row.revoked);
         assert_eq!(row.revoked_at_unix, Some(200));
         assert_eq!(row.reason.as_deref(), Some("manual revoke"));
@@ -141,18 +188,32 @@ mod tests {
     #[test]
     fn parse_csv_unescapes_quoted_fields() {
         let csv = concat!(
-            "subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n",
-            "\"user,1\",ABC123,100,1,200,\"reason \"\"with quotes\"\"\",https://issuer/realms/dev,dev,DevOps-SRE-123\n"
+            "subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n",
+            "\"user,1\",ABC123,100,9999999999,1,200,\"reason \"\"with quotes\"\"\",https://issuer/realms/dev,dev,DevOps-SRE-123\n"
         );
         let rows = parse_csv(csv).expect("csv should parse");
         assert_eq!(rows.len(), 1);
 
         let row = &rows[0];
         assert_eq!(row.subject, "user,1");
+        assert_eq!(row.not_after_unix, 9999999999);
         assert_eq!(row.reason.as_deref(), Some("reason \"with quotes\""));
         assert_eq!(row.issuer.as_deref(), Some("https://issuer/realms/dev"));
         assert_eq!(row.realm.as_deref(), Some("dev"));
         assert_eq!(row.wazuh_agent_name.as_deref(), Some("DevOps-SRE-123"));
+    }
+
+    #[test]
+    fn parse_csv_computes_not_after_for_legacy_rows() {
+        let csv = concat!(
+            "subject,serial_hex,issued_at_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n",
+            "user-a,ABC123,100,true,200,manual revoke,https://issuer/realms/dev,dev,DevOps-SRE-123\n"
+        );
+        let rows = parse_csv(csv).expect("csv should parse");
+        assert_eq!(rows.len(), 1);
+
+        let row = &rows[0];
+        assert_eq!(row.not_after_unix, 100 + CERTIFICATE_VALIDITY_DAYS * 86_400);
     }
 
     #[tokio::test]
@@ -168,6 +229,7 @@ mod tests {
                 subject: "user-a".to_string(),
                 serial_hex: "AA11".to_string(),
                 issued_at_unix: 111,
+                not_after_unix: 31_622_400,
                 revoked: false,
                 revoked_at_unix: None,
                 reason: None,
@@ -179,6 +241,7 @@ mod tests {
                 subject: "user-b".to_string(),
                 serial_hex: "BB22".to_string(),
                 issued_at_unix: 222,
+                not_after_unix: 31_622_500,
                 revoked: true,
                 revoked_at_unix: Some(333),
                 reason: Some("operator request".to_string()),
@@ -198,8 +261,10 @@ mod tests {
         assert_eq!(parsed.len(), entries.len());
         assert_eq!(parsed[0].subject, entries[0].subject);
         assert_eq!(parsed[0].issuer, entries[0].issuer);
+        assert_eq!(parsed[0].not_after_unix, 31_622_400);
         assert_eq!(parsed[1].revoked, entries[1].revoked);
         assert_eq!(parsed[1].reason, entries[1].reason);
+        assert_eq!(parsed[1].not_after_unix, 31_622_500);
 
         let _ = fs::remove_dir_all(parent).await;
     }

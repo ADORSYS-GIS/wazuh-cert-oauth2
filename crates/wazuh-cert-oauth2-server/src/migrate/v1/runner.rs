@@ -110,6 +110,8 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
             subject: entry.subject.clone(),
             serial_hex: entry.serial_hex.clone(),
             issued_at_unix: entry.issued_at_unix,
+            not_after_unix: entry.issued_at_unix
+                + wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS * 86400,
             revoked: entry.revoked,
             revoked_at_unix: entry.revoked_at_unix,
             reason: entry.reason.clone(),
