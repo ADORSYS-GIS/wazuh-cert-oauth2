@@ -2,9 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased
+## wazuh-cert-webhook-0.4.6 - 2026-08-28
 
-[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[ef1bcc2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ef1bcc2e2e862f626b748b28bd66567bf45934bb)
+[b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)
 
 ### Bug Fixes
 
@@ -25,6 +25,10 @@ All notable changes to this project will be documented in this file.
 - Add --clobber option to gh release create command ([`7da8704`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7da8704465ea0dfd747c1a55ff274026702644a9))
 - Add --clobber option to gh release upload command ([`3436971`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/343697183d8e14ad63fe2413a93001d59f39992f))
 - Mount model crate migrations dir (#296) ([`ef1bcc2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ef1bcc2e2e862f626b748b28bd66567bf45934bb))
+- Spool busy-loop, in_progress stall, compose guidance (#296) ([`cc35e6b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cc35e6b2ab4861cb9ad3b648d41e772446591542))
+- Process spool snapshot once per cycle; create DLQ dir (#296) ([`632d5c2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/632d5c2bf97663b67998a4d29c99ae6ea1f99b27))
+- Retry failed spool items next cycle (#296) ([`2956cfe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2956cfe11fc612c8d1eb869da99ae5921d58980a))
+- Retry failing evictions within TTL next cycle (#296) ([`029193a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/029193a7d90616aa62a9e82ccb97f7e0af3a44e5))
 
 ### Documentation
 
@@ -49,6 +53,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`907eb33`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/907eb33f2cabcd745e6037973fb73d6c3c3d1ddc))
 - Update CHANGELOG.md and checksums [skip ci] ([`f2cbb89`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f2cbb8911f63211c69af7547062ccf4588c4ad02))
 - Update CHANGELOG.md and checksums [skip ci] ([`e65fa39`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e65fa39edc9e8e7fd7e00d54a1c4ffd6d20420e4))
+- Update CHANGELOG.md and checksums [skip ci] ([`2ac61b6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2ac61b63d3edd3eb21ff7805a445c73a013d2128))
 
 ### Features
 
