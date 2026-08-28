@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,20 +13,19 @@ mod utils;
 pub(crate) mod wazuh_api;
 
 pub use audit::{EnrollmentReport, generate_report};
-pub use spool::spawn_spool_processor;
+pub use spool::{SpoolBackend, SpoolStore, spawn_spool_processor};
 pub use wazuh_api::WazuhApiClient;
 
 #[derive(Clone)]
 pub struct ProxyState {
     pub(crate) server_base_url: String,
-    pub(crate) spool_dir: PathBuf,
+    pub(crate) spool: Arc<dyn SpoolStore>,
     pub(crate) http: HttpClient,
     pub(crate) retry_attempts: u32,
     pub(crate) retry_base: Duration,
     pub(crate) retry_max: Duration,
     pub(crate) spool_interval: Duration,
     pub(crate) spool_evict_ttl: Duration,
-    pub(crate) spool_dead_letter_dir: PathBuf,
 
     pub(crate) static_bearer: Option<String>,
     pub(crate) oauth: Option<oauth::OAuthConfig>,

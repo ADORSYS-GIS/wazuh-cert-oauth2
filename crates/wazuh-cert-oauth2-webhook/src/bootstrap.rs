@@ -8,26 +8,50 @@ use crate::handlers::evict::internal_evict;
 use crate::handlers::health::health;
 use crate::handlers::webhook::send_webhook;
 use crate::opts::Opt;
-use crate::state::{ProxyState, spawn_spool_processor};
+use crate::state::{ProxyState, SpoolBackend, spawn_spool_processor};
 
-pub fn build_state(opt: &Opt) -> AppResult<ProxyState> {
+pub async fn build_state(opt: &Opt) -> AppResult<ProxyState> {
     let http_client = HttpClient::new_with_defaults()?;
+    // Spool backend: PostgreSQL when DATABASE_URL is set (system of record),
+    // otherwise fall back to the on-disk JSON spool directory.
+    let spool_backend = match opt.database_url.as_deref().map(str::trim) {
+        Some(url) if !url.is_empty() => {
+            // The spool_item table is created by the shared migrations in the
+            // model crate (same database as the server's ledger/CRL).
+            let pool = sqlx::postgres::PgPoolOptions::new()
+                .max_connections(5)
+                .connect(url)
+                .await
+                .map_err(|e| {
+                    AppError::UpstreamError(format!("failed to connect to database: {}", e))
+                })?;
+            wazuh_cert_oauth2_model::run_spool_migrations(&pool)
+                .await
+                .map_err(|e| AppError::UpstreamError(format!("failed to run migrations: {}", e)))?;
+            SpoolBackend::Postgres(pool)
+        }
+        _ => {
+            let dead_letter_dir = opt.spool_dead_letter_dir.clone().unwrap_or_else(|| {
+                opt.spool_dir
+                    .parent()
+                    .unwrap_or_else(|| std::path::Path::new("."))
+                    .join("dead-letter")
+            });
+            SpoolBackend::Dir {
+                dir: opt.spool_dir.clone(),
+                dead_letter_dir,
+            }
+        }
+    };
     let state = ProxyState::new(
         opt.server_base_url.clone(),
-        opt.spool_dir.clone(),
+        spool_backend,
         http_client,
         opt.retry_attempts,
         Duration::from_millis(opt.retry_base_ms),
         Duration::from_millis(opt.retry_max_ms),
         Duration::from_secs(opt.spool_interval_secs),
         Duration::from_secs(opt.spool_evict_ttl_secs),
-        opt.spool_dead_letter_dir.clone().unwrap_or_else(|| {
-            // Default: a `dead-letter/` sibling of the spool directory.
-            opt.spool_dir
-                .parent()
-                .unwrap_or_else(|| std::path::Path::new("."))
-                .join("dead-letter")
-        }),
         opt.proxy_bearer_token.clone(),
         opt.oauth_issuer.clone(),
         opt.oauth_client_id.clone(),

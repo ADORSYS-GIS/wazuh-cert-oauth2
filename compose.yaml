@@ -56,6 +56,9 @@ services:
     depends_on:
       keycloak:
         condition: service_started
+      # If you are NOT using PostgreSQL (CSV/file fallback), comment out the
+      # postgres dependency below AND set DATABASE_URL to empty, otherwise the
+      # service will still try to connect to Postgres on startup.
       postgres:
         condition: service_healthy
 
@@ -108,6 +111,10 @@ services:
       OAUTH_CLIENT_SECRET: "${OAUTH_CLIENT_SECRET:-some-secret}"
 
       SERVER_BASE_URL: "${SERVER_BASE_URL:-http://oauth2:8000}"
+      # Spool backend is configurable: when DATABASE_URL is set the webhook
+      # uses PostgreSQL (multi-replica safe); otherwise it falls back to the
+      # on-disk JSON spool directory at SPOOL_DIR.
+      DATABASE_URL: "${DATABASE_URL:-postgres://wazuh:wazuh@postgres:5432/wazuh}"
       SPOOL_DIR: "/data/spool"
 
       WEBHOOK_BASIC_USER: "${WEBHOOK_BASIC_USER:-user}"
@@ -137,7 +144,13 @@ services:
       start_period: 10s
       retries: 3
     depends_on:
-      - keycloak
+      keycloak:
+        condition: service_started
+      # If you are NOT using PostgreSQL (on-disk spool fallback), comment out
+      # the postgres dependency below AND set DATABASE_URL to empty, otherwise
+      # the service will still try to connect to Postgres on startup.
+      postgres:
+        condition: service_healthy
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.3

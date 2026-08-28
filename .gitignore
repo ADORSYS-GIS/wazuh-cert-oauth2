@@ -16,6 +16,6 @@ test.yaml
 *.tgz
 
 .trivycache
-spool
 # Jekyll build output
 _site/
+.env

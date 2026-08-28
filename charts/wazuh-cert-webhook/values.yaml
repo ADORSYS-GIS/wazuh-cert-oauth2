@@ -71,6 +71,10 @@ webhook:
           env:
             PORT: 8000
             SERVER_BASE_URL: 'https://cert.adorsys'
+            # Spool backend is configurable: when DATABASE_URL is set the
+            # webhook uses PostgreSQL (multi-replica safe); otherwise it falls
+            # back to the on-disk JSON spool directory at SPOOL_DIR.
+            DATABASE_URL: ''
             SPOOL_DIR: '/var/cache/wazuh-cert-oauth2-webhook/spool'
 
             RUST_LOG: 'warn'

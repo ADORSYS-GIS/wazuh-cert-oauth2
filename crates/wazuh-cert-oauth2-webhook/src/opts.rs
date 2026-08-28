@@ -14,6 +14,12 @@ pub struct Opt {
     #[arg(long, env = "SPOOL_DIR", default_value = "/data/spool")]
     pub spool_dir: PathBuf,
 
+    /// PostgreSQL connection string. When set, the spool uses PostgreSQL as
+    /// the system of record (multi-replica safe); otherwise it falls back to
+    /// the on-disk JSON spool directory at SPOOL_DIR.
+    #[arg(long, env = "DATABASE_URL")]
+    pub database_url: Option<String>,
+
     #[arg(long, env = "RETRY_ATTEMPTS", default_value_t = 5)]
     pub retry_attempts: u32,
 

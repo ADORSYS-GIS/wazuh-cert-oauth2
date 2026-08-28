@@ -28,7 +28,7 @@ async fn main() -> AppResult<()> {
         Ok(opt) => opt,
         Err(e) => e.exit(),
     };
-    let state = build_state(&opt)?;
+    let state = build_state(&opt).await?;
     spawn_spool_bg(state.clone());
     launch_rocket(state).await
 }
