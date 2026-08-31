@@ -340,7 +340,7 @@ mod tests {
 
         // Write a CSV with an expired cert (not_after_unix = 1000, well in the past)
         let csv = "subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n\
-                    expired-user,EXPIRED01,100,1000,false,,,,\n";
+                    expired-user,EXPIRED01,100,1000,false,,,,,\n";
         fs::write(&path, csv.as_bytes()).await.expect("write csv");
 
         let ledger = csv_ledger(path.clone()).await;
@@ -368,7 +368,7 @@ mod tests {
 
         // Write a CSV with a non-expired cert (not_after_unix = far future)
         let csv = "subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n\
-                    active-user,ACTIVE01,100,99999999999,false,,,,\n";
+                    active-user,ACTIVE01,100,99999999999,false,,,,,\n";
         fs::write(&path, csv.as_bytes()).await.expect("write csv");
 
         let ledger = csv_ledger(path.clone()).await;

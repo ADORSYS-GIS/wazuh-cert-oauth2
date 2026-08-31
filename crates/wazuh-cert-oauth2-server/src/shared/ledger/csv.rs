@@ -67,7 +67,7 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
         let default_not_after_unix =
             issued_at_unix.saturating_add(CERTIFICATE_VALIDITY_DAYS.saturating_mul(86_400));
 
-        // Detect new format (≥9 fields) which includes not_after_unix at index 3.
+        // Detect new format (≥10 fields) which includes not_after_unix at index 3.
         let (
             not_after_unix,
             revoked_idx,
@@ -76,7 +76,7 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
             issuer_idx,
             realm_idx,
             agent_idx,
-        ) = if fields.len() >= 9 {
+        ) = if fields.len() >= 10 {
             let raw = fields[3].trim();
             (
                 if raw.is_empty() || raw == "0" {
@@ -214,6 +214,13 @@ mod tests {
 
         let row = &rows[0];
         assert_eq!(row.not_after_unix, 100 + CERTIFICATE_VALIDITY_DAYS * 86_400);
+        // Verify all legacy fields map correctly (no column shift)
+        assert!(row.revoked, "revoked should be true");
+        assert_eq!(row.revoked_at_unix, Some(200));
+        assert_eq!(row.reason.as_deref(), Some("manual revoke"));
+        assert_eq!(row.issuer.as_deref(), Some("https://issuer/realms/dev"));
+        assert_eq!(row.realm.as_deref(), Some("dev"));
+        assert_eq!(row.wazuh_agent_name.as_deref(), Some("DevOps-SRE-123"));
     }
 
     #[tokio::test]
