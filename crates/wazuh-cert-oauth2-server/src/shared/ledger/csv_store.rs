@@ -124,7 +124,7 @@ impl LedgerStore for CsvLedgerStore {
             .read()
             .await
             .iter()
-            .filter(|e| !e.revoked)
+            .filter(|e| !e.revoked && !e.is_expired())
             .cloned()
             .collect())
     }

@@ -384,4 +384,34 @@ mod tests {
 
         let _ = fs::remove_dir_all(parent).await;
     }
+
+    #[tokio::test]
+    async fn find_active_excludes_expired_certs() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should be created");
+
+        // One expired (not_after in the past) and one active (not_after far future)
+        let csv = "subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n\
+                    expired-user,EXPIRED01,100,1000,false,,,,,\n\
+                    active-user,ACTIVE01,100,99999999999,false,,,,,\n";
+        fs::write(&path, csv.as_bytes()).await.expect("write csv");
+
+        let ledger = csv_ledger(path.clone()).await;
+
+        let active = ledger
+            .find_active()
+            .await
+            .expect("find_active should succeed");
+        assert_eq!(
+            active.len(),
+            1,
+            "only the non-expired cert should be considered active"
+        );
+        assert_eq!(active[0].serial_hex, "ACTIVE01");
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
 }

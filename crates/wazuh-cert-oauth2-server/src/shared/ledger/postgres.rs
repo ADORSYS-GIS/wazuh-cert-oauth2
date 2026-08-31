@@ -263,10 +263,14 @@ impl LedgerStore for PostgresLedgerStore {
 
     #[tracing::instrument(skip(self))]
     async fn find_active(&self) -> AppResult<Vec<LedgerEntry>> {
+        let now = wazuh_cert_oauth2_model::models::now_unix();
         let rows = sqlx::query(
             "SELECT subject, serial_hex, issued_at_unix, not_after_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
-             FROM ledger_entry WHERE revoked = FALSE ORDER BY issued_at_unix",
+             FROM ledger_entry WHERE revoked = FALSE
+               AND (COALESCE(not_after_unix, 0) = 0 OR not_after_unix > $1)
+             ORDER BY issued_at_unix",
         )
+        .bind(now as i64)
         .fetch_all(&self.pool)
         .await?;
         Ok(rows.iter().map(map_row).collect())
@@ -299,6 +303,7 @@ impl LedgerStore for PostgresLedgerStore {
 mod tests {
     use super::PostgresLedgerStore;
     use crate::shared::ledger::LedgerStore;
+    use wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS;
 
     /// Connect to a real Postgres for integration tests. Skips when
     /// `TEST_DATABASE_URL` is not set (e.g. plain `cargo test`).
@@ -369,6 +374,52 @@ mod tests {
             .expect("revoked entry present");
         assert_eq!(entry.reason.as_deref(), Some("manual"));
         assert_eq!(entry.revoked_at_unix, Some(200));
+    }
+
+    #[tokio::test]
+    async fn postgres_find_active_excludes_expired_certs() {
+        let Some(store) = test_store().await else {
+            return;
+        };
+        let subject = unique_subject("pg-active-expired");
+        let now = wazuh_cert_oauth2_model::models::now_unix();
+
+        // Expired: issued ~2 years ago, so not_after (issued + 365d) is in the past.
+        store
+            .record_issued(
+                subject.clone(),
+                "EXPIRED01".to_string(),
+                now - 2 * CERTIFICATE_VALIDITY_DAYS * 86400,
+                Some("https://issuer/realms/dev".to_string()),
+                Some("dev".to_string()),
+                None,
+            )
+            .await
+            .expect("record_issued expired should succeed");
+
+        // Active: issued now, not_after ~1 year in the future.
+        store
+            .record_issued(
+                subject.clone(),
+                "ACTIVE01".to_string(),
+                now,
+                Some("https://issuer/realms/dev".to_string()),
+                Some("dev".to_string()),
+                None,
+            )
+            .await
+            .expect("record_issued active should succeed");
+
+        let active = store.find_active().await.expect("find_active");
+        let serials: Vec<&str> = active.iter().map(|e| e.serial_hex.as_str()).collect();
+        assert!(
+            serials.contains(&"ACTIVE01"),
+            "active cert should be present"
+        );
+        assert!(
+            !serials.contains(&"EXPIRED01"),
+            "expired cert should be excluded from find_active"
+        );
     }
 
     #[tokio::test]
