@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use sqlx::PgPool;
 use sqlx::Row;
 use wazuh_cert_oauth2_model::models::errors::{AppError, AppResult};
-use wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS;
 
 use super::LedgerEntry;
 use super::LedgerStore;
@@ -60,7 +59,7 @@ impl LedgerStore for PostgresLedgerStore {
         wazuh_agent_name: Option<String>,
     ) -> AppResult<()> {
         let serial = normalize_serial(&serial_hex);
-        let not_after_unix = issued_at_unix + CERTIFICATE_VALIDITY_DAYS * 86400;
+        let not_after_unix = LedgerEntry::compute_not_after(issued_at_unix);
         let mut tx = self.pool.begin().await?;
 
         sqlx::query(

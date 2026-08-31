@@ -5,7 +5,6 @@ use std::sync::Arc;
 use tokio::fs;
 use tokio::sync::RwLock;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
-use wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS;
 
 pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) -> AppResult<()> {
     let data = inner.read().await.clone();
@@ -64,8 +63,7 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
         let subject = unescape_csv_field(&fields[0]);
         let serial_hex = unescape_csv_field(&fields[1]);
         let issued_at_unix = fields[2].parse::<u64>().unwrap_or_default();
-        let default_not_after_unix =
-            issued_at_unix.saturating_add(CERTIFICATE_VALIDITY_DAYS.saturating_mul(86_400));
+        let default_not_after_unix = LedgerEntry::compute_not_after(issued_at_unix);
 
         // Detect new format (≥10 fields) which includes not_after_unix at index 3.
         let (
@@ -79,7 +77,10 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
         ) = if fields.len() >= 10 {
             let raw = fields[3].trim();
             (
-                if raw.is_empty() || raw == "0" {
+                // Only an *empty* field means "missing" → reconstruct from the
+                // issuing time. An explicit "0" is the documented sentinel for
+                // "no expiry data" (e.g. revoke-stubs) and is preserved as-is.
+                if raw.is_empty() {
                     default_not_after_unix
                 } else {
                     raw.parse::<u64>().unwrap_or(default_not_after_unix)
@@ -221,6 +222,21 @@ mod tests {
         assert_eq!(row.issuer.as_deref(), Some("https://issuer/realms/dev"));
         assert_eq!(row.realm.as_deref(), Some("dev"));
         assert_eq!(row.wazuh_agent_name.as_deref(), Some("DevOps-SRE-123"));
+    }
+
+    #[test]
+    fn parse_csv_preserves_explicit_zero_not_after() {
+        // An explicit "0" in the new-format not_after_unix column is the
+        // documented sentinel for "no expiry data" (e.g. revoke-stubs) and must
+        // be preserved, not replaced with a computed default.
+        let csv = concat!(
+            "subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n",
+            "stub-user,STUB01,0,0,true,200,manual revoke,https://issuer/realms/dev,dev,\n"
+        );
+        let rows = parse_csv(csv).expect("csv should parse");
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].not_after_unix, 0, "explicit 0 must be preserved");
+        assert!(rows[0].revoked);
     }
 
     #[tokio::test]

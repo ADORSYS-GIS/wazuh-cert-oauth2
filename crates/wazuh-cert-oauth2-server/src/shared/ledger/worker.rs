@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::{RwLock, mpsc};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
-use wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS;
 
 // Re-export to preserve worker::Command and worker::load_entries API
 pub(super) use super::commands::Command;
@@ -88,7 +87,7 @@ async fn apply_record_issued(
     realm: Option<String>,
     wazuh_agent_name: Option<String>,
 ) -> AppResult<()> {
-    let not_after_unix = issued_at_unix + CERTIFICATE_VALIDITY_DAYS * 86400;
+    let not_after_unix = LedgerEntry::compute_not_after(issued_at_unix);
     {
         let mut guard = inner.write().await;
         guard.push(LedgerEntry {
@@ -157,9 +156,10 @@ async fn apply_check_and_revoke_active(
 
     // Expired certificates are not considered "active" — they no longer block
     // re-enrollment (issue #316).
+    let now = wazuh_cert_oauth2_model::models::now_unix();
     let has_active = guard
         .iter()
-        .any(|e| e.subject == subject && !e.revoked && !e.is_expired());
+        .any(|e| e.subject == subject && !e.revoked && !e.is_expired_at(now));
     if !has_active {
         return Ok(None);
     }
@@ -171,9 +171,10 @@ async fn apply_check_and_revoke_active(
     }
 
     let mut old_agent_names = Vec::new();
+    // Revoke only the active (non-expired) entries for the subject.
     for entry in guard
         .iter_mut()
-        .filter(|e| e.subject == subject && !e.revoked)
+        .filter(|e| e.subject == subject && !e.revoked && !e.is_expired_at(now))
     {
         entry.revoked = true;
         entry.revoked_at_unix = Some(revoked_at_unix);

@@ -9,6 +9,7 @@ pub struct LedgerEntry {
     pub subject: String,
     pub serial_hex: String,
     pub issued_at_unix: u64,
+    #[serde(default)]
     pub not_after_unix: u64,
     pub revoked: bool,
     #[serde(default)]
@@ -24,11 +25,15 @@ pub struct LedgerEntry {
 }
 
 impl LedgerEntry {
-    /// Returns `true` if the certificate has expired (i.e. `not_after_unix` is
-    /// non-zero and in the past). A zero `not_after_unix` (legacy entries
-    /// without expiry data) is treated as *not* expired to avoid breaking
-    /// existing deployments.
-    pub fn is_expired(&self) -> bool {
-        self.not_after_unix > 0 && crate::models::now_unix() >= self.not_after_unix
+    /// Compute the certificate expiry timestamp from its issuing time.
+    pub fn compute_not_after(issued_at_unix: u64) -> u64 {
+        issued_at_unix.saturating_add(CERTIFICATE_VALIDITY_DAYS.saturating_mul(86_400))
+    }
+
+    /// Returns `true` if the certificate has expired relative to `now`. A zero
+    /// `not_after_unix` (legacy entries without expiry data) is treated as
+    /// *not* expired to avoid breaking existing deployments.
+    pub fn is_expired_at(&self, now: u64) -> bool {
+        self.not_after_unix > 0 && now >= self.not_after_unix
     }
 }
