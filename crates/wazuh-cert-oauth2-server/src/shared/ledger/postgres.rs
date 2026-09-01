@@ -190,8 +190,7 @@ impl LedgerStore for PostgresLedgerStore {
         let mut tx = self.pool.begin().await?;
 
         // Expired certificates are not considered "active" — they no longer
-        // block re-enrollment (issue #316). COALESCE handles legacy rows where
-        // not_after_unix is NULL (never back-filled).
+        // block re-enrollment (issue #316).
         let now = wazuh_cert_oauth2_model::models::now_unix();
         let rows: Vec<(String, Option<String>)> = sqlx::query_as(
             "SELECT serial_hex, wazuh_agent_name FROM ledger_entry
