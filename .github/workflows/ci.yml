@@ -25,6 +25,9 @@ on:
       - '.dockerignore'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint
@@ -65,8 +68,6 @@ jobs:
   sast:
     name: "SAST Scan ${{ matrix.checks }}"
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     strategy:
       matrix:
         checks:
@@ -91,8 +92,6 @@ jobs:
   code-checks:
     name: Code Checks
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout@v5
         name: Checkout
