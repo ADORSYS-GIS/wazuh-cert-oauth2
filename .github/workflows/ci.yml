@@ -117,7 +117,9 @@ jobs:
     with:
       project-key: wazuh-cert-oauth2
       exclusions: "**/target/**,**/node_modules/**,**/dist/**,**/coverage/**"
-    # zizmor: ignore[secrets-inherit]
-    secrets: inherit # NOSONAR
+
+    secrets:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     permissions:
       contents: read
