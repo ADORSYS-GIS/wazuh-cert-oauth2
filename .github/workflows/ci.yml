@@ -118,6 +118,6 @@ jobs:
       project-key: wazuh-cert-oauth2
       exclusions: "**/target/**,**/node_modules/**,**/dist/**,**/coverage/**"
     # zizmor: ignore[secrets-inherit]
-    secrets: inherit
+    secrets: inherit # NOSONAR
     permissions:
       contents: read
