@@ -87,12 +87,14 @@ async fn apply_record_issued(
     realm: Option<String>,
     wazuh_agent_name: Option<String>,
 ) -> AppResult<()> {
+    let not_after_unix = LedgerEntry::compute_not_after(issued_at_unix);
     {
         let mut guard = inner.write().await;
         guard.push(LedgerEntry {
             subject,
             serial_hex,
             issued_at_unix,
+            not_after_unix,
             revoked: false,
             revoked_at_unix: None,
             reason: None,
@@ -128,6 +130,7 @@ async fn apply_mark_revoked(
                 subject: String::new(),
                 serial_hex,
                 issued_at_unix: 0,
+                not_after_unix: 0,
                 revoked: true,
                 revoked_at_unix: Some(revoked_at_unix),
                 reason: reason.clone(),
@@ -151,7 +154,12 @@ async fn apply_check_and_revoke_active(
 
     let mut guard = inner.write().await;
 
-    let has_active = guard.iter().any(|e| e.subject == subject && !e.revoked);
+    // Expired certificates are not considered "active" — they no longer block
+    // re-enrollment (issue #316).
+    let now = wazuh_cert_oauth2_model::models::now_unix();
+    let has_active = guard
+        .iter()
+        .any(|e| e.subject == subject && !e.revoked && !e.is_expired_at(now));
     if !has_active {
         return Ok(None);
     }
@@ -163,9 +171,10 @@ async fn apply_check_and_revoke_active(
     }
 
     let mut old_agent_names = Vec::new();
+    // Revoke only the active (non-expired) entries for the subject.
     for entry in guard
         .iter_mut()
-        .filter(|e| e.subject == subject && !e.revoked)
+        .filter(|e| e.subject == subject && !e.revoked && !e.is_expired_at(now))
     {
         entry.revoked = true;
         entry.revoked_at_unix = Some(revoked_at_unix);

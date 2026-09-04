@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+[16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)...[8cad052](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8cad052239870bd6caa04c2c2a581b6ffc20afa0)
+
+### Bug Fixes
+
+- Add not_after_unix field for certificate expiration tracking ([`26debd7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/26debd778e85462e3f4bfda71b85588115fb9429))
+- Update CSV parsing and PostgreSQL queries for certificate expiry handling ([`7b865bc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7b865bcd4466079d8af2ca33dd824acef99af452))
+- Address review comments from @mbiti2 ([`345d51d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/345d51df27b67f23283c6e34b25365d4a6316cc0))
+- Address comments from @stephane-segning ([`8cad052`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8cad052239870bd6caa04c2c2a581b6ffc20afa0))
+
+### Documentation
+
+- Update CHANGELOG.md and checksums [skip ci] ([`3c56586`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3c56586ddbb42f1cd1fbbc7d075cad6b8bb0ce09))
+- Update CHANGELOG.md and checksums [skip ci] ([`e4b1c1c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e4b1c1cb25ebc8031a390b23b309b75195687067))
+
 ## wazuh-cert-webhook-0.4.6 - 2026-08-28
 
 [b5e1e44](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b5e1e4413aa91f1b309e141433cacb4cfdf71941)...[16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)

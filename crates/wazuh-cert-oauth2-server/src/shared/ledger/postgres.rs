@@ -31,6 +31,10 @@ fn map_row(row: &sqlx::postgres::PgRow) -> LedgerEntry {
         subject: row.get("subject"),
         serial_hex: row.get("serial_hex"),
         issued_at_unix: row.get::<i64, _>("issued_at_unix") as u64,
+        not_after_unix: row
+            .get::<Option<i64>, _>("not_after_unix")
+            .map(|v| v as u64)
+            .unwrap_or_default(),
         revoked: row.get("revoked"),
         revoked_at_unix: row
             .get::<Option<i64>, _>("revoked_at_unix")
@@ -55,15 +59,17 @@ impl LedgerStore for PostgresLedgerStore {
         wazuh_agent_name: Option<String>,
     ) -> AppResult<()> {
         let serial = normalize_serial(&serial_hex);
+        let not_after_unix = LedgerEntry::compute_not_after(issued_at_unix);
         let mut tx = self.pool.begin().await?;
 
         sqlx::query(
-            "INSERT INTO ledger_event (event_type, subject, serial_hex, issued_at_unix, issuer, realm, wazuh_agent_name)
-             VALUES ('ISSUED', $1, $2, $3, $4, $5, $6)",
+            "INSERT INTO ledger_event (event_type, subject, serial_hex, issued_at_unix, not_after_unix, issuer, realm, wazuh_agent_name)
+             VALUES ('ISSUED', $1, $2, $3, $4, $5, $6, $7)",
         )
         .bind(&subject)
         .bind(&serial)
         .bind(issued_at_unix as i64)
+        .bind(not_after_unix as i64)
         .bind(&issuer)
         .bind(&realm)
         .bind(&wazuh_agent_name)
@@ -72,11 +78,12 @@ impl LedgerStore for PostgresLedgerStore {
         ?;
 
         sqlx::query(
-            "INSERT INTO ledger_entry (serial_hex, subject, issued_at_unix, revoked, issuer, realm, wazuh_agent_name)
-             VALUES ($1, $2, $3, FALSE, $4, $5, $6)
+            "INSERT INTO ledger_entry (serial_hex, subject, issued_at_unix, not_after_unix, revoked, issuer, realm, wazuh_agent_name)
+             VALUES ($1, $2, $3, $4, FALSE, $5, $6, $7)
              ON CONFLICT (serial_hex) DO UPDATE SET
                subject = EXCLUDED.subject,
                issued_at_unix = EXCLUDED.issued_at_unix,
+               not_after_unix = EXCLUDED.not_after_unix,
                revoked = FALSE,
                revoked_at_unix = NULL,
                reason = NULL,
@@ -88,6 +95,7 @@ impl LedgerStore for PostgresLedgerStore {
         .bind(&serial)
         .bind(&subject)
         .bind(issued_at_unix as i64)
+        .bind(not_after_unix as i64)
         .bind(&issuer)
         .bind(&realm)
         .bind(&wazuh_agent_name)
@@ -181,12 +189,17 @@ impl LedgerStore for PostgresLedgerStore {
     ) -> AppResult<Option<Vec<String>>> {
         let mut tx = self.pool.begin().await?;
 
+        // Expired certificates are not considered "active" — they no longer
+        // block re-enrollment (issue #316).
+        let now = wazuh_cert_oauth2_model::models::now_unix();
         let rows: Vec<(String, Option<String>)> = sqlx::query_as(
             "SELECT serial_hex, wazuh_agent_name FROM ledger_entry
              WHERE subject = $1 AND revoked = FALSE
+               AND (COALESCE(not_after_unix, 0) = 0 OR not_after_unix > $2)
              FOR UPDATE",
         )
         .bind(&subject)
+        .bind(now as i64)
         .fetch_all(&mut *tx)
         .await?;
 
@@ -237,7 +250,7 @@ impl LedgerStore for PostgresLedgerStore {
     #[tracing::instrument(skip(self))]
     async fn find_by_subject(&self, subject: &str) -> AppResult<Vec<LedgerEntry>> {
         let rows = sqlx::query(
-            "SELECT subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
+            "SELECT subject, serial_hex, issued_at_unix, not_after_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
              FROM ledger_entry WHERE subject = $1 ORDER BY issued_at_unix",
         )
         .bind(subject)
@@ -248,10 +261,14 @@ impl LedgerStore for PostgresLedgerStore {
 
     #[tracing::instrument(skip(self))]
     async fn find_active(&self) -> AppResult<Vec<LedgerEntry>> {
+        let now = wazuh_cert_oauth2_model::models::now_unix();
         let rows = sqlx::query(
-            "SELECT subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
-             FROM ledger_entry WHERE revoked = FALSE ORDER BY issued_at_unix",
+            "SELECT subject, serial_hex, issued_at_unix, not_after_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
+             FROM ledger_entry WHERE revoked = FALSE
+               AND (COALESCE(not_after_unix, 0) = 0 OR not_after_unix > $1)
+             ORDER BY issued_at_unix",
         )
+        .bind(now as i64)
         .fetch_all(&self.pool)
         .await?;
         Ok(rows.iter().map(map_row).collect())
@@ -260,7 +277,7 @@ impl LedgerStore for PostgresLedgerStore {
     #[tracing::instrument(skip(self))]
     async fn find_revoked(&self) -> AppResult<Vec<LedgerEntry>> {
         let rows = sqlx::query(
-            "SELECT subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
+            "SELECT subject, serial_hex, issued_at_unix, not_after_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
              FROM ledger_entry WHERE revoked = TRUE ORDER BY issued_at_unix",
         )
         .fetch_all(&self.pool)
@@ -271,7 +288,7 @@ impl LedgerStore for PostgresLedgerStore {
     #[tracing::instrument(skip(self))]
     async fn find_all(&self) -> AppResult<Vec<LedgerEntry>> {
         let rows = sqlx::query(
-            "SELECT subject, serial_hex, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
+            "SELECT subject, serial_hex, issued_at_unix, not_after_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name
              FROM ledger_entry ORDER BY issued_at_unix",
         )
         .fetch_all(&self.pool)
@@ -284,6 +301,7 @@ impl LedgerStore for PostgresLedgerStore {
 mod tests {
     use super::PostgresLedgerStore;
     use crate::shared::ledger::LedgerStore;
+    use wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS;
 
     /// Connect to a real Postgres for integration tests. Skips when
     /// `TEST_DATABASE_URL` is not set (e.g. plain `cargo test`).
@@ -354,6 +372,52 @@ mod tests {
             .expect("revoked entry present");
         assert_eq!(entry.reason.as_deref(), Some("manual"));
         assert_eq!(entry.revoked_at_unix, Some(200));
+    }
+
+    #[tokio::test]
+    async fn postgres_find_active_excludes_expired_certs() {
+        let Some(store) = test_store().await else {
+            return;
+        };
+        let subject = unique_subject("pg-active-expired");
+        let now = wazuh_cert_oauth2_model::models::now_unix();
+
+        // Expired: issued ~2 years ago, so not_after (issued + 365d) is in the past.
+        store
+            .record_issued(
+                subject.clone(),
+                "EXPIRED01".to_string(),
+                now - 2 * CERTIFICATE_VALIDITY_DAYS * 86400,
+                Some("https://issuer/realms/dev".to_string()),
+                Some("dev".to_string()),
+                None,
+            )
+            .await
+            .expect("record_issued expired should succeed");
+
+        // Active: issued now, not_after ~1 year in the future.
+        store
+            .record_issued(
+                subject.clone(),
+                "ACTIVE01".to_string(),
+                now,
+                Some("https://issuer/realms/dev".to_string()),
+                Some("dev".to_string()),
+                None,
+            )
+            .await
+            .expect("record_issued active should succeed");
+
+        let active = store.find_active().await.expect("find_active");
+        let serials: Vec<&str> = active.iter().map(|e| e.serial_hex.as_str()).collect();
+        assert!(
+            serials.contains(&"ACTIVE01"),
+            "active cert should be present"
+        );
+        assert!(
+            !serials.contains(&"EXPIRED01"),
+            "expired cert should be excluded from find_active"
+        );
     }
 
     #[tokio::test]

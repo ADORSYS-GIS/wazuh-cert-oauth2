@@ -119,12 +119,15 @@ impl LedgerStore for CsvLedgerStore {
 
     #[tracing::instrument(skip(self))]
     async fn find_active(&self) -> AppResult<Vec<LedgerEntry>> {
+        // Read the clock once so the whole scan uses a single instant, matching
+        // the Postgres path.
+        let now = wazuh_cert_oauth2_model::models::now_unix();
         Ok(self
             .inner
             .read()
             .await
             .iter()
-            .filter(|e| !e.revoked)
+            .filter(|e| !e.revoked && !e.is_expired_at(now))
             .cloned()
             .collect())
     }

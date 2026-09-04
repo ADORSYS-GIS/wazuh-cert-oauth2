@@ -12,6 +12,7 @@ CREATE TABLE ledger_event (
     serial_hex       TEXT        NOT NULL,  -- normalized UPPERCASE
     issued_at_unix   BIGINT,
     revoked_at_unix  BIGINT,
+    not_after_unix   BIGINT,
     reason           TEXT,
     issuer           TEXT,
     realm            TEXT,
@@ -28,6 +29,7 @@ CREATE TABLE ledger_entry (
     issued_at_unix   BIGINT      NOT NULL,
     revoked          BOOLEAN     NOT NULL DEFAULT FALSE,
     revoked_at_unix  BIGINT,
+    not_after_unix   BIGINT,
     reason           TEXT,
     issuer           TEXT,
     realm            TEXT,

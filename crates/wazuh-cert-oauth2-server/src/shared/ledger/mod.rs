@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
@@ -80,13 +79,6 @@ impl Ledger {
         Ok(Self { store })
     }
 
-    fn now() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs()
-    }
-
     #[tracing::instrument(skip(self))]
     pub async fn record_issued(
         &self,
@@ -100,7 +92,7 @@ impl Ledger {
             .record_issued(
                 subject,
                 serial_hex,
-                Self::now(),
+                wazuh_cert_oauth2_model::models::now_unix(),
                 issuer,
                 realm,
                 wazuh_agent_name,
@@ -111,7 +103,11 @@ impl Ledger {
     #[tracing::instrument(skip(self))]
     pub async fn mark_revoked(&self, serial_hex: String, reason: Option<String>) -> AppResult<()> {
         self.store
-            .mark_revoked(serial_hex, reason, Self::now())
+            .mark_revoked(
+                serial_hex,
+                reason,
+                wazuh_cert_oauth2_model::models::now_unix(),
+            )
             .await
     }
 
@@ -127,7 +123,11 @@ impl Ledger {
         overwrite: bool,
     ) -> AppResult<Option<Vec<String>>> {
         self.store
-            .check_and_revoke_active(subject, overwrite, Self::now())
+            .check_and_revoke_active(
+                subject,
+                overwrite,
+                wazuh_cert_oauth2_model::models::now_unix(),
+            )
             .await
     }
 
@@ -326,6 +326,91 @@ mod tests {
             revoked_names.is_none(),
             "expected None when no active cert exists"
         );
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn expired_cert_does_not_block_re_enrollment() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should be created");
+
+        // Write a CSV with an expired cert (not_after_unix = 1000, well in the past)
+        let csv = "subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n\
+                    expired-user,EXPIRED01,100,1000,false,,,,,\n";
+        fs::write(&path, csv.as_bytes()).await.expect("write csv");
+
+        let ledger = csv_ledger(path.clone()).await;
+
+        // Expired cert should NOT block re-enrollment — returns None
+        let result = ledger
+            .check_and_revoke_active("expired-user".to_string(), false)
+            .await
+            .expect("check_and_revoke_active should succeed for expired cert");
+        assert!(
+            result.is_none(),
+            "expected None for expired cert — should not block re-enrollment"
+        );
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn non_expired_cert_blocks_re_enrollment() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should be created");
+
+        // Write a CSV with a non-expired cert (not_after_unix = far future)
+        let csv = "subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n\
+                    active-user,ACTIVE01,100,99999999999,false,,,,,\n";
+        fs::write(&path, csv.as_bytes()).await.expect("write csv");
+
+        let ledger = csv_ledger(path.clone()).await;
+
+        // Non-expired cert SHOULD block re-enrollment — returns Conflict
+        let result = ledger
+            .check_and_revoke_active("active-user".to_string(), false)
+            .await;
+        assert!(
+            result.is_err(),
+            "expected Conflict for non-expired active cert"
+        );
+
+        let _ = fs::remove_dir_all(parent).await;
+    }
+
+    #[tokio::test]
+    async fn find_active_excludes_expired_certs() {
+        let path = unique_ledger_path();
+        let parent = path.parent().expect("path should have parent");
+        fs::create_dir_all(parent)
+            .await
+            .expect("temp dir should be created");
+
+        // One expired (not_after in the past) and one active (not_after far future)
+        let csv = "subject,serial_hex,issued_at_unix,not_after_unix,revoked,revoked_at_unix,reason,issuer,realm,wazuh_agent_name\n\
+                    expired-user,EXPIRED01,100,1000,false,,,,,\n\
+                    active-user,ACTIVE01,100,99999999999,false,,,,,\n";
+        fs::write(&path, csv.as_bytes()).await.expect("write csv");
+
+        let ledger = csv_ledger(path.clone()).await;
+
+        let active = ledger
+            .find_active()
+            .await
+            .expect("find_active should succeed");
+        assert_eq!(
+            active.len(),
+            1,
+            "only the non-expired cert should be considered active"
+        );
+        assert_eq!(active[0].serial_hex, "ACTIVE01");
 
         let _ = fs::remove_dir_all(parent).await;
     }

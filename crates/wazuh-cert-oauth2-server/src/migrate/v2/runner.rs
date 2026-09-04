@@ -72,13 +72,14 @@ pub async fn run_migration(opt: MigrateV2Opt) -> AppResult<()> {
         };
 
         sqlx::query(
-            "INSERT INTO ledger_event (event_type, subject, serial_hex, issued_at_unix, revoked_at_unix, reason, issuer, realm, wazuh_agent_name)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            "INSERT INTO ledger_event (event_type, subject, serial_hex, issued_at_unix, not_after_unix, revoked_at_unix, reason, issuer, realm, wazuh_agent_name)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
         .bind(event_type)
         .bind(&entry.subject)
         .bind(&serial)
         .bind(entry.issued_at_unix as i64)
+        .bind(entry.not_after_unix as i64)
         .bind(entry.revoked_at_unix.map(|v| v as i64))
         .bind(&entry.reason)
         .bind(&entry.issuer)
@@ -89,11 +90,12 @@ pub async fn run_migration(opt: MigrateV2Opt) -> AppResult<()> {
         .map_err(|e| AppError::UpstreamError(format!("failed to insert ledger_event: {}", e)))?;
 
         sqlx::query(
-            "INSERT INTO ledger_entry (serial_hex, subject, issued_at_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            "INSERT INTO ledger_entry (serial_hex, subject, issued_at_unix, not_after_unix, revoked, revoked_at_unix, reason, issuer, realm, wazuh_agent_name)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              ON CONFLICT (serial_hex) DO UPDATE SET
                subject = EXCLUDED.subject,
                issued_at_unix = EXCLUDED.issued_at_unix,
+               not_after_unix = EXCLUDED.not_after_unix,
                revoked = EXCLUDED.revoked,
                revoked_at_unix = EXCLUDED.revoked_at_unix,
                reason = EXCLUDED.reason,
@@ -105,6 +107,7 @@ pub async fn run_migration(opt: MigrateV2Opt) -> AppResult<()> {
         .bind(&serial)
         .bind(&entry.subject)
         .bind(entry.issued_at_unix as i64)
+        .bind(entry.not_after_unix as i64)
         .bind(entry.revoked)
         .bind(entry.revoked_at_unix.map(|v| v as i64))
         .bind(&entry.reason)

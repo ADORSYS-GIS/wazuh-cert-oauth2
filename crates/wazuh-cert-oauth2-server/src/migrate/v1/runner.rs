@@ -110,6 +110,7 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
             subject: entry.subject.clone(),
             serial_hex: entry.serial_hex.clone(),
             issued_at_unix: entry.issued_at_unix,
+            not_after_unix: entry.not_after_unix,
             revoked: entry.revoked,
             revoked_at_unix: entry.revoked_at_unix,
             reason: entry.reason.clone(),

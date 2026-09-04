@@ -1,11 +1,11 @@
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tracing::{error, info, warn};
 use wazuh_cert_oauth2_model::models::errors::AppResult;
+use wazuh_cert_oauth2_model::models::now_unix;
 use wazuh_cert_oauth2_model::models::revoke_request::RevokeRequest;
 
 use super::ProxyState;
@@ -128,13 +128,6 @@ pub trait SpoolStore: Send + Sync {
     /// it sets `state = 'pending'` so the item isn't stuck in `in_progress`
     /// until the crash-recovery reclaim.
     async fn retry(&self, id: &str) -> AppResult<()>;
-}
-
-fn now_unix() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
 }
 
 // ---------------------------------------------------------------------------

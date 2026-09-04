@@ -9,6 +9,7 @@ use openssl::x509::{X509NameBuilder, X509Ref, X509Req};
 use rand::TryRng;
 use rand::rngs::SysRng;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
+use wazuh_cert_oauth2_model::models::ledger_entry::CERTIFICATE_VALIDITY_DAYS;
 
 pub(crate) fn set_subject_cn(name_builder: &mut X509NameBuilder, cn: &str) -> AppResult<()> {
     name_builder.append_entry_by_nid(Nid::COMMONNAME, cn)?;
@@ -50,7 +51,7 @@ pub(crate) fn set_validity_1y(builder: &mut openssl::x509::X509Builder) -> AppRe
         .as_secs() as i64;
     let not_before = Asn1Time::from_unix(now - 300)?;
     builder.set_not_before(not_before.as_ref())?;
-    builder.set_not_after(Asn1Time::days_from_now(365)?.as_ref())?;
+    builder.set_not_after(Asn1Time::days_from_now(CERTIFICATE_VALIDITY_DAYS as u32)?.as_ref())?;
     Ok(())
 }
 

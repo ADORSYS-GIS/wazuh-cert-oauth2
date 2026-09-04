@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
 
 use crate::migrate::v1::matcher::{MatchResult, MatchStatus};
@@ -32,12 +30,7 @@ pub fn generate(
     report.push_str("=== Migration Report ===\n");
     report.push_str(&format!(
         "Timestamp: {}\n",
-        fmt_timestamp(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs(),
-        )
+        fmt_timestamp(wazuh_cert_oauth2_model::models::now_unix())
     ));
     report.push_str(&format!("Input: {}\n", opt.input));
     report.push_str(&format!("Output: {}\n", opt.output));
