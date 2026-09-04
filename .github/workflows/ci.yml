@@ -2,7 +2,7 @@ name: Code Linting and SAST
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
     paths:
       - '.github/workflows/**'
       - 'crates/wazuh-cert-oauth2-server/**'
@@ -13,7 +13,7 @@ on:
       - 'Dockerfile'
       - '.dockerignore'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
     paths:
       - '.github/workflows/**'
       - 'crates/wazuh-cert-oauth2-server/**'
@@ -23,6 +23,7 @@ on:
       - 'Cargo.lock'
       - 'Dockerfile'
       - '.dockerignore'
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -109,3 +110,13 @@ jobs:
         run: cargo fmt -- --check
       - name: Run cargo clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
+
+  sonarqube:
+    name: SonarQube Scan
+    uses: ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sonarqube.yml@main
+    with:
+      project-key: wazuh-cert-oauth2
+      exclusions: "**/target/**,**/node_modules/**,**/dist/**,**/coverage/**"
+    secrets: inherit
+    permissions:
+      contents: read
