@@ -4,19 +4,35 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)...[8cad052](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8cad052239870bd6caa04c2c2a581b6ffc20afa0)
+[16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)...[7620d00](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7620d003447a0b6ae4932ed2bd6fe120999a15be)
 
 ### Bug Fixes
 
+- Pin reusable workflow to full commit SHA for security ([`528f344`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/528f344b2cd591886ad4989fb9c45f30714f9464))
 - Add not_after_unix field for certificate expiration tracking ([`26debd7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/26debd778e85462e3f4bfda71b85588115fb9429))
 - Update CSV parsing and PostgreSQL queries for certificate expiry handling ([`7b865bc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7b865bcd4466079d8af2ca33dd824acef99af452))
 - Address review comments from @mbiti2 ([`345d51d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/345d51df27b67f23283c6e34b25365d4a6316cc0))
 - Address comments from @stephane-segning ([`8cad052`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8cad052239870bd6caa04c2c2a581b6ffc20afa0))
+- Add not_after_unix field to ledger_event and ledger_entry inserts in postgres migration ([`73c0d45`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/73c0d455e763ebab3aa71e36d6e8190b4eab086a))
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`3c56586`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3c56586ddbb42f1cd1fbbc7d075cad6b8bb0ce09))
 - Update CHANGELOG.md and checksums [skip ci] ([`e4b1c1c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e4b1c1cb25ebc8031a390b23b309b75195687067))
+- Update CHANGELOG.md and checksums [skip ci] ([`43cb44c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/43cb44c56ff302cdd18f5b7cc7fda45804543e4a))
+
+### Features
+
+- Integrate SonarQube scan into CI workflow ([`bb79ca8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/bb79ca8f7043733666b626a77357bdbd734f4e74)), Closes #323
+
+### Miscellaneous Tasks
+
+- Add zizmor ignore for inherited secrets in reusable workflow ([`ab64dfa`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ab64dfa4eeb2d9d98313ca1cd0518ebaca32780d))
+- Add NOSONAR ignore to bypass SonarQube inherited secrets rule ([`3bbacd3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3bbacd3503645adb0a434c2bcefb9f5f2ff70a9d))
+- Remove develop branch from workflow triggers ([`70ffed7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/70ffed772f6f7e6b6ea6bea3955bc0212fa93d64))
+- Replace secrets inherit with explicit SonarQube secrets ([`e55b7b2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e55b7b22463e0704cb18bd60ac91bdf8c4e86d50))
+- Remove unnecessary contents permission from sonar workflow job ([`47298f0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/47298f052ce3fc612000ba8fe48541b02cf0a672))
+- Refactor permissions to top-level to satisfy Zizmor and remove redundancy ([`b9082ab`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b9082ab836fdcc9a40f22047c19e6dea5f729c4c))
 
 ## wazuh-cert-webhook-0.4.6 - 2026-08-28
 
