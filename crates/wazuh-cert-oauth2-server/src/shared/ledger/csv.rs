@@ -76,38 +76,31 @@ fn parse_csv_line(idx: usize, line: &str) -> Option<LedgerEntry> {
     let default_not_after_unix = LedgerEntry::compute_not_after(issued_at_unix);
 
     // Detect new format (≥10 fields) which includes not_after_unix at index 3.
-    let (
-        not_after_unix,
-        revoked_idx,
-        revoked_at_idx,
-        reason_idx,
-        issuer_idx,
-        realm_idx,
-        agent_idx,
-    ) = if fields.len() >= 10 {
-        let raw = fields[3].trim();
-        (
-            // Only an *empty* field means "missing" → reconstruct from the
-            // issuing time. An explicit "0" is the documented sentinel for
-            // "no expiry data" (e.g. revoke-stubs) and is preserved as-is.
-            if raw.is_empty() {
-                default_not_after_unix
-            } else {
-                raw.parse::<u64>().unwrap_or(default_not_after_unix)
-            },
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-        )
-    } else {
-        // Legacy format: no not_after_unix column. Reconstruct it from the
-        // issuing timestamp so old CSV entries remain valid until their
-        // certificate expiry window elapses.
-        (default_not_after_unix, 3, 4, 5, 6, 7, 8)
-    };
+    let (not_after_unix, revoked_idx, revoked_at_idx, reason_idx, issuer_idx, realm_idx, agent_idx) =
+        if fields.len() >= 10 {
+            let raw = fields[3].trim();
+            (
+                // Only an *empty* field means "missing" → reconstruct from the
+                // issuing time. An explicit "0" is the documented sentinel for
+                // "no expiry data" (e.g. revoke-stubs) and is preserved as-is.
+                if raw.is_empty() {
+                    default_not_after_unix
+                } else {
+                    raw.parse::<u64>().unwrap_or(default_not_after_unix)
+                },
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+            )
+        } else {
+            // Legacy format: no not_after_unix column. Reconstruct it from the
+            // issuing timestamp so old CSV entries remain valid until their
+            // certificate expiry window elapses.
+            (default_not_after_unix, 3, 4, 5, 6, 7, 8)
+        };
     let revoked = matches!(fields[revoked_idx].as_str(), "true" | "TRUE" | "1");
     let revoked_at_unix = if fields[revoked_at_idx].is_empty() {
         None

@@ -226,9 +226,7 @@ async fn handle_watch_closed(
     crl: &State<CrlState>,
     etag: &str,
 ) -> Result<CrlOrNotModified, Status> {
-    error!(
-        "CRL watch channel closed during long-poll; falling back to backend read"
-    );
+    error!("CRL watch channel closed during long-poll; falling back to backend read");
     let bytes = crl
         .read_crl()
         .await
