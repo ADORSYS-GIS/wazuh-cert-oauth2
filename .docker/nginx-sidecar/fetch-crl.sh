@@ -66,7 +66,7 @@ if head -1 "${TEMP_FILE}" | grep -q "BEGIN X509 CRL"; then
     mv "${TEMP_FILE}" "${CRL_FILE}"
 else
     if ! openssl crl -in "${TEMP_FILE}" -inform DER -out "${TEMP_FILE}.pem" -outform PEM 2>/dev/null; then
-        echo "ERROR: Failed to convert CRL from DER to PEM"
+        echo "ERROR: Failed to convert CRL from DER to PEM" >&2
         rm -f "${TEMP_FILE}"
         exit 1
     fi

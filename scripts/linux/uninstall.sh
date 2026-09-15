@@ -33,10 +33,13 @@ fi
 
 # Function to calculate SHA256 (cross-platform bootstrap)
 calculate_sha256_bootstrap() {
+    local file="$1"
     if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$1" | awk '{print $1}'
+        sha256sum "$file" | awk '{print $1}'
+        return 0
     else
-        shasum -a 256 "$1" | awk '{print $1}'
+        shasum -a 256 "$file" | awk '{print $1}'
+        return 0
     fi
 }
 
@@ -68,6 +71,7 @@ uninstall_binary() {
     else
         warn_message "Binary not found in $BIN_DIR. Skipping."
     fi
+    return 0
 }
 
 # Clean up configuration
@@ -80,6 +84,7 @@ cleanup_configuration() {
     else
         warn_message "Configuration file not found at $OSSEC_CONF_PATH. Skipping configuration cleanup."
     fi
+    return 0
 }
 
 # Main script execution

@@ -10,11 +10,17 @@
 CREATE TYPE spool_item_type AS ENUM ('revoke', 'github_ticket', 'evict');
 CREATE TYPE spool_state AS ENUM ('pending', 'in_progress', 'done', 'dead_letter');
 
+-- Constant for the initial spool state. Referenced by the column default and the
+-- partial index predicate below so the 'pending' literal is not duplicated.
+CREATE FUNCTION spool_state_pending() RETURNS spool_state
+LANGUAGE sql IMMUTABLE PARALLEL SAFE
+RETURN 'pending'::spool_state;
+
 CREATE TABLE spool_item (
     id                BIGSERIAL PRIMARY KEY,
     item_type         spool_item_type NOT NULL,
     payload           JSONB       NOT NULL,
-    state             spool_state NOT NULL DEFAULT 'pending',
+    state             spool_state NOT NULL DEFAULT spool_state_pending(),
     triggered_at_unix BIGINT      NOT NULL,
     delete_after_unix BIGINT,               -- grace deadline (evict only)
     retry_count       INT         NOT NULL DEFAULT 0,
@@ -23,4 +29,4 @@ CREATE TABLE spool_item (
     updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_spool_due ON spool_item (state, delete_after_unix, triggered_at_unix)
-    WHERE state = 'pending';
+    WHERE state = spool_state_pending();

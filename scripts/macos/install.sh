@@ -23,10 +23,13 @@ fi
 
 # Function to calculate SHA256 (cross-platform bootstrap)
 calculate_sha256_bootstrap() {
+    local file="$1"
     if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$1" | awk '{print $1}'
+        sha256sum "$file" | awk '{print $1}'
+        return 0
     else
-        shasum -a 256 "$1" | awk '{print $1}'
+        shasum -a 256 "$file" | awk '{print $1}'
+        return 0
     fi
 }
 
@@ -66,9 +69,9 @@ OSSEC_CONF_PATH=${OSSEC_CONF_PATH:-"/Library/Ossec/etc/ossec.conf"}
 
 check_enrollment() {
     if ! maybe_sudo grep -q "<enrollment>" "$OSSEC_CONF_PATH"; then
-        ENROLLMENT_BLOCK="\t\t\n<enrollment>\n <agent_name></agent_name>\n </enrollment>\n"
+        local enrollment_block="\t\t\n<enrollment>\n <agent_name></agent_name>\n </enrollment>\n"
         # Add the file_limit block after the <syscheck> line
-        sed_inplace -i "/<\/server=*/ a\ $ENROLLMENT_BLOCK" "$OSSEC_CONF_PATH" || {
+        sed_inplace -i "/<\/server=*/ a\ $enrollment_block" "$OSSEC_CONF_PATH" || {
             error_message "Error occurred during the addition of the enrollment block."
             exit 1
         }
@@ -104,6 +107,7 @@ check_enrollment() {
     fi
 
     info_message "Agent certificates path configured successfully."
+    return 0
 }
 
 # Function to validate installation and configuration
@@ -145,6 +149,7 @@ validate_installation() {
     fi
 
     success_message "Validation of installation and configuration completed successfully."
+    return 0
 }
 
 # Construct binary name and URL for download

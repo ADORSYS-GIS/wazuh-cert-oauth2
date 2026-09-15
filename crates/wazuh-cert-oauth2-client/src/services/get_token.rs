@@ -64,52 +64,7 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> AppResult<S
 
     let csrf_secret = csrf_token.secret().clone();
     let server_handle = tokio::spawn(async move {
-        let mut tx = Some(tx);
-        while let Ok((mut stream, _)) = listener.accept().await {
-            // Buffer size increased to 4096 bytes
-            let mut buffer = [0; 4096];
-            match stream.read(&mut buffer).await {
-                Ok(n) if n > 0 => {
-                    let request = String::from_utf8_lossy(&buffer[..n]);
-                    let (code, state_valid) = parse_callback_request(&request, &csrf_secret);
-
-                    let (response, success) = if state_valid {
-                        if let Some(auth_code) = code {
-                            // Send code only if it's the first connection that provides it
-                            if let Some(tx) = tx.take() {
-                                let _ = tx.send(auth_code);
-                            }
-                            (
-                                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<h2>Auth complete - you can close this tab.</h2>",
-                                true,
-                            )
-                        } else {
-                            (
-                                "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<h2>Auth failed: Missing code parameter.</h2>",
-                                false,
-                            )
-                        }
-                    } else {
-                        (
-                            "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<h2>Auth failed: CSRF token mismatch or missing state.</h2>",
-                            false,
-                        )
-                    };
-
-                    let _ = stream.write_all(response.as_bytes()).await;
-                    if success {
-                        // Successfully received code, exit server loop
-                        break;
-                    }
-                }
-                Ok(_) => {
-                    debug!("Connection closed by client before data was sent.");
-                }
-                Err(e) => {
-                    error!("Error reading from TCP stream: {}", e);
-                }
-            }
-        }
+        serve_callback(listener, &csrf_secret, tx).await;
     });
 
     let auth_url_string = auth_url.to_string();
@@ -140,6 +95,67 @@ pub async fn get_token(http: &HttpClient, params: GetTokenParams) -> AppResult<S
         .request_async(http.client())
         .await?;
     Ok(token_result.access_token().secret().clone())
+}
+
+/// Serves the local callback HTTP server, waiting for the browser to return the
+/// authorization code. Sends the code over the channel on the first successful
+/// callback, then stops listening.
+async fn serve_callback(
+    listener: tokio::net::TcpListener,
+    csrf_secret: &str,
+    tx: oneshot::Sender<String>,
+) {
+    let mut tx = Some(tx);
+    while let Ok((mut stream, _)) = listener.accept().await {
+        // Buffer size increased to 4096 bytes
+        let mut buffer = [0; 4096];
+        match stream.read(&mut buffer).await {
+            Ok(n) if n > 0 => {
+                let request = String::from_utf8_lossy(&buffer[..n]);
+                let (code, state_valid) = parse_callback_request(&request, csrf_secret);
+                let (response, success) = callback_response(&code, state_valid);
+
+                let _ = stream.write_all(response.as_bytes()).await;
+                if success {
+                    // Send code only if it's the first connection that provides it
+                    if let Some(tx) = tx.take() {
+                        if let Some(auth_code) = code {
+                            let _ = tx.send(auth_code);
+                        }
+                    }
+                    // Successfully received code, exit server loop
+                    break;
+                }
+            }
+            Ok(_) => {
+                debug!("Connection closed by client before data was sent.");
+            }
+            Err(e) => {
+                error!("Error reading from TCP stream: {}", e);
+            }
+        }
+    }
+}
+
+/// Builds the HTTP response body and success flag for a callback request.
+fn callback_response(code: &Option<String>, state_valid: bool) -> (&'static str, bool) {
+    if !state_valid {
+        return (
+            "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<h2>Auth failed: CSRF token mismatch or missing state.</h2>",
+            false,
+        );
+    }
+    if code.is_some() {
+        (
+            "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<h2>Auth complete - you can close this tab.</h2>",
+            true,
+        )
+    } else {
+        (
+            "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<h2>Auth failed: Missing code parameter.</h2>",
+            false,
+        )
+    }
 }
 
 /// Parses the callback request to extract the code and validate the state.
