@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)...[44adca2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/44adca2b9380968cd4e5f9121ba51c4c2b350c26)
+[16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)...[1e578e9](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e578e97b0b42a34bb6d6337838c6856497d0052)
 
 ### Bug Fixes
 
@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Add not_after_unix field to ledger_event and ledger_entry inserts in postgres migration ([`73c0d45`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/73c0d455e763ebab3aa71e36d6e8190b4eab086a))
 - Resolve SonarQube code smells ([`f62e36f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f62e36f0a1d3a77be48a64f6f905fee532d3ddea))
 - Update rustls version and improve error logging format ([`b344f79`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b344f791f37bdf62ebf7e6952daa8fb196d87686))
+- Simplify conditional logic in serve_callback function ([`4d8ad54`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4d8ad5400bd67682eb35d1a62071b53edadcf58e))
 
 ### Documentation
 
@@ -27,6 +28,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`ad9e577`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ad9e5778b09d137c8e82ab7f962bb681a35e8d4b))
 - Update CHANGELOG.md and checksums [skip ci] ([`a1470ed`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a1470ed19210b68de643dd3a3434924ad3936aa0))
 - Update CHANGELOG.md and checksums [skip ci] ([`44adca2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/44adca2b9380968cd4e5f9121ba51c4c2b350c26))
+- Update CHANGELOG.md and checksums [skip ci] ([`65dd63b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/65dd63b22a22fb1cf5db68f65af0c4b3fe101141))
 
 ### Features
 
@@ -40,6 +42,9 @@ All notable changes to this project will be documented in this file.
 - Replace secrets inherit with explicit SonarQube secrets ([`e55b7b2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e55b7b22463e0704cb18bd60ac91bdf8c4e86d50))
 - Remove unnecessary contents permission from sonar workflow job ([`47298f0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/47298f052ce3fc612000ba8fe48541b02cf0a672))
 - Refactor permissions to top-level to satisfy Zizmor and remove redundancy ([`b9082ab`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b9082ab836fdcc9a40f22047c19e6dea5f729c4c))
+- Bump version to 0.5.0 ([`dbf7873`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/dbf7873324d8c1bf62dfa6615cd12c0662b7cd7b))
+- Bump helm chart versions to 0.5.0 ([`fc1e460`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fc1e460c3721428805dbff430959413f60940792))
+- Bump version to 0.5.0 in scripts and workflows ([`1e578e9`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e578e97b0b42a34bb6d6337838c6856497d0052))
 
 ## wazuh-cert-webhook-0.4.6 - 2026-08-28
 
