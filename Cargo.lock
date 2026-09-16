@@ -3844,7 +3844,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-client"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -3862,7 +3862,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-healthcheck"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "clap",
  "env_logger",
@@ -3873,7 +3873,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-model"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -3896,7 +3896,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-server"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3923,7 +3923,7 @@ dependencies = [
 
 [[package]]
 name = "wazuh-cert-oauth2-webhook"
-version = "0.4.6"
+version = "0.5.0"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
