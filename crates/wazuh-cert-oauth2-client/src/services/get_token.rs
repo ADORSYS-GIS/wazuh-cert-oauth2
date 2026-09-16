@@ -118,10 +118,10 @@ async fn serve_callback(
                 let _ = stream.write_all(response.as_bytes()).await;
                 if success {
                     // Send code only if it's the first connection that provides it
-                    if let Some(tx) = tx.take() {
-                        if let Some(auth_code) = code {
-                            let _ = tx.send(auth_code);
-                        }
+                    if let Some(tx) = tx.take()
+                        && let Some(auth_code) = code
+                    {
+                        let _ = tx.send(auth_code);
                     }
                     // Successfully received code, exit server loop
                     break;
