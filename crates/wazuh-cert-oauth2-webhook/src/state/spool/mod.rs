@@ -179,64 +179,71 @@ async fn process_once(state: &ProxyState) -> AppResult<()> {
     // Process a snapshot of items once per cycle, then yield to the interval
     // sleep. Persistently failing items are retried on the next cycle.
     for claimed in state.spool.list_pending().await? {
-        let id = claimed.id;
-        let triggered_at = claimed.triggered_at_unix;
-        match claimed.item {
-            SpoolItem::RevokeRequest { req } => match state.forward_revoke_with_retry(req).await {
+        process_item(state, claimed).await?;
+    }
+    Ok(())
+}
+
+/// Processes a single claimed spool item, dispatching on its variant and
+/// marking it done, retrying it, or dead-lettering it as appropriate.
+async fn process_item(state: &ProxyState, claimed: ClaimedItem) -> AppResult<()> {
+    let id = claimed.id;
+    let triggered_at = claimed.triggered_at_unix;
+    match claimed.item {
+        SpoolItem::RevokeRequest { req } => match state.forward_revoke_with_retry(req).await {
+            Ok(()) => state.spool.mark_done(&id).await?,
+            Err(e) => {
+                warn!("still failing for {}: {}", id, e);
+                state.spool.retry(&id).await?;
+            }
+        },
+        SpoolItem::GitHubTicket { ticket } => {
+            match state.forward_github_ticket_with_retry(ticket).await {
                 Ok(()) => state.spool.mark_done(&id).await?,
                 Err(e) => {
                     warn!("still failing for {}: {}", id, e);
                     state.spool.retry(&id).await?;
                 }
-            },
-            SpoolItem::GitHubTicket { ticket } => {
-                match state.forward_github_ticket_with_retry(ticket).await {
-                    Ok(()) => state.spool.mark_done(&id).await?,
-                    Err(e) => {
-                        warn!("still failing for {}: {}", id, e);
-                        state.spool.retry(&id).await?;
-                    }
-                }
             }
-            SpoolItem::EvictRequest { req } => {
-                // Not-yet-due evictions are filtered out by list_pending, so we
-                // only reach here when the item is due.
-                let req_subject = req.subject.clone();
-                match state.run_eviction_from_state(req).await {
-                    Ok(EvictionOutcome::Done) => state.spool.mark_done(&id).await?,
-                    Ok(EvictionOutcome::Pending(updated_req)) => {
-                        let updated = SpoolItem::EvictRequest {
-                            req: updated_req.clone(),
-                        };
-                        state
-                            .spool
-                            .update_item(&id, &updated, updated_req.delete_after_unix)
-                            .await?;
-                    }
-                    Err(e) => {
-                        let now = now_unix();
-                        let age = now.saturating_sub(triggered_at);
-                        let ttl = state.spool_evict_ttl.as_secs();
-                        if age > ttl {
-                            error!(
-                                subject = %req_subject,
-                                id = %id,
-                                age_secs = age,
-                                ttl_secs = ttl,
-                                error = %e,
-                                "Eviction spool item exceeded TTL; dead-lettering",
-                            );
-                            state.spool.mark_dead_letter(&id, &e.to_string()).await?;
-                        } else {
-                            warn!(
-                                "eviction still failing for {} (age {}s, TTL {}s): {}",
-                                id, age, ttl, e
-                            );
-                            // Return to pending so it is retried on the next
-                            // cycle (respecting the spool interval) instead of
-                            // waiting for the crash-recovery reclaim.
-                            state.spool.retry(&id).await?;
-                        }
+        }
+        SpoolItem::EvictRequest { req } => {
+            // Not-yet-due evictions are filtered out by list_pending, so we
+            // only reach here when the item is due.
+            let req_subject = req.subject.clone();
+            match state.run_eviction_from_state(req).await {
+                Ok(EvictionOutcome::Done) => state.spool.mark_done(&id).await?,
+                Ok(EvictionOutcome::Pending(updated_req)) => {
+                    let updated = SpoolItem::EvictRequest {
+                        req: updated_req.clone(),
+                    };
+                    state
+                        .spool
+                        .update_item(&id, &updated, updated_req.delete_after_unix)
+                        .await?;
+                }
+                Err(e) => {
+                    let now = now_unix();
+                    let age = now.saturating_sub(triggered_at);
+                    let ttl = state.spool_evict_ttl.as_secs();
+                    if age > ttl {
+                        error!(
+                            subject = %req_subject,
+                            id = %id,
+                            age_secs = age,
+                            ttl_secs = ttl,
+                            error = %e,
+                            "Eviction spool item exceeded TTL; dead-lettering",
+                        );
+                        state.spool.mark_dead_letter(&id, &e.to_string()).await?;
+                    } else {
+                        warn!(
+                            "eviction still failing for {} (age {}s, TTL {}s): {}",
+                            id, age, ttl, e
+                        );
+                        // Return to pending so it is retried on the next
+                        // cycle (respecting the spool interval) instead of
+                        // waiting for the crash-recovery reclaim.
+                        state.spool.retry(&id).await?;
                     }
                 }
             }

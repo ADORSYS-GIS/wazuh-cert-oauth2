@@ -17,48 +17,57 @@ NORMAL='\033[0m'
 
 # Logging with timestamp
 log() {
-    if [ -n "$BASH_VERSION" ]; then
-        local LEVEL TIMESTAMP
-    else
-        LEVEL=""
-        TIMESTAMP=""
-    fi
-
-    LEVEL="$1"
+    local level="$1"
     shift
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-    printf "%s %b %s\n" "$TIMESTAMP" "$LEVEL" "$*"
+    local timestamp
+    timestamp=$(date +"%Y-%m-%d %H:%M:%S")
+    printf "%s %b %s\n" "$timestamp" "$level" "$*"
+    return 0
 }
 
 info_message() {
-    log "${BLUE}${BOLD}[INFO]${NORMAL}" "$*"
+    local message="$*"
+    log "${BLUE}${BOLD}[INFO]${NORMAL}" "$message"
+    return 0
 }
 
 warn_message() {
-    log "${YELLOW}${BOLD}[WARNING]${NORMAL}" "$*"
+    local message="$*"
+    log "${YELLOW}${BOLD}[WARNING]${NORMAL}" "$message"
+    return 0
 }
 
 error_message() {
-    log "${RED}${BOLD}[ERROR]${NORMAL}" "$*"
+    local message="$*"
+    log "${RED}${BOLD}[ERROR]${NORMAL}" "$message"
+    return 0
 }
 
 success_message() {
-    log "${GREEN}${BOLD}[SUCCESS]${NORMAL}" "$*"
+    local message="$*"
+    log "${GREEN}${BOLD}[SUCCESS]${NORMAL}" "$message"
+    return 0
 }
 
 print_step() {
-    log "${BLUE}${BOLD}[STEP]${NORMAL}" "$1: $2"
+    local step="$1"
+    local message="$2"
+    log "${BLUE}${BOLD}[STEP]${NORMAL}" "$step: $message"
+    return 0
 }
 
 error_exit() {
-    error_message "$1"
+    local message="$1"
+    error_message "$message"
     exit 1
 }
 
 
 # Check if a command exists
 command_exists() {
-    command -v "$1" >/dev/null 2>&1
+    local cmd="$1"
+    command -v "$cmd" >/dev/null 2>&1
+    return $?
 }
 
 # Ensure root privileges, either directly or through sudo
@@ -66,12 +75,14 @@ maybe_sudo() {
     if [ "$(id -u)" -ne 0 ]; then
         if command_exists sudo; then
             sudo "$@"
+            return $?
         else
             error_message "This script requires root privileges. Please run with sudo or as root."
             exit 1
         fi
     else
         "$@"
+        return $?
     fi
 }
 
@@ -80,8 +91,10 @@ calculate_sha256() {
     local file="$1"
     if command_exists sha256sum; then
         sha256sum "$file" | awk '{print $1}'
+        return 0
     elif command_exists shasum; then
         shasum -a 256 "$file" | awk '{print $1}'
+        return 0
     else
         error_message "No SHA256 tool available (sha256sum or shasum required)"
         return 1
@@ -108,10 +121,13 @@ verify_checksum() {
 sed_inplace() {
     if command_exists gsed; then
         maybe_sudo gsed -i "$@"
+        return $?
     elif [ "$(uname)" = "Darwin" ]; then
         maybe_sudo sed -i '' "$@"
+        return $?
     else
         maybe_sudo sed -i "$@"
+        return $?
     fi
 }
 
@@ -122,13 +138,13 @@ download_file() {
     local dest="$2"
     local max_retries="${3:-3}"
     local retry_count=0
-    
+
     # Validate arguments
     if [ -z "$url" ] || [ -z "$dest" ]; then
         error_message "Usage: download_file <url> <destination> [max_retries]"
         return 1
     fi
-    
+
     # Create destination directory if it doesn't exist
     local dest_dir
     dest_dir=$(dirname "$dest")
@@ -138,11 +154,11 @@ download_file() {
             return 1
         }
     fi
-    
+
     # Attempt download with retries
     while [ $retry_count -lt "$max_retries" ]; do
         retry_count=$((retry_count + 1))
-        
+
         if command_exists curl; then
             # Use curl with better error handling and progress
             if curl -fsSL --connect-timeout 30 --max-time 300 "$url" -o "$dest" 2>/dev/null; then
@@ -168,11 +184,11 @@ download_file() {
             error_message "Neither curl nor wget is available. Please install one of them."
             return 1
         fi
-        
+
         # Small delay before retry
         sleep 2
     done
-    
+
     error_message "Failed to download $url after $max_retries attempts"
     return 1
 }
@@ -184,11 +200,11 @@ download_and_verify_file() {
     local name="${4:-Unknown file}"
     local checksum_url="${5:-}"
     local checksum_file="${6:-${CHECKSUMS_FILE:-}}"
-    
+
     if ! download_file "$url" "$dest"; then
         error_exit "Failed to download $name from $url"
     fi
-    
+
     # If a direct checksum URL is provided, download it and use it as the source of truth
     if [ -n "$checksum_url" ]; then
         local temp_checksum_file
@@ -198,11 +214,11 @@ download_and_verify_file() {
         fi
         checksum_file="$temp_checksum_file"
     fi
-    
+
     if [ -f "$checksum_file" ]; then
         local expected
         expected=$(grep "$pattern" "$checksum_file" | awk '{print $1}' || error_exit "Failed to extract expected checksum for $name using pattern $pattern from $checksum_file")
-        
+
         if [ -n "$expected" ]; then
             if ! verify_checksum "$dest" "$expected"; then
                 error_exit "$name checksum verification failed"
@@ -211,7 +227,7 @@ download_and_verify_file() {
         else
             error_exit "No checksum found for $name in $checksum_file using pattern $pattern"
         fi
-        
+
         # Cleanup temporary checksum file if it was downloaded from a URL
         if [ -n "$checksum_url" ] && [ -f "$checksum_file" ]; then
             rm -f "$checksum_file"
@@ -219,7 +235,7 @@ download_and_verify_file() {
     else
         error_exit "Checksum file not found at $checksum_file, cannot verify $name"
     fi
-    
+
     success_message "$name downloaded and verified successfully."
     return 0
 }
@@ -231,14 +247,17 @@ detect_os() {
         Darwin*) echo "macOS" ;;
         *) echo "Unknown" ;;
     esac
+    return 0
 }
 
 # Architecture detection
 detect_arch() {
-    ARCH=$(uname -m)
-    case "$ARCH" in
+    local arch
+    arch=$(uname -m)
+    case "$arch" in
         "x86_64") echo "x86_64" ;;
         "arm64"|"aarch64") echo "aarch64" ;;
-        *) error_exit "Unsupported architecture: $ARCH" ;;
+        *) error_exit "Unsupported architecture: $arch" ;;
     esac
+    return 0
 }

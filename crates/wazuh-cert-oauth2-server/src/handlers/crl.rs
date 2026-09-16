@@ -145,7 +145,7 @@ pub async fn get_crl(
 /// ETag matches the current one.
 async fn serve_crl_or_long_poll(
     etag: String,
-    mut bytes: Vec<u8>,
+    bytes: Vec<u8>,
     client_etag: &str,
     crl: &State<CrlState>,
     rx: &mut tokio::sync::watch::Receiver<(String, Option<std::sync::Arc<Vec<u8>>>)>,
@@ -172,52 +172,11 @@ async fn serve_crl_or_long_poll(
                         let borrow = rx.borrow();
                         (borrow.0.clone(), borrow.1.clone())
                     };
-                    if new_etag != etag {
-                        info!(
-                            "CRL changed during long-poll (old={} new={}); serving new body",
-                            &etag, &new_etag
-                        );
-                        let body = match new_body {
-                            Some(b) => b.to_vec(),
-                            None => {
-                                error!("New CRL body is None during long-poll");
-                                return Err(Status::InternalServerError);
-                            }
-                        };
-                        return Ok(CrlOrNotModified::Crl(CrlResponse {
-                            etag: new_etag,
-                            body,
-                        }));
+                    if let Some(result) = handle_watch_change(&etag, new_etag, new_body).await? {
+                        return Ok(result);
                     }
-                    // Same ETag (e.g. spool update without CRL change) — keep waiting.
-                    debug!("Watch notified but ETag unchanged; continuing long-poll");
                 }
-                Ok(Err(_)) => {
-                    // Watch channel closed — worker died. The notification
-                    // mechanism has failed, but the CRL may still be valid.
-                    // Read fresh from the backend to serve the latest state,
-                    // while still alerting the operator via the error log.
-                    error!(
-                        "CRL watch channel closed during long-poll; falling back to backend read"
-                    );
-                    bytes = crl
-                        .read_crl()
-                        .await
-                        .map_err(|_| Status::InternalServerError)?;
-                    if bytes.is_empty() || is_crl_expired(&bytes) {
-                        error!("CRL watch channel closed and no valid cached CRL available");
-                        return Err(Status::InternalServerError);
-                    }
-                    let fresh_etag = compute_etag(&bytes);
-                    return if fresh_etag == etag {
-                        Ok(CrlOrNotModified::NotModified(etag))
-                    } else {
-                        Ok(CrlOrNotModified::Crl(CrlResponse {
-                            etag: fresh_etag,
-                            body: bytes,
-                        }))
-                    };
-                }
+                Ok(Err(_)) => return handle_watch_closed(crl, &etag).await,
                 Err(_) => {
                     // Timeout elapsed.
                     debug!("Long-poll timeout for ETag {}", &etag);
@@ -229,6 +188,62 @@ async fn serve_crl_or_long_poll(
 
     // --- No matching ETag or different — serve immediately ---
     Ok(CrlOrNotModified::Crl(CrlResponse { etag, body: bytes }))
+}
+
+/// Handles a watch-channel update during long-poll. Returns `Ok(None)` when the
+/// ETag is unchanged (keep waiting) or `Ok(Some(...))` when a new CRL should be
+/// served.
+async fn handle_watch_change(
+    etag: &str,
+    new_etag: String,
+    new_body: Option<std::sync::Arc<Vec<u8>>>,
+) -> Result<Option<CrlOrNotModified>, Status> {
+    if new_etag == etag {
+        // Same ETag (e.g. spool update without CRL change) — keep waiting.
+        debug!("Watch notified but ETag unchanged; continuing long-poll");
+        return Ok(None);
+    }
+    info!(
+        "CRL changed during long-poll (old={} new={}); serving new body",
+        etag, &new_etag
+    );
+    let body = match new_body {
+        Some(b) => b.to_vec(),
+        None => {
+            error!("New CRL body is None during long-poll");
+            return Err(Status::InternalServerError);
+        }
+    };
+    Ok(Some(CrlOrNotModified::Crl(CrlResponse {
+        etag: new_etag,
+        body,
+    })))
+}
+
+/// Handles the watch channel being closed (worker died) during long-poll by
+/// falling back to a fresh backend read.
+async fn handle_watch_closed(
+    crl: &State<CrlState>,
+    etag: &str,
+) -> Result<CrlOrNotModified, Status> {
+    error!("CRL watch channel closed during long-poll; falling back to backend read");
+    let bytes = crl
+        .read_crl()
+        .await
+        .map_err(|_| Status::InternalServerError)?;
+    if bytes.is_empty() || is_crl_expired(&bytes) {
+        error!("CRL watch channel closed and no valid cached CRL available");
+        return Err(Status::InternalServerError);
+    }
+    let fresh_etag = compute_etag(&bytes);
+    if fresh_etag == etag {
+        Ok(CrlOrNotModified::NotModified(etag.to_string()))
+    } else {
+        Ok(CrlOrNotModified::Crl(CrlResponse {
+            etag: fresh_etag,
+            body: bytes,
+        }))
+    }
 }
 
 /// Fetch the current revocation DB as JSON (admin/auth token recommended)

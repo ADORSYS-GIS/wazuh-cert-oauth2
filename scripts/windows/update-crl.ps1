@@ -1,4 +1,4 @@
-Param(
+param(
   [Parameter(Mandatory = $true)] [string] $CrlUrl,
   [Parameter(Mandatory = $true)] [string] $DestPath,
   [string] $ReloadCmd

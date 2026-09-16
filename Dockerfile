@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.5
 
-FROM rust:1 as base
+FROM rust:1 AS base
 
 LABEL maintainer="adorsys Cameroon"
 
@@ -9,7 +9,7 @@ ENV OPENSSL_STATIC=1
 
 WORKDIR /app
 
-FROM base as builder
+FROM base AS builder
 
 ARG TARGETARCH
 
@@ -68,7 +68,7 @@ RUN \
   && cp ./target/"${RUST_TARGET}"/prod/wazuh-cert-oauth2-webhook webhook \
   && cp ./target/"${RUST_TARGET}"/prod/wazuh-cert-oauth2-healthcheck healthcheck
 
-FROM gcr.io/distroless/static-debian12:nonroot as webhook
+FROM gcr.io/distroless/static-debian12:nonroot AS webhook
 
 LABEL maintainer="Stephane Segning <selastlambou@gmail.com>"
 LABEL org.opencontainers.image.description="adorsys GIS Cameroon"
@@ -89,7 +89,7 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=2s --retries=5 CMD ["/app
 
 ENTRYPOINT ["/app/webhook"]
 
-FROM gcr.io/distroless/static-debian12:nonroot as oauth2
+FROM gcr.io/distroless/static-debian12:nonroot AS oauth2
 
 LABEL maintainer="Stephane Segning <selastlambou@gmail.com>"
 LABEL org.opencontainers.image.description="adorsys GIS Cameroon"
