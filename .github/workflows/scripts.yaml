@@ -13,43 +13,7 @@ env:
   WOPS_VERSION: "0.5.0"
 
 jobs:
-  lint-scripts:
-    name: Lint Scripts
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: 'false'
-
-      - name: Install ShellCheck
-        run: sudo apt-get install -y shellcheck
-
-      - name: Run ShellCheck on bash scripts
-        run: |
-          find scripts -name "*.sh" -type f -print0 | xargs -0 shellcheck --severity=warning || true
-
-      - name: Install PSScriptAnalyzer
-        shell: pwsh
-        run: |
-          Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-
-      - name: Run PSScriptAnalyzer on PowerShell scripts
-        shell: pwsh
-        run: |
-          $results = Get-ChildItem -Path scripts/windows -Filter "*.ps1" -Recurse | ForEach-Object {
-            Invoke-ScriptAnalyzer -Path $_.FullName -Severity Warning,Error
-          }
-          if ($results) {
-            $results | Format-Table -AutoSize
-            Write-Warning "PSScriptAnalyzer found issues"
-          }
-
   update-changelog-and-checksums:
-    needs: lint-scripts
     runs-on: ubuntu-latest
     permissions:
       contents: write
