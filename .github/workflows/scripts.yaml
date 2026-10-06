@@ -1,4 +1,4 @@
-name: Lint and test scripts
+name: Test and update scripts
 
 on:
   pull_request:
