@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[5e94f7b](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5e94f7b52e408c07e0affbb549746aeec8919aed)
+
+### Bug Fixes
+
+- Resolve PSScriptAnalyzer SAST findings ([`5e94f7b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5e94f7b52e408c07e0affbb549746aeec8919aed))
+
+### Features
+
+- Add SAST workflow ([`7da2c20`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7da2c206d436392fa6b5bc201fa9d6f51419685e))
+
+### Miscellaneous Tasks
+
+- Remove clippy/shellcheck/psscriptanalyzer (moved to SAST) ([`056a3fe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/056a3fe5dca964863c04a985a456947fd9f5e179))
+
+## 0.5.0 - 2026-09-16
+
+[70e70b2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/70e70b2d22e6209c1b652aabed9d4af20d146096)...[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)
+
+### Documentation
+
+- Update CHANGELOG.md and checksums [skip ci] ([`f74c4da`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f74c4dab716db338fbc4d926d9883c1d2e7a5244))
+
 ## wazuh-cert-webhook-0.5.0 - 2026-09-16
 
 [16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)...[70e70b2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/70e70b2d22e6209c1b652aabed9d4af20d146096)
