@@ -23,7 +23,7 @@ try {
     $ChecksumsURL = "$WAZUH_CERT_OAUTH2_RELEASE_URL/checksums.sha256"
     $UtilsURL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF/scripts/shared/utils.ps1"
 
-    $global:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
+    $script:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
     $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
 
     Invoke-WebRequest -Uri $ChecksumsURL -OutFile $ChecksumsPath -ErrorAction Stop

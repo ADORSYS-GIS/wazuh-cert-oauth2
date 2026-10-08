@@ -7,8 +7,6 @@ $APP_NAME = if ($null -ne $env:APP_NAME) { $env:APP_NAME } else { "wazuh-cert-oa
 $DEFAULT_WOPS_VERSION = "0.5.0"
 $WOPS_VERSION = if ($null -ne $env:WOPS_VERSION) { $env:WOPS_VERSION } else { $DEFAULT_WOPS_VERSION }
 $OSSEC_CONF_PATH = if ($null -ne $env:OSSEC_CONF_PATH) { $env:OSSEC_CONF_PATH } else { "C:\Program Files (x86)\ossec-agent\ossec.conf" }
-$USER = "root"
-$GROUP = "wazuh"
 
 # Variables
 if (-not $env:WAZUH_CERT_OAUTH2_REPO_REF) {
@@ -26,7 +24,7 @@ try {
     $ChecksumsURL = "$WAZUH_CERT_OAUTH2_RELEASE_URL/checksums.sha256"
     $UtilsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/shared/utils.ps1"
 
-    $global:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
+    $script:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
     $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
 
     Invoke-WebRequest -Uri $ChecksumsURL -OutFile $ChecksumsPath -ErrorAction Stop
@@ -192,11 +190,11 @@ $FALLBACK_URL = "$FALLBACK_RELEASE_URL/wazuh-cert-oauth2-client-x86_64-pc-window
 $TEMP_FILE = New-TemporaryFile
 PrintStep 1 "Downloading $BIN_NAME from $URL..."
 try {
-    Download-And-VerifyFile -Url $URL -Destination $TEMP_FILE -ChecksumPattern $BIN_NAME -FileName $BIN_NAME -ChecksumUrl "$BIN_CHECKSUM_URL"
+    Get-VerifiedFile -Url $URL -Destination $TEMP_FILE -ChecksumPattern $BIN_NAME -FileName $BIN_NAME -ChecksumUrl "$BIN_CHECKSUM_URL"
 } catch {
     WarnMessage "Failed to download from $URL. Trying fallback URL..."
     $fallbackBinName = "wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe"
-    Download-And-VerifyFile -Url $FALLBACK_URL -Destination $TEMP_FILE -ChecksumPattern $fallbackBinName -FileName $fallbackBinName -ChecksumUrl "$BIN_CHECKSUM_URL"
+    Get-VerifiedFile -Url $FALLBACK_URL -Destination $TEMP_FILE -ChecksumPattern $fallbackBinName -FileName $fallbackBinName -ChecksumUrl "$BIN_CHECKSUM_URL"
 }
 
 # Step 2: Install the binary based on architecture
