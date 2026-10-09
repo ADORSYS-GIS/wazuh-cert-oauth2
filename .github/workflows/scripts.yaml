@@ -101,26 +101,31 @@ jobs:
 
       - name: Test scripts (Linux/macOS)
         if: runner.os != 'Windows'
+        env:
+          WAZUH_MANAGER: "${{ env.WAZUH_MANAGER }}"
+          WAZUH_CERT_OAUTH2_REPO_REF: "${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}"
+          WOPS_VERSION: "${{ env.WOPS_VERSION }}"
         run: |
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             sudo env \
-              WAZUH_MANAGER="${{ env.WAZUH_MANAGER }}" \
-              WAZUH_CERT_OAUTH2_REPO_REF="${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}" \
-              WOPS_VERSION="${{ env.WOPS_VERSION }}" \
+              WAZUH_MANAGER="$WAZUH_MANAGER" \
+              WAZUH_CERT_OAUTH2_REPO_REF="$WAZUH_CERT_OAUTH2_REPO_REF" \
+              WOPS_VERSION="$WOPS_VERSION" \
               bash ./scripts/linux/install.sh
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             sudo env \
-              WAZUH_MANAGER="${{ env.WAZUH_MANAGER }}" \
-              WAZUH_CERT_OAUTH2_REPO_REF="${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}" \
-              WOPS_VERSION="${{ env.WOPS_VERSION }}" \
+              WAZUH_MANAGER="$WAZUH_MANAGER" \
+              WAZUH_CERT_OAUTH2_REPO_REF="$WAZUH_CERT_OAUTH2_REPO_REF" \
+              WOPS_VERSION="$WOPS_VERSION" \
               bash ./scripts/macos/install.sh
           fi
 
       - name: Test scripts (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          WAZUH_MANAGER: "${{ env.WAZUH_MANAGER }}"
+          WAZUH_CERT_OAUTH2_REPO_REF: "${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}"
+          WOPS_VERSION: "${{ env.WOPS_VERSION }}"
         run: |
-          $env:WAZUH_MANAGER = "${{ env.WAZUH_MANAGER }}"
-          $env:WAZUH_CERT_OAUTH2_REPO_REF = "${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}"
-          $env:WOPS_VERSION = "${{ env.WOPS_VERSION }}"
           .\scripts\windows\install.ps1
