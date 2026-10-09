@@ -4,16 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[09c3e72](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/09c3e72959c155eea847c098753d9912441a10cf)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[fa8d5dc](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fa8d5dc91f7294f3889dc63c9263b8fdcc9ac9d9)
 
 ### Bug Fixes
 
 - Resolve PSScriptAnalyzer SAST findings ([`5e94f7b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5e94f7b52e408c07e0affbb549746aeec8919aed))
 - Test windows scripts against PR branch utils ([`09c3e72`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/09c3e72959c155eea847c098753d9912441a10cf))
+- Pass env vars via workflow env blocks in script tests ([`8b9df91`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/8b9df9189708f5c813f2e747877e2ecfe0aec293))
+- Deduplicate shared utils bootstrap in windows scripts ([`fa8d5dc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fa8d5dc91f7294f3889dc63c9263b8fdcc9ac9d9))
 
 ### Documentation
 
 - Update CHANGELOG.md and checksums [skip ci] ([`370f17e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/370f17ec6ab89d070cbed4d9809b819745ab5349))
+- Update CHANGELOG.md and checksums [skip ci] ([`be92623`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/be9262385ebb694a5a5afebc69bace37ac005314))
+- Update CHANGELOG.md and checksums [skip ci] ([`e374b1c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e374b1c29ed9e3f00e33ce3518754ba6a896e2bb))
 
 ### Features
 
