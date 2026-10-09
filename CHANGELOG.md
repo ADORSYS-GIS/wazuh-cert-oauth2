@@ -4,11 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[5e94f7b](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5e94f7b52e408c07e0affbb549746aeec8919aed)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[09c3e72](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/09c3e72959c155eea847c098753d9912441a10cf)
 
 ### Bug Fixes
 
 - Resolve PSScriptAnalyzer SAST findings ([`5e94f7b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5e94f7b52e408c07e0affbb549746aeec8919aed))
+- Test windows scripts against PR branch utils ([`09c3e72`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/09c3e72959c155eea847c098753d9912441a10cf))
+
+### Documentation
+
+- Update CHANGELOG.md and checksums [skip ci] ([`370f17e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/370f17ec6ab89d070cbed4d9809b819745ab5349))
 
 ### Features
 
