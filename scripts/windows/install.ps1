@@ -21,7 +21,7 @@ $UtilsTmp = Join-Path $env:TEMP "wazuh-cert-oauth2-utils-$(Get-Random)"
 New-Item -ItemType Directory -Path $UtilsTmp -Force | Out-Null
 
 try {
-    $ChecksumsURL = "$WAZUH_CERT_OAUTH2_RELEASE_URL/checksums.sha256"
+    $ChecksumsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
     $UtilsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/shared/utils.ps1"
 
     $script:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"

@@ -13,15 +13,15 @@ if (-not $env:WAZUH_CERT_OAUTH2_REPO_REF) {
     $env:WAZUH_CERT_OAUTH2_REPO_REF = "refs/tags/v$WOPS_VERSION"
 }
 $WAZUH_CERT_OAUTH2_REPO_REF = $env:WAZUH_CERT_OAUTH2_REPO_REF
-$WAZUH_CERT_OAUTH2_RELEASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
+$WAZUH_CERT_OAUTH2_REPO_URL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF"
 
 # Create a secure temporary directory for utilities
 $UtilsTmp = Join-Path $env:TEMP "wazuh-cert-oauth2-utils-$(Get-Random)"
 New-Item -ItemType Directory -Path $UtilsTmp -Force | Out-Null
 
 try {
-    $ChecksumsURL = "$WAZUH_CERT_OAUTH2_RELEASE_URL/checksums.sha256"
-    $UtilsURL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF/scripts/shared/utils.ps1"
+    $ChecksumsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256"
+    $UtilsURL = "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/shared/utils.ps1"
 
     $script:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
     $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
