@@ -204,3 +204,35 @@ function Test-DownloadedFile {
         Remove-Item -Path $ChecksumFile -Force -ErrorAction SilentlyContinue
     }
 }
+
+# Validates the downloaded utils.ps1 against the repository checksums file and
+# makes the checksums path available to Get-VerifiedFile via
+# $script:ChecksumsPath.
+#
+# Callers (installer/uninstaller scripts) download and dot-source this file
+# first, then call this function to verify the copy they sourced.
+function Test-Utility {
+    param(
+        [Parameter(Mandatory)]
+        [string]$RepoUrl,
+        [Parameter(Mandatory)]
+        [string]$UtilsPath
+    )
+
+    try {
+        $UtilsTmp = Split-Path -Parent $UtilsPath
+        $script:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
+
+        Invoke-WebRequest -Uri "$RepoUrl/checksums.sha256" -OutFile $script:ChecksumsPath -ErrorAction Stop
+
+        $expectedHash = (Select-String -Path $script:ChecksumsPath -Pattern "scripts/shared/utils.ps1").Line.Split(" ")[0]
+        $actualHash = Get-FileChecksum -FilePath $UtilsPath
+
+        if ([string]::IsNullOrWhiteSpace($expectedHash) -or ($actualHash -ne $expectedHash.ToLower())) {
+            ErrorExit "Checksum verification failed for utils.ps1"
+        }
+    }
+    catch {
+        ErrorExit "Failed to initialize utilities: $($_.Exception.Message)"
+    }
+}
