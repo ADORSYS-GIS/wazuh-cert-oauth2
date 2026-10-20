@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[1e7ab40](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e7ab40a10088c2e4ad768e966867ef908fffc57)
+
+### Miscellaneous Tasks
+
+- Ignore rustls 0.21 TLS advisories ([`1e7ab40`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e7ab40a10088c2e4ad768e966867ef908fffc57))
+
+### Testing
+
+- Add Rust test coverage reporting for SonarQube ([`98e43a0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/98e43a02ed3e35295c58ecd5aa0f04cb3efc619c))
+
+## 0.5.0 - 2026-09-16
+
+[70e70b2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/70e70b2d22e6209c1b652aabed9d4af20d146096)...[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)
+
+### Documentation
+
+- Update CHANGELOG.md and checksums [skip ci] ([`f74c4da`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f74c4dab716db338fbc4d926d9883c1d2e7a5244))
+
 ## wazuh-cert-webhook-0.5.0 - 2026-09-16
 
 [16ddc38](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/16ddc38a91b4875ab2ef06f7f1d84abf29c1ad3a)...[70e70b2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/70e70b2d22e6209c1b652aabed9d4af20d146096)
