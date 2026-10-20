@@ -34,4 +34,21 @@ ignore = [
     # fix requires an upstream Rocket/hyper bump. Tracked by the Postgres
     # migration epic.
     "RUSTSEC-2026-0258",
+    # https://rustsec.org/advisories/RUSTSEC-2026-0346
+    # rustls 0.21 `Debug` impls for client session values expose TLS secrets.
+    # Same rustls 0.21 line pulled in via Rocket 0.5 -> rocket_http -> rustls
+    # 0.21; no safe upgrade without an upstream Rocket (or rustls 0.22+) bump.
+    # Tracked by the Postgres migration epic.
+    "RUSTSEC-2026-0346",
+    # https://rustsec.org/advisories/RUSTSEC-2026-0347
+    # https://rustsec.org/advisories/RUSTSEC-2026-0348
+    # https://rustsec.org/advisories/RUSTSEC-2026-0349
+    # rustls 0.21 TLS advisories (buffered data after ECH rejection, Brotli
+    # cert decompression allocation, ServerHello downgrade). Same rustls 0.21
+    # line pulled in via Rocket 0.5 -> rocket_http -> rustls 0.21; no safe
+    # upgrade without an upstream Rocket (or rustls 0.22+) bump. Tracked by
+    # the Postgres migration epic.
+    "RUSTSEC-2026-0347",
+    "RUSTSEC-2026-0348",
+    "RUSTSEC-2026-0349",
 ]
