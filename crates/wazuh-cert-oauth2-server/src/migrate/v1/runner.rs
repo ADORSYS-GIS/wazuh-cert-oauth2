@@ -223,3 +223,144 @@ fn build_kc_client(opt: &MigrateOpt) -> AppResult<Client> {
         .build()
         .map_err(|e| AppError::UpstreamError(format!("failed to build HTTP client: {}", e)))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{build_kc_client, match_entry};
+    use crate::migrate::v1::client::KeycloakSession;
+    use crate::migrate::v1::matcher::MatchStatus;
+    use crate::migrate::v1::opts::{KeycloakAuthMethod, MigrateOpt};
+    use reqwest::Client;
+    use wazuh_cert_oauth2_model::models::ledger_entry::LedgerEntry;
+    use wazuh_cert_oauth2_model::services::wazuh::AgentItem;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    fn opt(base_url: &str) -> MigrateOpt {
+        MigrateOpt {
+            input: "/data/ledger.csv".to_string(),
+            output: "ledger-migrated.csv".to_string(),
+            unresolved: "unresolved.csv".to_string(),
+            report: "migration-report.txt".to_string(),
+            wazuh_manager_url: "https://wazuh".to_string(),
+            wazuh_api_user: "user".to_string(),
+            wazuh_api_password: "pass".to_string(),
+            wazuh_tls_verify: true,
+            wazuh_ca_bundle: None,
+            keycloak_admin_url: base_url.to_string(),
+            keycloak_realm: "main".to_string(),
+            keycloak_auth_method: KeycloakAuthMethod::Password,
+            keycloak_admin_user: Some("admin".to_string()),
+            keycloak_admin_password: Some("secret".to_string()),
+            keycloak_client_id: None,
+            keycloak_client_secret: None,
+            keycloak_tls_verify: true,
+            keycloak_ca_bundle: None,
+        }
+    }
+
+    fn entry(subject: &str) -> LedgerEntry {
+        LedgerEntry {
+            subject: subject.to_string(),
+            serial_hex: "00FF".to_string(),
+            issued_at_unix: 1700000000,
+            not_after_unix: 0,
+            revoked: false,
+            revoked_at_unix: None,
+            reason: None,
+            issuer: None,
+            realm: None,
+            wazuh_agent_name: None,
+        }
+    }
+
+    fn agent(id: &str, name: &str) -> AgentItem {
+        AgentItem {
+            id: id.to_string(),
+            name: name.to_string(),
+            os: None,
+        }
+    }
+
+    async fn kc_session(server: &MockServer) -> KeycloakSession {
+        Mock::given(method("POST"))
+            .and(path("/realms/master/protocol/openid-connect/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "kc-token"
+            })))
+            .mount(server)
+            .await;
+        KeycloakSession::new(Client::new(), opt(&server.uri()))
+    }
+
+    #[tokio::test]
+    async fn match_entry_matches_agent_via_keycloak_display_name() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/admin/realms/main/users/uuid-1"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "id": "uuid-1",
+                "username": "alice",
+                "firstName": "Alice",
+                "lastName": "Smith",
+                "enabled": true
+            })))
+            .mount(&server)
+            .await;
+
+        let mut session = kc_session(&server).await;
+        let agents = vec![agent("001", "alice-smith-abc")];
+
+        let (result, status) = match_entry(&entry("uuid-1"), &agents, &mut session).await;
+        assert_eq!(status, MatchStatus::Matched);
+        assert_eq!(result.expect("should match").agent_name, "alice-smith-abc");
+    }
+
+    #[tokio::test]
+    async fn match_entry_reports_unmatched_no_match() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/admin/realms/main/users/uuid-2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "id": "uuid-2",
+                "username": "bob",
+                "enabled": true
+            })))
+            .mount(&server)
+            .await;
+
+        let mut session = kc_session(&server).await;
+        let agents = vec![agent("001", "alice-smith-abc")];
+
+        let (result, status) = match_entry(&entry("uuid-2"), &agents, &mut session).await;
+        assert_eq!(status, MatchStatus::UnmatchedNoMatch);
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn match_entry_reports_unmatched_no_keycloak_when_token_missing() {
+        let server = MockServer::start().await;
+        // Auth endpoint returns 401 so no token is available.
+        Mock::given(method("POST"))
+            .and(path("/realms/master/protocol/openid-connect/token"))
+            .respond_with(ResponseTemplate::new(401))
+            .mount(&server)
+            .await;
+
+        let mut session = KeycloakSession::new(Client::new(), opt(&server.uri()));
+        let agents = vec![agent("001", "alice-smith-abc")];
+
+        let (result, status) = match_entry(&entry("uuid-1"), &agents, &mut session).await;
+        assert_eq!(status, MatchStatus::UnmatchedNoKeycloak);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn build_kc_client_disables_tls_verify_when_configured() {
+        let mut o = opt("https://kc");
+        o.keycloak_tls_verify = false;
+        let client = build_kc_client(&o).expect("client should build");
+        // Just assert the client builds successfully with TLS verification off.
+        assert!(client.get("https://example.com").build().is_ok());
+    }
+}

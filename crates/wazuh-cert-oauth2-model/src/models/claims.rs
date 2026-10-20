@@ -98,4 +98,56 @@ mod tests {
         let claims = base_claims();
         assert!(!claims.is_admin());
     }
+
+    #[test]
+    fn deserializes_full_claims_from_json() {
+        let json = r#"{
+            "sub": "user-123",
+            "name": "Alice",
+            "iss": "https://issuer.example/realms/main",
+            "exp": 1700000000,
+            "preferred_username": "alice",
+            "realm_access": { "roles": ["wazuh_admin", "user"] }
+        }"#;
+        let claims: Claims = serde_json::from_str(json).expect("valid claims json should parse");
+        assert_eq!(claims.sub, "user-123");
+        assert_eq!(claims.iss, "https://issuer.example/realms/main");
+        assert_eq!(claims.exp, 1700000000);
+        assert_eq!(claims.get_name().as_deref(), Some("Alice"));
+        assert!(claims.is_admin());
+    }
+
+    #[test]
+    fn deserializes_minimal_claims_with_defaults() {
+        let json = r#"{"sub":"u1","iss":"https://issuer.example","exp":1700000000}"#;
+        let claims: Claims = serde_json::from_str(json).expect("minimal claims should parse");
+        assert_eq!(claims.name, None);
+        assert_eq!(claims.preferred_username, None);
+        assert!(claims.realm_access.is_none());
+        assert!(!claims.is_admin());
+    }
+
+    #[test]
+    fn deserializes_realm_access_roles() {
+        let json = r#"{"sub":"u1","iss":"i","exp":1,"realm_access":{"roles":["a","b"]}}"#;
+        let claims: Claims = serde_json::from_str(json).expect("realm access should parse");
+        let roles = claims
+            .realm_access
+            .expect("realm_access should be present")
+            .roles;
+        assert_eq!(roles, vec!["a".to_string(), "b".to_string()]);
+    }
+
+    #[test]
+    fn rejects_claims_missing_required_fields() {
+        // `sub` and `iss` are required; omitting them must fail deserialization.
+        let json = r#"{"name":"no-sub","exp":1}"#;
+        assert!(serde_json::from_str::<Claims>(json).is_err());
+    }
+
+    #[test]
+    fn rejects_malformed_claims_json() {
+        assert!(serde_json::from_str::<Claims>("not json").is_err());
+        assert!(serde_json::from_str::<Claims>("{}").is_err());
+    }
 }

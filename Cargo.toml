@@ -46,6 +46,9 @@ chrono = "0.4"
 sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "postgres", "migrate", "chrono", "macros", "uuid", "tls-rustls-ring-webpki"] }
 async-trait = "0.1"
 
+# Dev-only: HTTP mocking for unit tests
+wiremock = "0.6"
+
 [profile.prod]
 inherits = "release"
 lto = true
