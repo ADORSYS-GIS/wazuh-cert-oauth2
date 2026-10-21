@@ -165,7 +165,120 @@ fn validate_agent_name(name: &str) -> AppResult<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{extract_realm_from_issuer, validate_agent_name};
+    use super::{extract_realm_from_issuer, sign_csr_with_ca, validate_agent_name};
+    use openssl::asn1::Asn1Time;
+    use openssl::hash::MessageDigest;
+    use openssl::nid::Nid;
+    use openssl::pkey::PKey;
+    use openssl::rsa::Rsa;
+    use openssl::x509::extension::SubjectKeyIdentifier;
+    use openssl::x509::{X509, X509NameBuilder, X509Req, X509ReqBuilder};
+
+    fn generate_ca() -> (X509, PKey<openssl::pkey::Private>) {
+        let rsa = Rsa::generate(2048).expect("rsa generation should succeed");
+        let key = PKey::from_rsa(rsa).expect("pkey conversion should succeed");
+        let mut name_builder = X509NameBuilder::new().expect("name builder should succeed");
+        name_builder
+            .append_entry_by_nid(Nid::COMMONNAME, "Test CA")
+            .expect("cn append should succeed");
+        let name = name_builder.build();
+
+        let mut builder = X509::builder().expect("x509 builder should succeed");
+        builder.set_version(2).expect("version set should succeed");
+        builder
+            .set_subject_name(&name)
+            .expect("subject set should succeed");
+        builder
+            .set_issuer_name(&name)
+            .expect("issuer set should succeed");
+        builder.set_pubkey(&key).expect("pubkey set should succeed");
+        builder
+            .set_not_before(Asn1Time::days_from_now(0).unwrap().as_ref())
+            .expect("not_before set should succeed");
+        builder
+            .set_not_after(Asn1Time::days_from_now(365).unwrap().as_ref())
+            .expect("not_after set should succeed");
+        // The AKI extension on signed certs derives the issuer keyid from the
+        // CA's SubjectKeyIdentifier, so the CA must carry one (as production CAs do).
+        let ctx = builder.x509v3_context(None, None);
+        let ski = SubjectKeyIdentifier::new()
+            .build(&ctx)
+            .expect("ski build should succeed");
+        builder
+            .append_extension(ski)
+            .expect("ski append should succeed");
+        builder
+            .sign(&key, MessageDigest::sha256())
+            .expect("ca signing should succeed");
+        (builder.build(), key)
+    }
+
+    fn generate_csr(cn: &str) -> (X509Req, PKey<openssl::pkey::Private>) {
+        let rsa = Rsa::generate(2048).expect("rsa generation should succeed");
+        let key = PKey::from_rsa(rsa).expect("pkey conversion should succeed");
+        let mut name_builder = X509NameBuilder::new().expect("name builder should succeed");
+        name_builder
+            .append_entry_by_nid(Nid::COMMONNAME, cn)
+            .expect("cn append should succeed");
+        let name = name_builder.build();
+
+        let mut builder = X509ReqBuilder::new().expect("csr builder should succeed");
+        builder
+            .set_subject_name(&name)
+            .expect("subject set should succeed");
+        builder.set_pubkey(&key).expect("pubkey set should succeed");
+        builder
+            .sign(&key, MessageDigest::sha256())
+            .expect("csr signing should succeed");
+        (builder.build(), key)
+    }
+
+    fn subject_cn(cert: &X509) -> String {
+        cert.subject_name()
+            .entries_by_nid(Nid::COMMONNAME)
+            .next()
+            .expect("subject should have a CN")
+            .data()
+            .to_string()
+            .expect("cn should be readable")
+    }
+
+    fn issuer_cn(cert: &X509) -> String {
+        cert.issuer_name()
+            .entries_by_nid(Nid::COMMONNAME)
+            .next()
+            .expect("issuer should have a CN")
+            .data()
+            .to_string()
+            .expect("cn should be readable")
+    }
+
+    #[test]
+    fn signs_csr_with_ca_producing_valid_certificate() {
+        let (ca_cert, ca_key) = generate_ca();
+        let (csr, _) = generate_csr("agent-1");
+
+        let cert = sign_csr_with_ca(
+            &csr,
+            &ca_cert,
+            &ca_key,
+            "agent-1",
+            "https://auth.example/realms/main",
+            Some("https://crl.example/crl.pem"),
+        )
+        .expect("signing should succeed");
+
+        // Subject CN is taken from the caller-supplied subject_cn.
+        assert_eq!(subject_cn(&cert), "agent-1");
+        // Issuer matches the CA.
+        assert_eq!(issuer_cn(&cert), "Test CA");
+        // Signature verifies against the CA key.
+        assert!(cert.verify(&ca_key).expect("verify should not error"));
+        // Validity window is sane.
+        assert!(cert.not_after() > cert.not_before());
+        // A serial number was assigned.
+        assert!(cert.serial_number().to_bn().unwrap().num_bits() > 0);
+    }
 
     #[test]
     fn extracts_realm_when_realms_segment_exists() {
@@ -186,6 +299,26 @@ mod tests {
             extract_realm_from_issuer("https://auth.example/protocol/openid-connect"),
             None
         );
+    }
+
+    #[test]
+    fn returns_none_when_realms_is_last_segment_or_empty() {
+        // "realms" as the final segment has no following realm name.
+        assert_eq!(
+            extract_realm_from_issuer("https://auth.example/realms"),
+            None
+        );
+        // A trailing slash yields an empty next segment.
+        assert_eq!(
+            extract_realm_from_issuer("https://auth.example/realms/"),
+            None
+        );
+    }
+
+    #[test]
+    fn extracts_first_realm_segment_when_multiple_present() {
+        let iss = "https://auth.example/realms/primary/realms/secondary";
+        assert_eq!(extract_realm_from_issuer(iss).as_deref(), Some("primary"));
     }
 
     #[test]
@@ -214,5 +347,11 @@ mod tests {
     fn overly_long_agent_name_rejected() {
         let name = "a".repeat(129);
         assert!(validate_agent_name(&name).is_err());
+    }
+
+    #[test]
+    fn agent_name_at_max_length_accepted() {
+        let name = "a".repeat(128);
+        assert!(validate_agent_name(&name).is_ok());
     }
 }

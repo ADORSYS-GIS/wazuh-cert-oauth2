@@ -2,23 +2,19 @@ name: Code Linting and SAST
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
     paths:
       - '.github/workflows/**'
-      - 'crates/wazuh-cert-oauth2-server/**'
-      - 'crates/wazuh-cert-oauth2-metrics/**'
-      - 'crates/wazuh-cert-oauth2-model/**'
+      - 'crates/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Dockerfile'
       - '.dockerignore'
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
     paths:
       - '.github/workflows/**'
-      - 'crates/wazuh-cert-oauth2-server/**'
-      - 'crates/wazuh-cert-oauth2-metrics/**'
-      - 'crates/wazuh-cert-oauth2-model/**'
+      - 'crates/**'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Dockerfile'
@@ -108,12 +104,47 @@ jobs:
       - name: Run cargo fmt
         run: cargo fmt -- --check
 
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout@v5
+        name: Checkout
+        with:
+          fetch-depth: "0"
+          persist-credentials: 'false'
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pkg-config libssl-dev
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: false
+          components: llvm-tools-preview
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - name: Run tests with coverage
+        run: cargo llvm-cov --workspace --lcov --output-path lcov.info
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # actions/upload-artifact@v4
+        with:
+          name: lcov.info
+          path: lcov.info
+
   sonarqube:
     name: SonarQube Scan
-    uses: ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sonarqube.yml@1566ed0da26bd29f41625655dd7171a5464762fd # main
+    needs: test
+    # nosemgrep: opt.opengrep-rules.generic.secrets.security.detected-sonarqube-docs-api-key
+    # (false positive: this is a pinned reusable-workflow commit SHA, not a secret)
+    uses: ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sonarqube.yml@8617a17cfc5f5a8897c2a3806bb543c20b4b57e0 # main (merged ADORSYS-GIS/adorsys-ci-cd-templates#66)
     with:
       project-key: wazuh-cert-oauth2
-      exclusions: "**/target/**,**/node_modules/**,**/dist/**,**/coverage/**"
+      exclusions: "**/target/**,_site/**,lcov.info"
+      rust-coverage-report-paths: lcov.info
+      coverage-artifact-name: lcov.info
 
     secrets:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}

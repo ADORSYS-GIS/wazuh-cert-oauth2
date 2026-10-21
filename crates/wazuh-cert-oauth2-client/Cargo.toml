@@ -22,3 +22,6 @@ url.workspace = true
 [dependencies.wazuh-cert-oauth2-model]
 features = ["openssl"]
 workspace = true
+
+[dev-dependencies]
+wiremock.workspace = true

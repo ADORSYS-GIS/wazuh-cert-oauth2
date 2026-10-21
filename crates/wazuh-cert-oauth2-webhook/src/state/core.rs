@@ -430,4 +430,129 @@ mod tests {
         let action = state.is_allowed_event("user-update", &req);
         assert_eq!(action, EventAction::Revoke);
     }
+
+    #[tokio::test]
+    async fn execute_with_retry_retries_on_server_error_then_succeeds() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(500))
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/test"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&server)
+            .await;
+
+        let state = build_state(None, None, None, None);
+        let client = state.http.client().clone();
+        let url = format!("{}/test", server.uri());
+        let resp = state
+            .execute_with_retry(|| {
+                let url = url.clone();
+                let client = client.clone();
+                async move { Ok(client.get(&url)) }
+            })
+            .await
+            .expect("retry should eventually succeed");
+        assert_eq!(resp.status().as_u16(), 200);
+    }
+
+    #[tokio::test]
+    async fn execute_with_retry_returns_success_on_first_attempt() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/ok"))
+            .respond_with(ResponseTemplate::new(200))
+            .mount(&server)
+            .await;
+
+        let state = build_state(None, None, None, None);
+        let client = state.http.client().clone();
+        let url = format!("{}/ok", server.uri());
+        let resp = state
+            .execute_with_retry(|| {
+                let url = url.clone();
+                let client = client.clone();
+                async move { Ok(client.get(&url)) }
+            })
+            .await
+            .expect("should succeed");
+        assert_eq!(resp.status().as_u16(), 200);
+    }
+
+    #[tokio::test]
+    async fn run_eviction_without_wazuh_config_returns_done() {
+        use crate::state::spool::EvictRequest;
+        use crate::state::wazuh_api::EvictionOutcome;
+
+        let state = build_state(None, None, None, None);
+        let req = EvictRequest {
+            subject: "user-1".to_string(),
+            wazuh_agent_name: Some("agent-1".to_string()),
+            reason: "revoked".to_string(),
+            triggered_at_unix: 1700000000,
+            agent_id: None,
+            delete_after_unix: None,
+        };
+        let outcome = state
+            .run_eviction_from_state(req)
+            .await
+            .expect("should not error");
+        assert!(matches!(outcome, EvictionOutcome::Done));
+    }
+
+    #[tokio::test]
+    async fn acquire_token_returns_static_bearer_when_configured() {
+        let state = ProxyState::new(
+            "https://server.example".to_string(),
+            crate::state::SpoolBackend::Dir {
+                dir: unique_spool_dir(),
+                dead_letter_dir: std::path::PathBuf::from("/tmp/wazuh-webhook-dead-letter-test"),
+            },
+            HttpClient::new_with_defaults().expect("http client"),
+            2,
+            Duration::from_millis(5),
+            Duration::from_millis(20),
+            Duration::from_secs(1),
+            Duration::from_secs(86400),
+            Some("static-bearer".to_string()),
+            None,
+            None,
+            None,
+            None,
+            None,
+            "revoke".to_string(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            30,
+            false,
+            None,
+        )
+        .expect("state should build");
+
+        let token = state
+            .acquire_token()
+            .await
+            .expect("token should be returned");
+        assert_eq!(token.as_deref(), Some("static-bearer"));
+    }
 }

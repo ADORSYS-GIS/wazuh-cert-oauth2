@@ -303,4 +303,28 @@ mod tests {
         assert_eq!(code, Some("some_code".to_string()));
         assert!(state_valid);
     }
+
+    #[test]
+    fn callback_response_rejects_invalid_state() {
+        let (body, success) = callback_response(&Some("code".to_string()), false);
+        assert!(!success);
+        assert!(body.contains("400 Bad Request"));
+        assert!(body.contains("CSRF token mismatch"));
+    }
+
+    #[test]
+    fn callback_response_accepts_valid_state_with_code() {
+        let (body, success) = callback_response(&Some("code".to_string()), true);
+        assert!(success);
+        assert!(body.contains("200 OK"));
+        assert!(body.contains("Auth complete"));
+    }
+
+    #[test]
+    fn callback_response_rejects_missing_code() {
+        let (body, success) = callback_response(&None, true);
+        assert!(!success);
+        assert!(body.contains("400 Bad Request"));
+        assert!(body.contains("Missing code parameter"));
+    }
 }

@@ -99,3 +99,112 @@ pub async fn generate_report(state: &ProxyState) -> AppResult<EnrollmentReport> 
 
     Ok(report)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::generate_report;
+    use crate::state::{ProxyState, SpoolBackend};
+    use std::path::PathBuf;
+    use std::time::Duration;
+    use wazuh_cert_oauth2_model::services::http_client::HttpClient;
+    use wiremock::matchers::{method, path, query_param};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    fn build_state(server: &MockServer, kc: &MockServer) -> ProxyState {
+        ProxyState::new(
+            format!("{}/server", server.uri()),
+            SpoolBackend::Dir {
+                dir: std::env::temp_dir().join(format!("audit-spool-{}", std::process::id())),
+                dead_letter_dir: PathBuf::from("/tmp/wazuh-webhook-dead-letter-audit"),
+            },
+            HttpClient::new_with_defaults().expect("http client"),
+            2,
+            Duration::from_millis(5),
+            Duration::from_millis(20),
+            Duration::from_secs(1),
+            Duration::from_secs(86400),
+            None,
+            Some(format!("{}/realms/main", kc.uri())),
+            Some("client".to_string()),
+            Some("secret".to_string()),
+            None,
+            None,
+            "revoke".to_string(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(kc.uri()),
+            None,
+            None,
+            None,
+            None,
+            30,
+            false,
+            None,
+        )
+        .expect("state should build")
+    }
+
+    #[tokio::test]
+    async fn generate_report_correlates_users_and_certs() {
+        let server = MockServer::start().await;
+        let kc = MockServer::start().await;
+
+        // OAuth discovery + token exchange against the issuer.
+        Mock::given(method("GET"))
+            .and(path("/realms/main/.well-known/openid-configuration"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "issuer": format!("{}/realms/main", kc.uri()),
+                "authorization_endpoint": format!("{}/realms/main/auth", kc.uri()),
+                "token_endpoint": format!("{}/realms/main/token", kc.uri()),
+                "jwks_uri": format!("{}/realms/main/jwks", kc.uri())
+            })))
+            .mount(&kc)
+            .await;
+        Mock::given(method("POST"))
+            .and(path("/realms/main/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "audit-token",
+                "token_type": "Bearer",
+                "expires_in": 300
+            })))
+            .mount(&kc)
+            .await;
+
+        // Keycloak users endpoint.
+        Mock::given(method("GET"))
+            .and(path("/users"))
+            .and(query_param("max", "5000"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([
+                {"id": "u1", "username": "alice", "enabled": true},
+                {"id": "u2", "username": "bob", "enabled": true},
+                {"id": "u3", "username": "carol", "enabled": false}
+            ])))
+            .mount(&kc)
+            .await;
+
+        // Server active certs endpoint.
+        Mock::given(method("GET"))
+            .and(path("/server/api/ledger/active"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([
+                {"subject": "u1", "serial_hex": "AA", "issued_at_unix": 1, "revoked": false}
+            ])))
+            .mount(&server)
+            .await;
+
+        let state = build_state(&server, &kc);
+        let report = generate_report(&state)
+            .await
+            .expect("report should generate");
+
+        // u1 enrolled, u2 missing, u3 disabled (not counted).
+        assert_eq!(report.enabled_users, 2);
+        assert_eq!(report.active_certs, 1);
+        assert_eq!(report.gap_count, 1);
+        assert_eq!(report.missing_users, vec!["bob".to_string()]);
+    }
+}

@@ -399,3 +399,197 @@ impl WazuhClient {
         &self.http
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::WazuhClient;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    fn client(
+        manager_url: &str,
+        user: Option<&str>,
+        password: Option<&str>,
+        static_token: Option<&str>,
+    ) -> WazuhClient {
+        WazuhClient::new(
+            manager_url.to_string(),
+            user.map(|s| s.to_string()),
+            password.map(|s| s.to_string()),
+            static_token.map(|s| s.to_string()),
+        )
+    }
+
+    fn auth_mock() -> Mock {
+        Mock::given(method("POST"))
+            .and(path("/security/user/authenticate"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": { "token": "wazuh-token" }
+            })))
+    }
+
+    #[tokio::test]
+    async fn acquire_token_returns_static_token_when_no_credentials() {
+        let server = MockServer::start().await;
+        let c = client(&server.uri(), None, None, Some("static-token"));
+        let token = c
+            .acquire_token()
+            .await
+            .expect("static token should be returned");
+        assert_eq!(token, "static-token");
+    }
+
+    #[tokio::test]
+    async fn acquire_token_errors_without_credentials_or_static_token() {
+        let server = MockServer::start().await;
+        let c = client(&server.uri(), None, None, None);
+        assert!(c.acquire_token().await.is_err());
+    }
+
+    #[tokio::test]
+    async fn fetch_and_cache_token_authenticates_and_caches() {
+        let server = MockServer::start().await;
+        auth_mock().mount(&server).await;
+
+        let c = client(&server.uri(), Some("user"), Some("pass"), None);
+        let token = c.acquire_token().await.expect("token should be fetched");
+        assert_eq!(token, "wazuh-token");
+
+        // Second call should hit the cache without another HTTP request.
+        let token2 = c.acquire_token().await.expect("cached token");
+        assert_eq!(token2, "wazuh-token");
+    }
+
+    #[tokio::test]
+    async fn find_agent_returns_matching_agent() {
+        let server = MockServer::start().await;
+        auth_mock().mount(&server).await;
+        Mock::given(method("GET"))
+            .and(path("/agents"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": {
+                    "affected_items": [
+                        {"id": "001", "name": "alice-abc", "os": {"platform": "linux"}},
+                        {"id": "002", "name": "bob-def", "os": null}
+                    ],
+                    "total_affected_items": 2
+                }
+            })))
+            .mount(&server)
+            .await;
+
+        let c = client(&server.uri(), Some("user"), Some("pass"), None);
+        let agent = c
+            .find_agent(Some("alice-abc"), "sub")
+            .await
+            .expect("find should succeed")
+            .expect("agent should be found");
+        assert_eq!(agent.id, "001");
+        assert_eq!(agent.name, "alice-abc");
+    }
+
+    #[tokio::test]
+    async fn find_agent_returns_none_when_no_match() {
+        let server = MockServer::start().await;
+        auth_mock().mount(&server).await;
+        Mock::given(method("GET"))
+            .and(path("/agents"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": { "affected_items": [{"id": "001", "name": "other"}], "total_affected_items": 1 }
+            })))
+            .mount(&server)
+            .await;
+
+        let c = client(&server.uri(), Some("user"), Some("pass"), None);
+        let agent = c
+            .find_agent(Some("missing"), "sub")
+            .await
+            .expect("find should succeed");
+        assert!(agent.is_none());
+    }
+
+    #[tokio::test]
+    async fn find_agent_returns_none_when_name_is_none() {
+        let server = MockServer::start().await;
+        let c = client(&server.uri(), Some("user"), Some("pass"), None);
+        let agent = c
+            .find_agent(None, "sub")
+            .await
+            .expect("find should succeed");
+        assert!(agent.is_none());
+    }
+
+    #[tokio::test]
+    async fn list_agents_handles_pagination() {
+        let server = MockServer::start().await;
+        auth_mock().mount(&server).await;
+        // First page returns 1 agent with total 2, second page returns the rest.
+        Mock::given(method("GET"))
+            .and(path("/agents"))
+            .and(wiremock::matchers::query_param("offset", "0"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": { "affected_items": [{"id": "001", "name": "a"}], "total_affected_items": 2 }
+            })))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/agents"))
+            .and(wiremock::matchers::query_param("offset", "1"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": { "affected_items": [{"id": "002", "name": "b"}], "total_affected_items": 2 }
+            })))
+            .mount(&server)
+            .await;
+
+        let c = client(&server.uri(), Some("user"), Some("pass"), None);
+        let agents = c.list_agents().await.expect("list should succeed");
+        assert_eq!(agents.len(), 2);
+        assert_eq!(agents[0].id, "001");
+        assert_eq!(agents[1].id, "002");
+    }
+
+    #[tokio::test]
+    async fn execute_delete_agent_succeeds() {
+        let server = MockServer::start().await;
+        auth_mock().mount(&server).await;
+        Mock::given(method("DELETE"))
+            .and(path("/agents"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": { "affected_items": [{"id": "001"}], "total_affected_items": 1 }
+            })))
+            .mount(&server)
+            .await;
+
+        let c = client(&server.uri(), Some("user"), Some("pass"), None);
+        c.execute_delete_agent("001", "sub")
+            .await
+            .expect("delete should succeed");
+    }
+
+    #[tokio::test]
+    async fn with_retry_retries_on_server_error_then_succeeds() {
+        let server = MockServer::start().await;
+        auth_mock().mount(&server).await;
+        // First /agents call returns 500 (retried), second returns 200.
+        Mock::given(method("GET"))
+            .and(path("/agents"))
+            .respond_with(ResponseTemplate::new(500))
+            .up_to_n_times(1)
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/agents"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "data": { "affected_items": [], "total_affected_items": 0 }
+            })))
+            .mount(&server)
+            .await;
+
+        let c = client(&server.uri(), Some("user"), Some("pass"), None);
+        let agents = c
+            .list_agents()
+            .await
+            .expect("list should succeed after retry");
+        assert!(agents.is_empty());
+    }
+}
