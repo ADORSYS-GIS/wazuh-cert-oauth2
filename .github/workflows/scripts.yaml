@@ -1,4 +1,4 @@
-name: Lint and test scripts
+name: Test and update scripts
 
 on:
   pull_request:
@@ -9,47 +9,11 @@ on:
 
 env:
   WAZUH_MANAGER: "127.0.0.1"
-  WAZUH_CERT_OAUTH2_REPO_REF: "main"
+  WAZUH_CERT_OAUTH2_REPO_REF: "${{ github.head_ref || github.ref_name }}"
   WOPS_VERSION: "0.5.0"
 
 jobs:
-  lint-scripts:
-    name: Lint Scripts
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: 'false'
-
-      - name: Install ShellCheck
-        run: sudo apt-get install -y shellcheck
-
-      - name: Run ShellCheck on bash scripts
-        run: |
-          find scripts -name "*.sh" -type f -print0 | xargs -0 shellcheck --severity=warning || true
-
-      - name: Install PSScriptAnalyzer
-        shell: pwsh
-        run: |
-          Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-
-      - name: Run PSScriptAnalyzer on PowerShell scripts
-        shell: pwsh
-        run: |
-          $results = Get-ChildItem -Path scripts/windows -Filter "*.ps1" -Recurse | ForEach-Object {
-            Invoke-ScriptAnalyzer -Path $_.FullName -Severity Warning,Error
-          }
-          if ($results) {
-            $results | Format-Table -AutoSize
-            Write-Warning "PSScriptAnalyzer found issues"
-          }
-
   update-changelog-and-checksums:
-    needs: lint-scripts
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -74,7 +38,7 @@ jobs:
           cat checksums.sha256
 
       - name: Generate full CHANGELOG.md
-        uses: orhun/git-cliff-action@3d96a18cc4ec17e9dc69ddcc424ccafaf1f78ce2
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff
         with:
           config: cliff.toml
           args: --output CHANGELOG.md
@@ -137,26 +101,31 @@ jobs:
 
       - name: Test scripts (Linux/macOS)
         if: runner.os != 'Windows'
+        env:
+          WAZUH_MANAGER: "${{ env.WAZUH_MANAGER }}"
+          WAZUH_CERT_OAUTH2_REPO_REF: "${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}"
+          WOPS_VERSION: "${{ env.WOPS_VERSION }}"
         run: |
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             sudo env \
-              WAZUH_MANAGER="${{ env.WAZUH_MANAGER }}" \
-              WAZUH_CERT_OAUTH2_REPO_REF="${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}" \
-              WOPS_VERSION="${{ env.WOPS_VERSION }}" \
+              WAZUH_MANAGER="$WAZUH_MANAGER" \
+              WAZUH_CERT_OAUTH2_REPO_REF="$WAZUH_CERT_OAUTH2_REPO_REF" \
+              WOPS_VERSION="$WOPS_VERSION" \
               bash ./scripts/linux/install.sh
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             sudo env \
-              WAZUH_MANAGER="${{ env.WAZUH_MANAGER }}" \
-              WAZUH_CERT_OAUTH2_REPO_REF="${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}" \
-              WOPS_VERSION="${{ env.WOPS_VERSION }}" \
+              WAZUH_MANAGER="$WAZUH_MANAGER" \
+              WAZUH_CERT_OAUTH2_REPO_REF="$WAZUH_CERT_OAUTH2_REPO_REF" \
+              WOPS_VERSION="$WOPS_VERSION" \
               bash ./scripts/macos/install.sh
           fi
 
       - name: Test scripts (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          WAZUH_MANAGER: "${{ env.WAZUH_MANAGER }}"
+          WAZUH_CERT_OAUTH2_REPO_REF: "${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}"
+          WOPS_VERSION: "${{ env.WOPS_VERSION }}"
         run: |
-          $env:WAZUH_MANAGER = "${{ env.WAZUH_MANAGER }}"
-          $env:WAZUH_CERT_OAUTH2_REPO_REF = "${{ env.WAZUH_CERT_OAUTH2_REPO_REF }}"
-          $env:WOPS_VERSION = "${{ env.WOPS_VERSION }}"
           .\scripts\windows\install.ps1

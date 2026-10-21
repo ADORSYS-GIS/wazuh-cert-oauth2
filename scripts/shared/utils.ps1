@@ -4,6 +4,7 @@ $ErrorActionPreference = "Stop"
 
 # Function for logging with timestamp
 function Log {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
     param (
         [string]$Level,
         [string]$Message,
@@ -16,22 +17,22 @@ function Log {
 # Logging helpers with colors
 function InfoMessage {
     param ([string]$Message)
-    Log "[INFO]" $Message "White"
+    Log -Level "[INFO]" -Message $Message -Color "White"
 }
 
 function WarnMessage {
     param ([string]$Message)
-    Log "[WARNING]" $Message "Yellow"
+    Log -Level "[WARNING]" -Message $Message -Color "Yellow"
 }
 
 function ErrorMessage {
     param ([string]$Message)
-    Log "[ERROR]" $Message "Red"
+    Log -Level "[ERROR]" -Message $Message -Color "Red"
 }
 
 function SuccessMessage {
     param ([string]$Message)
-    Log "[SUCCESS]" $Message "Green"
+    Log -Level "[SUCCESS]" -Message $Message -Color "Green"
 }
 
 function PrintStep {
@@ -39,11 +40,12 @@ function PrintStep {
         [int]$StepNumber,
         [string]$Message
     )
-    Log "[STEP]" "Step ${StepNumber}: $Message" "White"
+    Log -Level "[STEP]" -Message "Step ${StepNumber}: $Message" -Color "White"
 }
 
 # Section Separator
 function SectionSeparator {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '')]
     param (
         [string]$SectionName
     )
@@ -101,7 +103,7 @@ function Test-Checksum {
     return $true
 }
 
-function Download-File {
+function Get-File {
     param(
         [string]$Url,
         [string]$Destination,
@@ -143,30 +145,30 @@ function Download-File {
     return $success
 }
 
-function Download-And-VerifyFile {
+function Get-VerifiedFile {
     param(
         [string]$Url,
         [string]$Destination,
         [string]$ChecksumPattern,
         [string]$FileName = "Unknown file",
-        [string]$ChecksumFile = $global:ChecksumsPath,
+        [string]$ChecksumFile = $script:ChecksumsPath,
         [string]$ChecksumUrl = $null
     )
 
-    if (-not (Download-File -Url $Url -Destination $Destination)) {
+    if (-not (Get-File -Url $Url -Destination $Destination)) {
         ErrorExit "Failed to download $FileName from $Url"
     }
 
     # If a direct checksum URL is provided, download it and use it as the source of truth
     if (-not [string]::IsNullOrWhiteSpace($ChecksumUrl)) {
         $tempChecksumFile = Join-Path ([System.IO.Path]::GetTempPath()) "checksums-$([System.Guid]::NewGuid().ToString()).sha256"
-        if (-not (Download-File -Url $ChecksumUrl -Destination $tempChecksumFile)) {
+        if (-not (Get-File -Url $ChecksumUrl -Destination $tempChecksumFile)) {
             ErrorExit "Failed to download external checksum file from $ChecksumUrl"
         }
         $ChecksumFile = $tempChecksumFile
     }
 
-    Verify-DownloadedFile -Destination $Destination -ChecksumPattern $ChecksumPattern -FileName $FileName -ChecksumFile $ChecksumFile -ChecksumUrl $ChecksumUrl
+    Test-DownloadedFile -Destination $Destination -ChecksumPattern $ChecksumPattern -FileName $FileName -ChecksumFile $ChecksumFile -ChecksumUrl $ChecksumUrl
 
     SuccessMessage "$FileName downloaded and verified successfully."
     return $true
@@ -174,7 +176,7 @@ function Download-And-VerifyFile {
 
 # Verify a downloaded file against a checksum file, cleaning up a temporary
 # checksum file when one was downloaded from a URL.
-function Verify-DownloadedFile {
+function Test-DownloadedFile {
     param(
         [string]$Destination,
         [string]$ChecksumPattern,
