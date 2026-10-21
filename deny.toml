@@ -51,4 +51,12 @@ ignore = [
     "RUSTSEC-2026-0347",
     "RUSTSEC-2026-0348",
     "RUSTSEC-2026-0349",
+    # https://rustsec.org/advisories/RUSTSEC-2026-0381
+    # https://rustsec.org/advisories/RUSTSEC-2026-0382
+    # rustls-webpki distrusted emSign intermediate certificates (0.101.x and
+    # 0.103.x). Same rustls 0.21 line pulled in via Rocket 0.5 -> rocket_http
+    # -> rustls-webpki; no safe upgrade without an upstream Rocket (or
+    # rustls 0.22+) bump. Tracked by the Postgres migration epic.
+    "RUSTSEC-2026-0381",
+    "RUSTSEC-2026-0382",
 ]
