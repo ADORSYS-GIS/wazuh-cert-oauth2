@@ -139,7 +139,9 @@ jobs:
   sonarqube:
     name: SonarQube Scan
     needs: test
-    uses: ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sonarqube.yml@880208e1099b257c2bcd8abfbc6f1bfcc8aa88cc # PR #66 head; update to merged commit once ADORSYS-GIS/adorsys-ci-cd-templates#66 merges
+    # nosemgrep: opt.opengrep-rules.generic.secrets.security.detected-sonarqube-docs-api-key
+    # (false positive: this is a pinned reusable-workflow commit SHA, not a secret)
+    uses: ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sonarqube.yml@8617a17cfc5f5a8897c2a3806bb543c20b4b57e0 # main (merged ADORSYS-GIS/adorsys-ci-cd-templates#66)
     with:
       project-key: wazuh-cert-oauth2
       exclusions: "**/target/**,_site/**,lcov.info"

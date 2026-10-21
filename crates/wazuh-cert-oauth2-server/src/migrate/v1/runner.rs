@@ -356,11 +356,11 @@ mod tests {
     }
 
     #[test]
-    fn build_kc_client_disables_tls_verify_when_configured() {
+    fn build_kc_client_errors_when_ca_bundle_file_missing() {
         let mut o = opt("https://kc");
-        o.keycloak_tls_verify = false;
-        let client = build_kc_client(&o).expect("client should build");
-        // Just assert the client builds successfully with TLS verification off.
-        assert!(client.get("https://example.com").build().is_ok());
+        o.keycloak_ca_bundle = Some(std::path::PathBuf::from("/nonexistent/ca-bundle.pem"));
+        // A missing CA bundle file must surface as an error rather than
+        // silently building a client without the configured trust anchor.
+        assert!(build_kc_client(&o).is_err());
     }
 }
