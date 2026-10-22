@@ -1,7 +1,7 @@
-1fff3be97acefba0c5089e9119c8112f8716663d9b46d943ff97ee9eaae54428  wazuh-cert-oauth2-client-aarch64-pc-windows-msvc.exe
+658841039c4927e5190e31c8e3a82d6686df8dd64723d60b11300d3dc01d162c  wazuh-cert-oauth2-client-aarch64-pc-windows-msvc.exe
 a1c5e43a074fcf1d239b2db8bb5bba50456d0d547d368251cf4946b94eda225a  wazuh-cert-oauth2-client-x86_64-unknown-linux-musl
 f788f722c6d45d794cdc58d5d4bc218ddc10dafc7b451e8ee252fec09ec13c2c  wazuh-cert-oauth2-client-x86_64-apple-darwin
-b71b167dbdc3ab72090c1fd40f43202411a2e9cebc1cf4ffe3b9fdd0dc1371f7  wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe
+51d9299a2a31f63c688762164ead49cf218edadedd9bc64908c1c7e4bf52dab8  wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe
 aefd151bc9fd854200fc82ce3f8a569974adae949b4ef62aef40b3e309e3fcd3  wazuh-cert-oauth2-client-aarch64-apple-darwin
 057b58bda4ce7db17672bf3441d96f8de109f490a7fd5e1c43698235299c475b  wazuh-cert-oauth2-client-aarch64-unknown-linux-musl
 b97c825b60b3f4f117e204fdf89578b6fb832212480b7e68caa239144492a7a1  scripts/windows/update-crl.ps1
