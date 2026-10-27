@@ -55,7 +55,7 @@ Logging
 
 ## Quick start
 
-For detailed setup and run instructions, see the [Getting Started Guide](../../docs/getting-started.md).
+For detailed setup and run instructions, see the [Getting Started Guide](../../docs/operations/getting-started.md).
 
 ```bash
 # General usage
