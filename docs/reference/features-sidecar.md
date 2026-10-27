@@ -34,4 +34,4 @@ Because the CRL is validated at the edge, revoked certificates are rejected on e
 | `LISTEN_PORT` | `1515` | Port for agent mTLS connections. |
 | `AUTHD_UPSTREAM_HOST` / `PORT` | `127.0.0.1` / `15151` | Wazuh manager `authd` upstream. |
 
-See the [Nginx sidecar component page](../components/nginx-sidecar) for the full variable reference.
+See the [Nginx sidecar component page](../architecture/nginx-sidecar) for the full variable reference.

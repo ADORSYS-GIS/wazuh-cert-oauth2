@@ -16,15 +16,15 @@ Rust workspace providing certificate-based auth for Wazuh integrated with OAuth2
 - Client CLI: obtains a token, generates key + CSR, and registers the agent — see `crates/wazuh-cert-oauth2-client/README.md`.
 - Webhook: consumes IdP events (e.g., Keycloak) and requests revocations — see `crates/wazuh-cert-oauth2-webhook/README.md`.
 - Shared model helpers — see `crates/wazuh-cert-oauth2-model/README.md`.
-- **Nginx sidecar image**: CRL-validating proxy for agent enrollment traffic, consumed by the Wazuh Helm chart — see `.docker/nginx-sidecar/` and [Getting Started](docs/getting-started.md#nginx-sidecar-image).
+- **Nginx sidecar image**: CRL-validating proxy for agent enrollment traffic, consumed by the Wazuh Helm chart — see `.docker/nginx-sidecar/` and [Getting Started](docs/operations/getting-started.md#nginx-sidecar-image).
 
 Internal utilities: `wazuh-cert-oauth2-healthcheck`.
 
 ## Quick start
 
-- **Documentation**: Browse the full feature documentation on the [GitHub Pages site](https://adorsys-gis.github.io/wazuh-cert-oauth2/) (built with Jekyll/Just the Docs from the `docs/` folder).
+- **Documentation**: Browse the full feature documentation on the [GitHub Pages site](https://adorsys-gis.github.io/wazuh-cert-oauth2/) (built with Jekyll/Just the Docs from the `docs/` folder) or read the [docs/README.md](./docs/README.md) entry point.
 
-- For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/getting-started.md).
+- For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/operations/getting-started.md).
 
 - **Docker Compose Stack**:
   - `docker compose up -d --build`
@@ -32,7 +32,7 @@ Internal utilities: `wazuh-cert-oauth2-healthcheck`.
   - Webhook: `http://localhost:8100`
   - Keycloak: `http://localhost:9100`
 
-- **Getting Started Guide**: See [Getting Started](docs/getting-started.md).
+- **Getting Started Guide**: See [Getting Started](docs/operations/getting-started.md).
 
 
 ## Documentation (local preview)

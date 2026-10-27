@@ -27,4 +27,4 @@ When a new user registers or is created in the identity provider, the Webhook Pr
 
 ## Resiliency
 
-If the GitHub API is unreachable or returns a 5xx, the ticket request is **spooled** and retried in the background (see [Reliability & spooling](../features-reliability)), so enrollment records aren't lost to transient API failures.
+If the GitHub API is unreachable or returns a 5xx, the ticket request is **spooled** and retried in the background (see [Reliability & spooling](./features-reliability)), so enrollment records aren't lost to transient API failures.

@@ -35,4 +35,4 @@ The webhook endpoint itself can be protected by any (or none) of:
 
 If the server is down or the request fails, the revocation request is persisted to the spool directory and retried with **exponential backoff** (`--retry-*`), so revocations are eventually delivered even during outages.
 
-Related: [Reliability & spooling](../features-reliability), [Agent eviction](../features-eviction).
+Related: [Reliability & spooling](./features-reliability), [Agent eviction](./features-eviction).

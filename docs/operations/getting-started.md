@@ -19,7 +19,7 @@ This guide walks you through setting up and running the `wazuh-cert-oauth2` proj
 | Requires | Docker & Docker Compose | Rust toolchain + build deps |
 | Services managed | Automatically | Manually (3 separate processes) |
 
-> Want to understand how the components fit together first? See the [Architecture Overview](../architecture/).
+> Want to understand how the components fit together first? See the [Architecture Overview](../architecture/architecture).
 
 ---
 
