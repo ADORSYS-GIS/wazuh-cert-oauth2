@@ -4,17 +4,17 @@
 
 ## Metadata
 
-| Field | Value |
-| :--- | :--- |
-| **Document ID** | ADR-0001 |
-| **Status** | `Proposed` |
-| **Date** | 2026-10-27 |
-| **Deciders** | Wazuh maintainers |
-| **Governs** | `.github/workflows/sast.yml` (the `sbom` job) |
-| **Amends** | N/A |
-| **Amended by** | N/A |
-| **Supersedes** | N/A |
-| **Superseded by** | N/A |
+| Field             | Value                                         |
+| :---------------- | :-------------------------------------------- |
+| **Document ID**   | ADR-0001                                      |
+| **Status**        | `Proposed`                                    |
+| **Date**          | 2026-10-27                                    |
+| **Deciders**      | Wazuh maintainers                             |
+| **Governs**       | `.github/workflows/sast.yml` (the `sbom` job) |
+| **Amends**        | N/A                                           |
+| **Amended by**    | N/A                                           |
+| **Supersedes**    | N/A                                           |
+| **Superseded by** | N/A                                           |
 
 ## Context
 
@@ -38,11 +38,11 @@ The container images already attach an SBOM at build time via the BuildKit `sbom
 
 ## Options considered
 
-| Option | Verdict | Why (one line) |
-| :--- | :--- | :--- |
-| GitHub Dependency Graph only | Rejected | It misses Docker images and Cargo build-time dependencies, so it is incomplete. |
-| Shared `sbom.yml` workflow from adorsys-ci-cd-templates | Adopted | One workflow reused across all Wazuh projects keeps results consistent. |
-| A dedicated SBOM workflow in this repo | Rejected | It would duplicate the shared workflow and drift from the other projects. |
+| Option                                                  | Verdict  | Why (one line)                                                                  |
+| :------------------------------------------------------ | :------- | :------------------------------------------------------------------------------ |
+| GitHub Dependency Graph only                            | Rejected | It misses Docker images and Cargo build-time dependencies, so it is incomplete. |
+| Shared `sbom.yml` workflow from adorsys-ci-cd-templates | Adopted  | One workflow reused across all Wazuh projects keeps results consistent.         |
+| A dedicated SBOM workflow in this repo                  | Rejected | It would duplicate the shared workflow and drift from the other projects.       |
 
 ## Consequences
 
@@ -51,16 +51,19 @@ The container images already attach an SBOM at build time via the BuildKit `sbom
 ### Impact
 
 **Benefits**
+
 - The SBOM reflects the repository contents as scanned by Trivy, including dependencies the dependency graph cannot see.
 - The SBOM is produced on every push to the default branch and on pull requests.
 - The same workflow is reused across all Wazuh projects, so results are consistent.
 - The artifact can be imported into CycloneDX tooling or DefectDojo.
 
 **Costs**
+
 - Adds one job to the SAST workflow on every run.
 - The reusable workflow reference must be kept pinned and reviewed when the shared workflow changes.
 
 **Risks**
+
 - The SBOM is a snapshot of the repository at scan time, not of a built artifact.
 - If the shared workflow changes behavior, the pinned reference may need a bump, or the SBOM content could change unexpectedly.
 
@@ -86,12 +89,12 @@ Nothing to roll back.
 
 ## Evidence
 
-| Claim | Where |
-| :--- | :--- |
-| The `sbom` job calls the shared workflow with a filesystem scan | `.github/workflows/sast.yml` in this repo |
-| The shared workflow generates a CycloneDX SBOM with Trivy | `ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sbom.yml` |
-| The shared workflow is referenced by commit SHA | `.github/workflows/sast.yml` in this repo |
-| The image build attaches an SBOM via BuildKit | `.github/workflows/build.yml` in this repo |
+| Claim                                                           | Where                                                            |
+| :-------------------------------------------------------------- | :--------------------------------------------------------------- |
+| The `sbom` job calls the shared workflow with a filesystem scan | `.github/workflows/sast.yml` in this repo                        |
+| The shared workflow generates a CycloneDX SBOM with Trivy       | `ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sbom.yml` |
+| The shared workflow is referenced by commit SHA                 | `.github/workflows/sast.yml` in this repo                        |
+| The image build attaches an SBOM via BuildKit                   | `.github/workflows/build.yml` in this repo                       |
 
 ## References
 
@@ -101,7 +104,7 @@ Nothing to roll back.
 
 ## Solution implementation
 
-| Kind | Tracking | Status | What it covers |
-| :--- | :--- | :--- | :--- |
-| Issue | ADORSYS-GIS/wazuh-cert-oauth2#364 | Open | Requests SBOM generation in CI |
-| PR | ADORSYS-GIS/wazuh-cert-oauth2#374 | Open | Adds the `sbom` job and this ADR |
+| Kind  | Tracking                          | Status | What it covers                   |
+| :---- | :-------------------------------- | :----- | :------------------------------- |
+| Issue | ADORSYS-GIS/wazuh-cert-oauth2#364 | Open   | Requests SBOM generation in CI   |
+| PR    | ADORSYS-GIS/wazuh-cert-oauth2#374 | Open   | Adds the `sbom` job and this ADR |
