@@ -84,7 +84,7 @@ sequenceDiagram
     Note right of Webhook: For USER-UPDATE, check representation.enabled
 
     Webhook->>Server: POST /api/revoke (Subject: userId)
-    
+
     alt Server Reachable
         Server-->>Webhook: 204 NoContent (Success)
         Server->>Server: Mark all certs for Subject as Revoked
@@ -113,7 +113,7 @@ sequenceDiagram
     Webhook->>Webhook: Extract User Metadata
 
     Webhook->>GitHub: POST /repos/{owner}/{repo}/issues
-    
+
     alt Success
         GitHub-->>Webhook: 201 Created
     else Network Error / 5xx
@@ -195,6 +195,7 @@ sequenceDiagram
 ```
 
 #### Eviction Details:
+
 - **Direct API**: The eviction pipeline resolves agents by name via `GET /agents?q=name=` (exact match) and deletes them via `DELETE /agents/{id}` using the Wazuh Manager REST API.
 - **Non-blocking Grace Period**: For Keycloak-triggered revocations, the spool processor sets a grace deadline (`delete_after_unix`) and re-writes the `EvictRequest` to disk instead of blocking. The item is skipped on subsequent scans until the deadline elapses, allowing other spool items to be processed concurrently. The grace period defaults to `WAZUH_EVICTION_GRACE_SECONDS` (30s) and is skipped entirely for auto-rotate evictions.
 - **Resiliency**: If the Wazuh API is unreachable, the `EvictRequest` is persisted to the spool directory and retried in the background with exponential backoff. Spool file rewrites are atomic (temp-file + rename) to prevent corruption on crash.
@@ -207,9 +208,9 @@ sequenceDiagram
 
 ## Component Responsibilities
 
-| Component | Responsibility |
-| :--- | :--- |
-| **Client** | CSR Generation, OIDC Auth, Local Config Management |
-| **Server** | Token Validation, CSR Signing (CA), CRL Generation, Ledger Persistence |
+| Component   | Responsibility                                                                 |
+| :---------- | :----------------------------------------------------------------------------- |
+| **Client**  | CSR Generation, OIDC Auth, Local Config Management                             |
+| **Server**  | Token Validation, CSR Signing (CA), CRL Generation, Ledger Persistence         |
 | **Webhook** | Event Transformation, Persistent Spooling, Wazuh Agent Eviction (via REST API) |
-| **Model** | Shared Data Structures & Centralized Wazuh API Client |
+| **Model**   | Shared Data Structures & Centralized Wazuh API Client                          |

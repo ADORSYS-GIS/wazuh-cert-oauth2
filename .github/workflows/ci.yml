@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/**'
       - 'crates/**'
+      - '!crates/**/README.md'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Dockerfile'
@@ -15,6 +16,7 @@ on:
     paths:
       - '.github/workflows/**'
       - 'crates/**'
+      - '!crates/**/README.md'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Dockerfile'
