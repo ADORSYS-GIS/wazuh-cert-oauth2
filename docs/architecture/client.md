@@ -27,17 +27,17 @@ A CLI tool run on the Wazuh agent host. It handles user authentication via OIDC,
 
 ## Configuration
 
-| Flag | Env Variable | Default | Purpose |
-| :--- | :--- | :--- | :--- |
-| `--issuer` | `ISSUER` | `https://login.wazuh.adorsys.team/realms/adorsys` | OIDC issuer. |
-| `--audience` | `AUDIENCE` | `account` | Target audience(s). |
-| `--client-id` | `CLIENT_ID` | `adorsys-machine-client` | OAuth2 client id. |
-| `--client-secret` | `CLIENT_SECRET` | (none) | Optional client secret (enables client-credentials flow). |
-| `--endpoint` | `ENDPOINT` | `https://cert.wazuh.adorsys.team/api/register-agent` | Server endpoint for CSR submission. |
-| `--is-service-account` | `IS_SERVICE_ACCOUNT` | `false` | Whether the token subject is a service account. |
-| `--cert-path` | `CERT_PATH` | platform default | Destination cert path. |
-| `--key-path` | `KEY_PATH` | platform default | Destination key path. |
-| `--agent-control` | `AGENT_CONTROL` | `true` | Perform stop/set-name/restart. |
+| Flag                   | Env Variable         | Default                                              | Purpose                                                   |
+| :--------------------- | :------------------- | :--------------------------------------------------- | :-------------------------------------------------------- |
+| `--issuer`             | `ISSUER`             | `https://login.wazuh.adorsys.team/realms/adorsys`    | OIDC issuer.                                              |
+| `--audience`           | `AUDIENCE`           | `account`                                            | Target audience(s).                                       |
+| `--client-id`          | `CLIENT_ID`          | `adorsys-machine-client`                             | OAuth2 client id.                                         |
+| `--client-secret`      | `CLIENT_SECRET`      | (none)                                               | Optional client secret (enables client-credentials flow). |
+| `--endpoint`           | `ENDPOINT`           | `https://cert.wazuh.adorsys.team/api/register-agent` | Server endpoint for CSR submission.                       |
+| `--is-service-account` | `IS_SERVICE_ACCOUNT` | `false`                                              | Whether the token subject is a service account.           |
+| `--cert-path`          | `CERT_PATH`          | platform default                                     | Destination cert path.                                    |
+| `--key-path`           | `KEY_PATH`           | platform default                                     | Destination key path.                                     |
+| `--agent-control`      | `AGENT_CONTROL`      | `true`                                               | Perform stop/set-name/restart.                            |
 
 ```bash
 wazuh-cert-oauth2-client --help

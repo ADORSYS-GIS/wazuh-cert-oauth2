@@ -17,13 +17,13 @@ automated revocation driven by identity-provider events.
 
 ## Components
 
-| Component | Role |
-| :--- | :--- |
-| [Server](docs/architecture/server) | Validates OIDC tokens, signs CSRs with a Root CA, maintains the issuance ledger and CRL. |
-| [Client](docs/architecture/client) | CLI on the agent host: authenticates via OIDC, generates a key + CSR, and registers the agent. |
-| [Webhook](docs/architecture/webhook) | Consumes IdP events (e.g. Keycloak), triggers revocations, and evicts Wazuh agents automatically. |
-| [Model](docs/architecture/model) | Shared types, services, and helpers reused across the workspace. |
-| [Nginx Sidecar](docs/architecture/nginx-sidecar) | CRL-validating reverse proxy for agent enrollment traffic. |
+| Component                                        | Role                                                                                              |
+| :----------------------------------------------- | :------------------------------------------------------------------------------------------------ |
+| [Server](docs/architecture/server)               | Validates OIDC tokens, signs CSRs with a Root CA, maintains the issuance ledger and CRL.          |
+| [Client](docs/architecture/client)               | CLI on the agent host: authenticates via OIDC, generates a key + CSR, and registers the agent.    |
+| [Webhook](docs/architecture/webhook)             | Consumes IdP events (e.g. Keycloak), triggers revocations, and evicts Wazuh agents automatically. |
+| [Model](docs/architecture/model)                 | Shared types, services, and helpers reused across the workspace.                                  |
+| [Nginx Sidecar](docs/architecture/nginx-sidecar) | CRL-validating reverse proxy for agent enrollment traffic.                                        |
 
 ## Quick links
 

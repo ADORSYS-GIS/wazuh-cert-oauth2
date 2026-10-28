@@ -24,14 +24,14 @@ Because the CRL is validated at the edge, revoked certificates are rejected on e
 
 ## Key configuration
 
-| Variable | Default | Purpose |
-| :--- | :--- | :--- |
-| `CRL_ENABLED` | `true` | Enable/disable CRL validation. |
-| `CRL_URL` | *(required when enabled)* | Cert-server CRL endpoint URL. |
-| `CRL_REFRESH_INTERVAL` | `300` | Seconds between CRL refresh retries on error. |
-| `CURL_TIMEOUT` | `35` | Must exceed the server's long-poll timeout. |
-| `SSL_CERT_PATH` / `SSL_KEY_PATH` / `SSL_CA_PATH` | `/etc/ssl/certs/...` | Server credentials and CA for client verification. |
-| `LISTEN_PORT` | `1515` | Port for agent mTLS connections. |
-| `AUTHD_UPSTREAM_HOST` / `PORT` | `127.0.0.1` / `15151` | Wazuh manager `authd` upstream. |
+| Variable                                         | Default                   | Purpose                                            |
+| :----------------------------------------------- | :------------------------ | :------------------------------------------------- |
+| `CRL_ENABLED`                                    | `true`                    | Enable/disable CRL validation.                     |
+| `CRL_URL`                                        | _(required when enabled)_ | Cert-server CRL endpoint URL.                      |
+| `CRL_REFRESH_INTERVAL`                           | `300`                     | Seconds between CRL refresh retries on error.      |
+| `CURL_TIMEOUT`                                   | `35`                      | Must exceed the server's long-poll timeout.        |
+| `SSL_CERT_PATH` / `SSL_KEY_PATH` / `SSL_CA_PATH` | `/etc/ssl/certs/...`      | Server credentials and CA for client verification. |
+| `LISTEN_PORT`                                    | `1515`                    | Port for agent mTLS connections.                   |
+| `AUTHD_UPSTREAM_HOST` / `PORT`                   | `127.0.0.1` / `15151`     | Wazuh manager `authd` upstream.                    |
 
 See the [Nginx sidecar component page](../architecture/nginx-sidecar) for the full variable reference.

@@ -18,13 +18,13 @@ The central backend that validates OIDC tokens, signs CSRs using a Root CA, and 
 
 ## Endpoints
 
-| Method | Path | Description |
-| :--- | :--- | :--- |
-| `GET` | `/health` | Liveness probe. |
-| `GET` | `/crl/issuing.crl` | Current CRL as `application/pkix-crl`. |
-| `GET` | `/api/revocations` | JSON view of revoked entries (auth required). |
-| `POST` | `/api/revoke` | Revoke by serial or subject; triggers CRL rebuild (auth required). |
-| `POST` | `/api/register-agent` | Sign CSR and return signed cert + CA (auth required). |
+| Method | Path                  | Description                                                        |
+| :----- | :-------------------- | :----------------------------------------------------------------- |
+| `GET`  | `/health`             | Liveness probe.                                                    |
+| `GET`  | `/crl/issuing.crl`    | Current CRL as `application/pkix-crl`.                             |
+| `GET`  | `/api/revocations`    | JSON view of revoked entries (auth required).                      |
+| `POST` | `/api/revoke`         | Revoke by serial or subject; triggers CRL rebuild (auth required). |
+| `POST` | `/api/register-agent` | Sign CSR and return signed cert + CA (auth required).              |
 
 ## Certificate contents
 
@@ -37,21 +37,21 @@ The central backend that validates OIDC tokens, signs CSRs using a Root CA, and 
 
 ## Configuration
 
-| Flag | Env Variable | Default | Purpose |
-| :--- | :--- | :--- | :--- |
-| `--oauth-issuer` | `OAUTH_ISSUER` | (required) | OIDC issuer URL. |
-| `--kc-audiences` | `KC_AUDIENCES` | (optional) | Comma-separated audiences for JWT validation. |
-| `--root-ca-path` | `ROOT_CA_PATH` | (required) | PEM CA cert path. |
-| `--root-ca-key-path` | `ROOT_CA_KEY_PATH` | (required) | PEM CA private key path. |
-| `--discovery-ttl-secs` | `DISCOVERY_TTL_SECS` | `3600` | OIDC discovery cache TTL. |
-| `--jwks-ttl-secs` | `JWKS_TTL_SECS` | `300` | JWKS cache TTL. |
-| `--ca-cache-ttl-secs` | `CA_CACHE_TTL_SECS` | `300` | CA cert/key cache TTL. |
-| `--crl-dist-url` | `CRL_DIST_URL` | (optional) | CDP URL to embed in issued certs. |
-| `--crl-path` | `CRL_PATH` | `/data/issuing.crl` | CRL file path to write (local-dev fallback). |
-| `--ledger-path` | `LEDGER_PATH` | `/data/ledger.csv` | CSV ledger path (local-dev fallback). |
-| `--database-url` | `DATABASE_URL` | (optional) | PostgreSQL DSN. When set, the ledger uses PostgreSQL as the system of record; otherwise it falls back to the CSV ledger at `LEDGER_PATH`. |
-| `--webhook-base-url` | `WEBHOOK_BASE_URL` | (optional) | Base URL of the webhook (for eviction notifications). |
-| `--webhook-bearer-token` | `WEBHOOK_BEARER_TOKEN` | (optional) | Bearer token for the webhook. |
+| Flag                     | Env Variable           | Default             | Purpose                                                                                                                                   |
+| :----------------------- | :--------------------- | :------------------ | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| `--oauth-issuer`         | `OAUTH_ISSUER`         | (required)          | OIDC issuer URL.                                                                                                                          |
+| `--kc-audiences`         | `KC_AUDIENCES`         | (optional)          | Comma-separated audiences for JWT validation.                                                                                             |
+| `--root-ca-path`         | `ROOT_CA_PATH`         | (required)          | PEM CA cert path.                                                                                                                         |
+| `--root-ca-key-path`     | `ROOT_CA_KEY_PATH`     | (required)          | PEM CA private key path.                                                                                                                  |
+| `--discovery-ttl-secs`   | `DISCOVERY_TTL_SECS`   | `3600`              | OIDC discovery cache TTL.                                                                                                                 |
+| `--jwks-ttl-secs`        | `JWKS_TTL_SECS`        | `300`               | JWKS cache TTL.                                                                                                                           |
+| `--ca-cache-ttl-secs`    | `CA_CACHE_TTL_SECS`    | `300`               | CA cert/key cache TTL.                                                                                                                    |
+| `--crl-dist-url`         | `CRL_DIST_URL`         | (optional)          | CDP URL to embed in issued certs.                                                                                                         |
+| `--crl-path`             | `CRL_PATH`             | `/data/issuing.crl` | CRL file path to write (local-dev fallback).                                                                                              |
+| `--ledger-path`          | `LEDGER_PATH`          | `/data/ledger.csv`  | CSV ledger path (local-dev fallback).                                                                                                     |
+| `--database-url`         | `DATABASE_URL`         | (optional)          | PostgreSQL DSN. When set, the ledger uses PostgreSQL as the system of record; otherwise it falls back to the CSV ledger at `LEDGER_PATH`. |
+| `--webhook-base-url`     | `WEBHOOK_BASE_URL`     | (optional)          | Base URL of the webhook (for eviction notifications).                                                                                     |
+| `--webhook-bearer-token` | `WEBHOOK_BEARER_TOKEN` | (optional)          | Bearer token for the webhook.                                                                                                             |
 
 ## Data and persistence
 

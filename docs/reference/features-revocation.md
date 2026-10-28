@@ -24,12 +24,12 @@ The **Webhook Proxy** turns identity-provider events into certificate revocation
 
 The webhook endpoint itself can be protected by any (or none) of:
 
-| Auth mode | Flags |
-| :--- | :--- |
-| Basic | `--webhook-basic-user` / `--webhook-basic-password` |
-| Bearer | `--webhook-bearer-token` |
-| API key | `--webhook-api-key` |
-| Anonymous | when none are configured |
+| Auth mode | Flags                                               |
+| :-------- | :-------------------------------------------------- |
+| Basic     | `--webhook-basic-user` / `--webhook-basic-password` |
+| Bearer    | `--webhook-bearer-token`                            |
+| API key   | `--webhook-api-key`                                 |
+| Anonymous | when none are configured                            |
 
 ## Resiliency
 

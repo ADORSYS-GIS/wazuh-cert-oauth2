@@ -36,9 +36,9 @@ has_children: true
 
 ## Where to go next
 
-| Topic | Page |
-| :--- | :--- |
-| What the software does | [Features — this page](.) |
-| Each component's role | [Components](../architecture/components) |
-| How the pieces interact | [Architecture](../architecture/architecture) |
-| Wire it up yourself | [Getting Started](../operations/getting-started) |
+| Topic                   | Page                                             |
+| :---------------------- | :----------------------------------------------- |
+| What the software does  | [Features — this page](.)                        |
+| Each component's role   | [Components](../architecture/components)         |
+| How the pieces interact | [Architecture](../architecture/architecture)     |
+| Wire it up yourself     | [Getting Started](../operations/getting-started) |

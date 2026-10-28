@@ -13,18 +13,21 @@ Thank you for your interest in contributing to this project! This document provi
 ### Setting Up the Development Environment
 
 1. Fork and clone the repository:
+
    ```bash
    git clone https://github.com/ADORSYS-GIS/wazuh-cert-oauth2.git
    cd wazuh-cert-oauth2
    ```
 
 2. Install pre-commit hooks:
+
    ```bash
    pip install pre-commit
    pre-commit install
    ```
 
 3. Build the project:
+
    ```bash
    cargo build
    ```

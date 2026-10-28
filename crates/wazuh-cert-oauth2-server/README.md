@@ -62,7 +62,6 @@ For detailed setup and run instructions, see the [Getting Started Guide](../../d
 wazuh-cert-oauth2-server --help
 ```
 
-
 Operational guidance
 
 - Issue one certificate per installed agent (machine) and one per human user (UI/API).

@@ -17,11 +17,11 @@ When a new user registers or is created in the identity provider, the Webhook Pr
 
 ## Configuration
 
-| Flag | Env Variable | Purpose |
-| :--- | :--- | :--- |
-| `--github-token` | `GITHUB_TOKEN` | GitHub Personal Access Token for issue creation. |
-| `--github-repo-owner` | `GITHUB_REPO_OWNER` | Owner of the repository for tickets. |
-| `--github-repo-name` | `GITHUB_REPO_NAME` | Name of the repository for tickets. |
+| Flag                  | Env Variable        | Purpose                                          |
+| :-------------------- | :------------------ | :----------------------------------------------- |
+| `--github-token`      | `GITHUB_TOKEN`      | GitHub Personal Access Token for issue creation. |
+| `--github-repo-owner` | `GITHUB_REPO_OWNER` | Owner of the repository for tickets.             |
+| `--github-repo-name`  | `GITHUB_REPO_NAME`  | Name of the repository for tickets.              |
 
 > Prefer a **fine-grained** PAT scoped to **Issue Creation** on the target repository.
 

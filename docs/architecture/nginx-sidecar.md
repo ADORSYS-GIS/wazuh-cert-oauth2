@@ -28,18 +28,18 @@ This produces an image based on `nginx:alpine` with `curl`, `openssl`, and `gett
 
 ## Environment variables
 
-| Variable | Default | Purpose |
-| :--- | :--- | :--- |
-| `LISTEN_PORT` | `1515` | Port for agent mTLS connections. |
-| `AUTHD_UPSTREAM_HOST` | `127.0.0.1` | Wazuh manager authd host. |
-| `AUTHD_UPSTREAM_PORT` | `15151` | Wazuh manager authd port. |
-| `SSL_CERT_PATH` | `/etc/ssl/certs/server.pem` | Server certificate (PEM). |
-| `SSL_KEY_PATH` | `/etc/ssl/certs/server-key.pem` | Server private key (PEM). |
-| `SSL_CA_PATH` | `/etc/ssl/certs/ca.pem` | CA certificate for client verification. |
-| `CRL_FILE` | `/etc/nginx/crl/crl.pem` | Path to the CRL file (PEM). |
-| `CRL_ENABLED` | `true` | Enable/disable CRL validation. |
-| `CRL_URL` | *(required when CRL enabled)* | Cert-server CRL endpoint URL. |
-| `CRL_REFRESH_INTERVAL` | `300` | Seconds between CRL refresh retries on error. |
-| `CURL_TIMEOUT` | `35` | Curl timeout (must exceed server long-poll timeout). |
-| `LOG_LEVEL` | `debug` | nginx error log level. |
-| `WORKER_CONNECTIONS` | `1024` | nginx `worker_connections`. |
+| Variable               | Default                         | Purpose                                              |
+| :--------------------- | :------------------------------ | :--------------------------------------------------- |
+| `LISTEN_PORT`          | `1515`                          | Port for agent mTLS connections.                     |
+| `AUTHD_UPSTREAM_HOST`  | `127.0.0.1`                     | Wazuh manager authd host.                            |
+| `AUTHD_UPSTREAM_PORT`  | `15151`                         | Wazuh manager authd port.                            |
+| `SSL_CERT_PATH`        | `/etc/ssl/certs/server.pem`     | Server certificate (PEM).                            |
+| `SSL_KEY_PATH`         | `/etc/ssl/certs/server-key.pem` | Server private key (PEM).                            |
+| `SSL_CA_PATH`          | `/etc/ssl/certs/ca.pem`         | CA certificate for client verification.              |
+| `CRL_FILE`             | `/etc/nginx/crl/crl.pem`        | Path to the CRL file (PEM).                          |
+| `CRL_ENABLED`          | `true`                          | Enable/disable CRL validation.                       |
+| `CRL_URL`              | _(required when CRL enabled)_   | Cert-server CRL endpoint URL.                        |
+| `CRL_REFRESH_INTERVAL` | `300`                           | Seconds between CRL refresh retries on error.        |
+| `CURL_TIMEOUT`         | `35`                            | Curl timeout (must exceed server long-poll timeout). |
+| `LOG_LEVEL`            | `debug`                         | nginx error log level.                               |
+| `WORKER_CONNECTIONS`   | `1024`                          | nginx `worker_connections`.                          |

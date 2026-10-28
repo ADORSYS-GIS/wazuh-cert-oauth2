@@ -9,15 +9,16 @@ nav_order: 6
 This guide walks you through setting up and running the `wazuh-cert-oauth2` project locally. There are two ways to run the stack — pick the one that fits your workflow:
 
 {: .note }
+
 > **GitHub Integration**: The Webhook Proxy supports automated GitHub issue creation for new user registrations in Keycloak. To use this feature, you will need a GitHub Personal Access Token (preferably a **fine-grained** token with only **Issue Creation** permissions), the repository owner, and the repository name. See the [Configuration Reference](#webhook-flags) for details.
 
 ## Prerequisites
 
-| | [Option A: Docker Compose](#option-a-docker-compose-recommended) | [Option B: From Source](#option-b-running-from-source) |
-| :--- | :--- | :--- |
-| Best for | Quick setup, testing, demos | Active development, debugging |
-| Requires | Docker & Docker Compose | Rust toolchain + build deps |
-| Services managed | Automatically | Manually (3 separate processes) |
+|                  | [Option A: Docker Compose](#option-a-docker-compose-recommended) | [Option B: From Source](#option-b-running-from-source) |
+| :--------------- | :--------------------------------------------------------------- | :----------------------------------------------------- |
+| Best for         | Quick setup, testing, demos                                      | Active development, debugging                          |
+| Requires         | Docker & Docker Compose                                          | Rust toolchain + build deps                            |
+| Services managed | Automatically                                                    | Manually (3 separate processes)                        |
 
 > Want to understand how the components fit together first? See the [Architecture Overview](../architecture/architecture).
 
@@ -26,12 +27,15 @@ This guide walks you through setting up and running the `wazuh-cert-oauth2` proj
 ## Prerequisites
 
 ### For Docker Compose (Option A)
+
 - **Docker & Docker Compose**: Version 2.x or higher.
 - **Git**: For cloning the repository.
 - **OpenSSL**: To generate the Root CA.
 
 ### For From Source (Option B)
+
 Everything above, plus:
+
 - **Rust & Cargo**: Latest stable version — install via [rustup.rs](https://rustup.rs/).
 - **Build dependencies**:
   - `openssl`
@@ -69,7 +73,9 @@ docker compose up -d --build
 ```
 
 {: .tip }
+
 > On Linux, if your shell doesn't automatically export `UID`/`GID`, prefix the command to avoid permission issues with the mounted CA files:
+>
 > ```bash
 > UID=$(id -u) GID=$(id -g) docker compose up -d --build
 > ```
@@ -82,11 +88,11 @@ docker compose logs -f keycloak
 
 ### Running Services
 
-| Service | URL | Credentials |
-| :--- | :--- | :--- |
+| Service                | URL                           | Credentials          |
+| :--------------------- | :---------------------------- | :------------------- |
 | Keycloak Admin Console | `http://localhost:9100/admin` | `admin` / `password` |
-| Certificate Server API | `http://localhost:8000` | — |
-| Webhook Proxy | `http://localhost:8100` | — |
+| Certificate Server API | `http://localhost:8000`       | —                    |
+| Webhook Proxy          | `http://localhost:8100`       | —                    |
 
 > The Certificate Server and Webhook Proxy are used internally by the stack components and don't require direct interaction during normal usage.
 
@@ -107,6 +113,7 @@ Run the client from the repository root:
 ```
 
 {: .note }
+
 > If you haven't built the binaries yet, run `cargo build --release` first.
 
 The client will attempt to open the authorization URL in your system's default browser automatically. If that fails, the URL will be printed in the terminal for you to open manually. Log in with `test` / `test`, and paste the authorization code back into the terminal. On success, the signed certificate and private key will be written to the platform-specific default path.
@@ -183,50 +190,51 @@ The client will attempt to open the authorization URL in your system's default b
 
 ### Server Flags
 
-| Flag | Env Variable | Default | Purpose |
-| :--- | :--- | :--- | :--- |
-| `--oauth-issuer` | `OAUTH_ISSUER` | (Required) | OIDC issuer URL. |
-| `--root-ca-path` | `ROOT_CA_PATH` | (Required) | Path to Root CA cert (PEM). |
-| `--root-ca-key-path` | `ROOT_CA_KEY_PATH` | (Required) | Path to Root CA key (PEM). |
-| `--crl-path` | `CRL_PATH` | `/data/issuing.crl` | Path where CRL is written. |
-| `--ledger-path` | `LEDGER_PATH` | `/data/ledger.csv` | CSV ledger path (local-dev fallback). |
-| `--database-url` | `DATABASE_URL` | (Optional) | PostgreSQL DSN. When set, the ledger uses PostgreSQL as the system of record; otherwise it falls back to the CSV ledger at `LEDGER_PATH`. |
-| `--webhook-base-url`| `WEBHOOK_BASE_URL` | (Optional) | Base URL of the Webhook Proxy. |
-| `--webhook-bearer-token`| `WEBHOOK_BEARER_TOKEN`| (Optional) | Bearer token for the Webhook Proxy. |
+| Flag                     | Env Variable           | Default             | Purpose                                                                                                                                   |
+| :----------------------- | :--------------------- | :------------------ | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| `--oauth-issuer`         | `OAUTH_ISSUER`         | (Required)          | OIDC issuer URL.                                                                                                                          |
+| `--root-ca-path`         | `ROOT_CA_PATH`         | (Required)          | Path to Root CA cert (PEM).                                                                                                               |
+| `--root-ca-key-path`     | `ROOT_CA_KEY_PATH`     | (Required)          | Path to Root CA key (PEM).                                                                                                                |
+| `--crl-path`             | `CRL_PATH`             | `/data/issuing.crl` | Path where CRL is written.                                                                                                                |
+| `--ledger-path`          | `LEDGER_PATH`          | `/data/ledger.csv`  | CSV ledger path (local-dev fallback).                                                                                                     |
+| `--database-url`         | `DATABASE_URL`         | (Optional)          | PostgreSQL DSN. When set, the ledger uses PostgreSQL as the system of record; otherwise it falls back to the CSV ledger at `LEDGER_PATH`. |
+| `--webhook-base-url`     | `WEBHOOK_BASE_URL`     | (Optional)          | Base URL of the Webhook Proxy.                                                                                                            |
+| `--webhook-bearer-token` | `WEBHOOK_BEARER_TOKEN` | (Optional)          | Bearer token for the Webhook Proxy.                                                                                                       |
 
 ### Webhook Flags
 
 {: .warning }
+
 > **Breaking change:** `WAZUH_API_TLS_VERIFY` now defaults to `true`. If your Wazuh Manager uses a self-signed certificate and you do not have `WAZUH_API_CA_BUNDLE` configured, set `WAZUH_API_TLS_VERIFY=false` **before upgrading** to avoid eviction failures.
 
-| Flag | Env Variable | Default | Purpose |
-| :--- | :--- | :--- | :--- |
-| `--server-base-url` | `SERVER_BASE_URL` | (Required) | Base URL of the Certificate Server. |
-| `--spool-dir` | `SPOOL_DIR` | `/data/spool` | Directory for persistent retry spooling. |
-| `--spool-evict-ttl-secs` | `SPOOL_EVICT_TTL_SECS` | `86400` (24h) | Maximum age (in seconds) an eviction request stays in the spool before being moved to the dead-letter directory. Increase for environments prone to longer Wazuh outages. |
-| `--spool-dead-letter-dir` | `SPOOL_DEAD_LETTER_DIR` | `dead-letter/` sibling of `SPOOL_DIR` | Directory where expired eviction spool items are quarantined for operator inspection/replay. **Must not be the same as `SPOOL_DIR`.** Must live on the same filesystem/volume as `SPOOL_DIR` |
-| `--oauth-client-id` | `OAUTH_CLIENT_ID` | (Required) | Client ID to talk to the Server. |
-| `--oauth-client-secret`| `OAUTH_CLIENT_SECRET`| (Required) | Client Secret for the Server. |
-| `--github-token` | `GITHUB_TOKEN` | (Optional) | GitHub PAT for issue creation. |
-| `--github-repo-owner`| `GITHUB_REPO_OWNER` | (Optional) | Owner of the repo for tickets. |
-| `--github-repo-name` | `GITHUB_REPO_NAME` | (Optional) | Name of the repo for tickets. |
-| `--keycloak-admin-base-url`| `KEYCLOAK_ADMIN_BASE_URL`| (Optional)| Keycloak Admin API URL. |
-| `--wazuh-manager-url`| `WAZUH_MANAGER_URL` | (Optional) | Wazuh Manager API URL. |
-| `--wazuh-api-user` | `WAZUH_API_USER` | (Optional) | Wazuh API user. |
-| `--wazuh-api-password`| `WAZUH_API_PASSWORD`| (Optional) | Wazuh API password. |
-| `--wazuh-api-token` | `WAZUH_API_TOKEN` | (Optional) | Wazuh API static token. |
-| `--wazuh-eviction-grace-seconds`| `WAZUH_EVICTION_GRACE_SECONDS`| `30` | Grace period before agent deletion (skipped for auto-rotate). |
-| `--wazuh-api-tls-verify` | `WAZUH_API_TLS_VERIFY` | `true` | Enable TLS cert verification for the Wazuh Manager API. Set to `false` only for testing or self-signed certificates without a configured CA bundle. |
-| `--wazuh-api-ca-bundle` | `WAZUH_API_CA_BUNDLE` | (Optional) | Path to a PEM CA bundle for the Wazuh Manager API. |
+| Flag                             | Env Variable                   | Default                               | Purpose                                                                                                                                                                                      |
+| :------------------------------- | :----------------------------- | :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--server-base-url`              | `SERVER_BASE_URL`              | (Required)                            | Base URL of the Certificate Server.                                                                                                                                                          |
+| `--spool-dir`                    | `SPOOL_DIR`                    | `/data/spool`                         | Directory for persistent retry spooling.                                                                                                                                                     |
+| `--spool-evict-ttl-secs`         | `SPOOL_EVICT_TTL_SECS`         | `86400` (24h)                         | Maximum age (in seconds) an eviction request stays in the spool before being moved to the dead-letter directory. Increase for environments prone to longer Wazuh outages.                    |
+| `--spool-dead-letter-dir`        | `SPOOL_DEAD_LETTER_DIR`        | `dead-letter/` sibling of `SPOOL_DIR` | Directory where expired eviction spool items are quarantined for operator inspection/replay. **Must not be the same as `SPOOL_DIR`.** Must live on the same filesystem/volume as `SPOOL_DIR` |
+| `--oauth-client-id`              | `OAUTH_CLIENT_ID`              | (Required)                            | Client ID to talk to the Server.                                                                                                                                                             |
+| `--oauth-client-secret`          | `OAUTH_CLIENT_SECRET`          | (Required)                            | Client Secret for the Server.                                                                                                                                                                |
+| `--github-token`                 | `GITHUB_TOKEN`                 | (Optional)                            | GitHub PAT for issue creation.                                                                                                                                                               |
+| `--github-repo-owner`            | `GITHUB_REPO_OWNER`            | (Optional)                            | Owner of the repo for tickets.                                                                                                                                                               |
+| `--github-repo-name`             | `GITHUB_REPO_NAME`             | (Optional)                            | Name of the repo for tickets.                                                                                                                                                                |
+| `--keycloak-admin-base-url`      | `KEYCLOAK_ADMIN_BASE_URL`      | (Optional)                            | Keycloak Admin API URL.                                                                                                                                                                      |
+| `--wazuh-manager-url`            | `WAZUH_MANAGER_URL`            | (Optional)                            | Wazuh Manager API URL.                                                                                                                                                                       |
+| `--wazuh-api-user`               | `WAZUH_API_USER`               | (Optional)                            | Wazuh API user.                                                                                                                                                                              |
+| `--wazuh-api-password`           | `WAZUH_API_PASSWORD`           | (Optional)                            | Wazuh API password.                                                                                                                                                                          |
+| `--wazuh-api-token`              | `WAZUH_API_TOKEN`              | (Optional)                            | Wazuh API static token.                                                                                                                                                                      |
+| `--wazuh-eviction-grace-seconds` | `WAZUH_EVICTION_GRACE_SECONDS` | `30`                                  | Grace period before agent deletion (skipped for auto-rotate).                                                                                                                                |
+| `--wazuh-api-tls-verify`         | `WAZUH_API_TLS_VERIFY`         | `true`                                | Enable TLS cert verification for the Wazuh Manager API. Set to `false` only for testing or self-signed certificates without a configured CA bundle.                                          |
+| `--wazuh-api-ca-bundle`          | `WAZUH_API_CA_BUNDLE`          | (Optional)                            | Path to a PEM CA bundle for the Wazuh Manager API.                                                                                                                                           |
 
 ### Client Flags
 
-| Flag | Env Variable | Default | Purpose |
-| :--- | :--- | :--- | :--- |
-| `--issuer` | `ISSUER` | Keycloak URL | OIDC issuer for agent auth. |
-| `--client-id` | `CLIENT_ID` | `adorsys-machine-client` | Agent's OAuth2 client ID. |
-| `--endpoint` | `ENDPOINT` | registration URL | Server endpoint for CSR submission. |
-| `--cert-path` | `CERT_PATH` | (Platform specific) | Destination for the signed cert. |
+| Flag          | Env Variable | Default                  | Purpose                             |
+| :------------ | :----------- | :----------------------- | :---------------------------------- |
+| `--issuer`    | `ISSUER`     | Keycloak URL             | OIDC issuer for agent auth.         |
+| `--client-id` | `CLIENT_ID`  | `adorsys-machine-client` | Agent's OAuth2 client ID.           |
+| `--endpoint`  | `ENDPOINT`   | registration URL         | Server endpoint for CSR submission. |
+| `--cert-path` | `CERT_PATH`  | (Platform specific)      | Destination for the signed cert.    |
 
 ---
 
@@ -235,17 +243,22 @@ The client will attempt to open the authorization URL in your system's default b
 ### 🌐 Connectivity Issues
 
 #### "error sending request for url" (Client)
+
 {: .important }
+
 > **Symptom:** The client fails with an error similar to:  
 > `An error occurred during execution: HTTP error: error sending request for url (http://localhost:9100/realms/dev/.well-known/openid-configuration)`
 
 **Cause:** The OIDC provider (Keycloak) is not reachable from the client's network.  
 **Solution:**
+
 - Verify you can access `http://localhost:9100/realms/dev/.well-known/openid-configuration` in your browser.
 - Ensure the `--issuer` URL matches the reachable address of your OIDC provider.
 
 #### 401 Unauthorized or "Could not get JWKS" (Server)
+
 {: .warning }
+
 > **Symptom:** Server logs show `Could not get JWKS HTTP error: error sending request for url (...)` or the client receives a 401.
 
 **Cause:** The Certificate Server cannot reach the OIDC issuer to validate tokens.  
@@ -256,20 +269,26 @@ The client will attempt to open the authorization URL in your system's default b
 ### 🔑 Permissions & Security
 
 #### "Permission Denied (os error 13)"
+
 {: .warning }
+
 > **Symptom:** `CSR signing failed: I/O error: Permission denied (os error 13)` appears in logs.
 
 **Cause:** The container user cannot read the host-mounted Root CA files.  
 **Solution:**
+
 - **Linux/macOS:** Run with explicit UID/GID: `UID=$(id -u) GID=$(id -g) docker compose up -d`
 - **Windows (Docker Desktop):** Ensure Docker Desktop has permission to access the repository folder and the files aren't blocked by Windows Security.
 
 #### "Executable file not found" (docker exec)
+
 {: .note }
+
 > **Symptom:** `OCI runtime exec failed: ... exec: "ls": executable file not found in $PATH`
 
 **Cause:** The project uses Distroless images — no shell or standard utilities.  
 **Solution:**
+
 1. Use `docker compose logs -f <service>` for debugging.
 2. To inspect files, use the `ubuntu` sidecar service:
    ```bash
@@ -281,11 +300,13 @@ The client will attempt to open the authorization URL in your system's default b
 ### ⚙️ Infrastructure & Setup
 
 #### keycloak-config "Restarting"
+
 **Symptom:** The `keycloak-config` container shows `Restarting` for the first minute.  
 **Cause:** It tries to configure Keycloak before it's fully booted.  
 **Solution:** No action needed — it will succeed once Keycloak is ready.
 
 #### Version/Help Flags not working
+
 **Note:** If help and version flags don't exit correctly, rebuild the binaries with `cargo build --release`.
 
 ---
@@ -313,18 +334,18 @@ This produces an image based on `nginx:alpine` with `curl`, `openssl`, and `gett
 
 ### Environment Variables
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `LISTEN_PORT` | `1515` | Port for agent mTLS connections |
-| `AUTHD_UPSTREAM_HOST` | `127.0.0.1` | Wazuh manager authd host |
-| `AUTHD_UPSTREAM_PORT` | `15151` | Wazuh manager authd port |
-| `SSL_CERT_PATH` | `/etc/ssl/certs/server.pem` | Server certificate (PEM) |
-| `SSL_KEY_PATH` | `/etc/ssl/certs/server-key.pem` | Server private key (PEM) |
-| `SSL_CA_PATH` | `/etc/ssl/certs/ca.pem` | CA certificate for client verification |
-| `CRL_FILE` | `/etc/nginx/crl/crl.pem` | Path to the CRL file (PEM) |
-| `CRL_ENABLED` | `true` | Enable/disable CRL validation |
-| `CRL_URL` | *(required when CRL enabled)* | cert-server CRL endpoint URL |
-| `CRL_REFRESH_INTERVAL` | `300` | Seconds between CRL refresh retries on error |
-| `CURL_TIMEOUT` | `35` | Curl timeout (must exceed server long-poll timeout) |
-| `LOG_LEVEL` | `debug` | nginx error log level |
-| `WORKER_CONNECTIONS` | `1024` | nginx worker_connections |
+| Variable               | Default                         | Purpose                                             |
+| ---------------------- | ------------------------------- | --------------------------------------------------- |
+| `LISTEN_PORT`          | `1515`                          | Port for agent mTLS connections                     |
+| `AUTHD_UPSTREAM_HOST`  | `127.0.0.1`                     | Wazuh manager authd host                            |
+| `AUTHD_UPSTREAM_PORT`  | `15151`                         | Wazuh manager authd port                            |
+| `SSL_CERT_PATH`        | `/etc/ssl/certs/server.pem`     | Server certificate (PEM)                            |
+| `SSL_KEY_PATH`         | `/etc/ssl/certs/server-key.pem` | Server private key (PEM)                            |
+| `SSL_CA_PATH`          | `/etc/ssl/certs/ca.pem`         | CA certificate for client verification              |
+| `CRL_FILE`             | `/etc/nginx/crl/crl.pem`        | Path to the CRL file (PEM)                          |
+| `CRL_ENABLED`          | `true`                          | Enable/disable CRL validation                       |
+| `CRL_URL`              | _(required when CRL enabled)_   | cert-server CRL endpoint URL                        |
+| `CRL_REFRESH_INTERVAL` | `300`                           | Seconds between CRL refresh retries on error        |
+| `CURL_TIMEOUT`         | `35`                            | Curl timeout (must exceed server long-poll timeout) |
+| `LOG_LEVEL`            | `debug`                         | nginx error log level                               |
+| `WORKER_CONNECTIONS`   | `1024`                          | nginx worker_connections                            |
