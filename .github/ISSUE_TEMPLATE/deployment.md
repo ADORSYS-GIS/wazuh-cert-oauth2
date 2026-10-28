@@ -1,9 +1,9 @@
 ---
 name: Deployment / DevOps
 about: Deployment, infrastructure, or CI/CD related work
-title: ''
+title: ""
 labels: deployment, devops
-assignees: ''
+assignees: ""
 ---
 
 ## Description
