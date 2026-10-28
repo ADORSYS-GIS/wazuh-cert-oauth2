@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[c802889](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c80288997088953eb438c40ca413ad336a23bb4c)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[3fcbf67](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3fcbf67f7e9247291c78eae0dac0486dd0151818)
 
 ### Bug Fixes
 
@@ -27,6 +27,8 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`7ad8397`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7ad839738df56abc77a1b66c9bf41d13c1967d2e))
 - Migrate documentation to the org SDLC standard ([`4561a16`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4561a1681863943aa0a9e551c4899d8927469ca1))
 - Fix getting-started links after docs migration ([`682601a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/682601a8b9fdc8936570ae3d46ed86c7678c7403))
+- Update CHANGELOG.md and checksums [skip ci] ([`b535460`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/b53546079523ddc93e4290c74ae86e5c3d63f5fd))
+- Enhance documentation formatting ([`3fcbf67`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3fcbf67f7e9247291c78eae0dac0486dd0151818))
 
 ### Features
 
