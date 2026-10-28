@@ -104,3 +104,4 @@ Nothing to roll back.
 | Kind | Tracking | Status | What it covers |
 | :--- | :--- | :--- | :--- |
 | Issue | ADORSYS-GIS/wazuh-cert-oauth2#364 | Open | Requests SBOM generation in CI |
+| PR | ADORSYS-GIS/wazuh-cert-oauth2#374 | Open | Adds the `sbom` job and this ADR |
