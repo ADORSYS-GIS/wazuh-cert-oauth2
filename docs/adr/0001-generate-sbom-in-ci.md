@@ -7,7 +7,7 @@
 | Field             | Value                                         |
 | :---------------- | :-------------------------------------------- |
 | **Document ID**   | ADR-0001                                      |
-| **Status**        | `Proposed`                                    |
+| **Status**        | `Accepted`                                    |
 | **Date**          | 2026-10-27                                    |
 | **Deciders**      | Wazuh maintainers                             |
 | **Governs**       | `.github/workflows/sast.yml` (the `sbom` job) |
@@ -74,9 +74,9 @@ The container images already attach an SBOM at build time via the BuildKit `sbom
 
 ### Done when
 
-- [ ] The `sbom` job runs in the SAST workflow on push to the default branch and on pull requests.
-- [ ] The run uploads `sbom.json` as the `sbom` artifact.
-- [ ] The shared workflow reference is pinned to a commit SHA, not `@main`.
+- [x] The `sbom` job runs in the SAST workflow on push to the default branch and on pull requests.
+- [x] The run uploads `sbom.json` as the `sbom` artifact.
+- [x] The shared workflow reference is pinned to a commit SHA, not `@main`.
 
 ### Revisit when
 
@@ -104,7 +104,9 @@ Nothing to roll back.
 
 ## Solution implementation
 
-| Kind  | Tracking                                                                                         | Status | What it covers                   |
-| :---- | :----------------------------------------------------------------------------------------------- | :----- | :------------------------------- |
-| Issue | [ADORSYS-GIS/wazuh-cert-oauth2#364](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/issues/364) | Open   | Requests SBOM generation in CI   |
-| PR    | [ADORSYS-GIS/wazuh-cert-oauth2#374](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/pull/374)   | Open   | Adds the `sbom` job and this ADR |
+| Kind   | Tracking                                                                                                    | Status            | What it covers                   |
+| :----- | :---------------------------------------------------------------------------------------------------------- | :---------------- | :------------------------------- |
+| Issue  | [ADORSYS-GIS/wazuh-cert-oauth2#364](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/issues/364)            | Closed            | Requests SBOM generation in CI   |
+| PR     | [ADORSYS-GIS/wazuh-cert-oauth2#374](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/pull/374)              | Merged 2026-10-29 | Adds the `sbom` job and this ADR |
+| Commit | [c0f331f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c0f331fbe54d9b1945a35f86d335a40e9aadf2fd) | 2026-10-28        | Adds the `sbom` job and this ADR |
+| Commit | [e21a426](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e21a42648736c7185c137e58403d2668609c08b1) | 2026-10-29        | Merge commit for PR #374         |
