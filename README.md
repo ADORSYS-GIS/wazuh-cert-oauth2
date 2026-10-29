@@ -5,6 +5,7 @@
 [![Helm Publish](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/helm-publish.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/helm-publish.yml)
 [![Dependabot Updates](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/dependabot/dependabot-updates)
 [![Build Docker image](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/build.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/build.yml)
+[![Static Application Security Testing](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/sast.yml/badge.svg)](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/actions/workflows/sast.yml)
 
 Minimal overview for the workspace. Each crate has its own detailed README.
 
@@ -27,6 +28,7 @@ Internal utilities: `wazuh-cert-oauth2-healthcheck`.
 - For detailed setup instructions, prerequisites, and a guide on running the project locally, please see the [Getting Started Guide](docs/operations/getting-started.md).
 
 - **Docker Compose Stack**:
+
   - `docker compose up -d --build`
   - Server: `http://localhost:8000`
   - Webhook: `http://localhost:8100`

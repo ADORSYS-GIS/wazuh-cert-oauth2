@@ -59,4 +59,11 @@ ignore = [
     # rustls 0.22+) bump. Tracked by the Postgres migration epic.
     "RUSTSEC-2026-0381",
     "RUSTSEC-2026-0382",
+    # https://rustsec.org/advisories/RUSTSEC-2026-0387
+    # crypto-bigint 0.5 timing variability in constant-time operations. Pulled
+    # in via jsonwebtoken -> p256/p384/rsa -> elliptic-curve -> crypto-bigint
+    # 0.5; the fix is 0.7.x, which is not compatible with the elliptic-curve
+    # line we depend on. No safe upgrade without an upstream jsonwebtoken
+    # (or elliptic-curve) bump.
+    "RUSTSEC-2026-0387",
 ]
