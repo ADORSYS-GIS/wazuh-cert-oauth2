@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[3f0f90a](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3f0f90a895881e4196d37811bf8089b3e00bac35)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[e21a426](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e21a42648736c7185c137e58403d2668609c08b1)
 
 ### Bug Fixes
 
@@ -34,6 +34,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`d163437`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/d163437b291a8dc0760630c31b086805c72ffa32))
 - Reference PR 374 in solution implementation ([`a986130`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a9861306863ff333d8674b4c542b59828b37a402))
 - Add SAST workflow badge and use permalinks in ADR ([`3f0f90a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3f0f90a895881e4196d37811bf8089b3e00bac35))
+- Update CHANGELOG.md and checksums [skip ci] ([`a2046c6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a2046c69faaba73dbc8d53cf646cba3ebf6a3405))
 
 ### Features
 

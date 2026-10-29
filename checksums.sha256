@@ -1,7 +1,7 @@
 89962453de747eb2b8f788651248b3364ac60e3b1fe0ed5370d3526ce3795a26  wazuh-cert-oauth2-client-aarch64-apple-darwin
 ec89a079677ddb1ee03861e5e35137cf24300067cff7add0e460c56199785c17  wazuh-cert-oauth2-client-x86_64-unknown-linux-musl
-1ebbca18c35d449eba296fc1fa7e52236b31c1bf6c9fc26b0b9c5d9a31d37cb4  wazuh-cert-oauth2-client-aarch64-pc-windows-msvc.exe
-d45b49cb712d6202ae6e486a36e9a7dc4501d6135219a0701f06d4b9472e3294  wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe
+b3e0e92a4a42f90d13302001ecdf85085c7a1630016802c9ebe479c8e76a56c5  wazuh-cert-oauth2-client-aarch64-pc-windows-msvc.exe
+a95b90b058f3ba6971436b2283c664d38e41a116caa87298d28198804f42dc49  wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe
 97079034df22ad63d2285f41d55513ec70d5c558dc258b5a122791d2be304451  wazuh-cert-oauth2-client-aarch64-unknown-linux-musl
 06a5a9ba1365e337316aca4dcf7a60f24dd60b99e1e9c1035482c878f87d830c  wazuh-cert-oauth2-client-x86_64-apple-darwin
 b97c825b60b3f4f117e204fdf89578b6fb832212480b7e68caa239144492a7a1  scripts/windows/update-crl.ps1
