@@ -89,12 +89,12 @@ Nothing to roll back.
 
 ## Evidence
 
-| Claim                                                           | Where                                                            |
-| :-------------------------------------------------------------- | :--------------------------------------------------------------- |
-| The `sbom` job calls the shared workflow with a filesystem scan | `.github/workflows/sast.yml` in this repo                        |
-| The shared workflow generates a CycloneDX SBOM with Trivy       | `ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sbom.yml` |
-| The shared workflow is referenced by commit SHA                 | `.github/workflows/sast.yml` in this repo                        |
-| The image build attaches an SBOM via BuildKit                   | `.github/workflows/build.yml` in this repo                       |
+| Claim                                                           | Where                                                                                                                                                                                               |
+| :-------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The `sbom` job calls the shared workflow with a filesystem scan | [`.github/workflows/sast.yml`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/blob/9ccdd3d7083f63bc73346f7e3ed0201ebefc6643/.github/workflows/sast.yml)                                           |
+| The shared workflow generates a CycloneDX SBOM with Trivy       | [`ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sbom.yml`](https://github.com/ADORSYS-GIS/adorsys-ci-cd-templates/blob/17fe8c106fcac2a4b6ac1992cd1b89166f0eb5e2/.github/workflows/sbom.yml) |
+| The shared workflow is referenced by commit SHA                 | [`.github/workflows/sast.yml`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/blob/9ccdd3d7083f63bc73346f7e3ed0201ebefc6643/.github/workflows/sast.yml)                                           |
+| The image build attaches an SBOM via BuildKit                   | [`.github/workflows/build.yml`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/blob/c802889/.github/workflows/build.yml)                                                                          |
 
 ## References
 
@@ -104,7 +104,7 @@ Nothing to roll back.
 
 ## Solution implementation
 
-| Kind  | Tracking                          | Status | What it covers                   |
-| :---- | :-------------------------------- | :----- | :------------------------------- |
-| Issue | ADORSYS-GIS/wazuh-cert-oauth2#364 | Open   | Requests SBOM generation in CI   |
-| PR    | ADORSYS-GIS/wazuh-cert-oauth2#374 | Open   | Adds the `sbom` job and this ADR |
+| Kind  | Tracking                                                                                         | Status | What it covers                   |
+| :---- | :----------------------------------------------------------------------------------------------- | :----- | :------------------------------- |
+| Issue | [ADORSYS-GIS/wazuh-cert-oauth2#364](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/issues/364) | Open   | Requests SBOM generation in CI   |
+| PR    | [ADORSYS-GIS/wazuh-cert-oauth2#374](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/pull/374)   | Open   | Adds the `sbom` job and this ADR |
