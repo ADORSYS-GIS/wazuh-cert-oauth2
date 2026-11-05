@@ -93,3 +93,69 @@ pub fn find_match(
         .map(|a| (a.id.clone(), a.name.clone()))
         .collect())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{MatchStatus, find_match, sanitize_name};
+    use wazuh_cert_oauth2_model::services::wazuh::AgentItem;
+
+    fn agent(id: &str, name: &str) -> AgentItem {
+        AgentItem {
+            id: id.to_string(),
+            name: name.to_string(),
+            os: None,
+        }
+    }
+
+    #[test]
+    fn sanitize_removes_diacritics_and_replaces_special_chars() {
+        assert_eq!(sanitize_name("José"), "Jose");
+        assert_eq!(sanitize_name("Jean-Luc"), "Jean-Luc");
+        assert_eq!(sanitize_name("A B C"), "A-B-C");
+        assert_eq!(sanitize_name("naïve"), "naive");
+        assert_eq!(sanitize_name(""), "");
+    }
+
+    #[test]
+    fn matches_exact_prefix() {
+        let agents = vec![agent("001", "alice-abc123"), agent("002", "bob-def456")];
+        let result = find_match("Alice", &agents).expect("should not be ambiguous");
+        assert_eq!(result.unwrap().agent_name, "alice-abc123");
+    }
+
+    #[test]
+    fn falls_back_to_case_insensitive_match() {
+        let agents = vec![agent("001", "ALICE-abc123")];
+        let result = find_match("alice", &agents).expect("should not be ambiguous");
+        assert_eq!(result.unwrap().agent_name, "ALICE-abc123");
+    }
+
+    #[test]
+    fn returns_none_when_no_agent_matches() {
+        let agents = vec![agent("001", "carol-xyz")];
+        assert!(
+            find_match("Alice", &agents)
+                .expect("should not be ambiguous")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn returns_ambiguous_candidates_when_multiple_match() {
+        let agents = vec![agent("001", "alice-aaa"), agent("002", "alice-bbb")];
+        let err = find_match("Alice", &agents).expect_err("multiple matches should be ambiguous");
+        assert_eq!(err.len(), 2);
+        assert!(err.contains(&("001".to_string(), "alice-aaa".to_string())));
+        assert!(err.contains(&("002".to_string(), "alice-bbb".to_string())));
+    }
+
+    #[test]
+    fn match_status_variants_are_distinct() {
+        // Sanity check that the enum is usable in comparisons (PartialEq).
+        assert_ne!(MatchStatus::Matched, MatchStatus::UnmatchedNoMatch);
+        assert_eq!(
+            MatchStatus::AmbiguousMultipleAgents(vec![("1".into(), "a".into())]),
+            MatchStatus::AmbiguousMultipleAgents(vec![("1".into(), "a".into())])
+        );
+    }
+}

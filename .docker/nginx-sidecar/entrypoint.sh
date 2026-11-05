@@ -76,7 +76,7 @@ fi
 
 # Validate nginx config
 if ! nginx -t 2>&1; then
-    echo "ERROR: Nginx configuration test failed"
+    echo "ERROR: Nginx configuration test failed" >&2
     exit 1
 fi
 echo "Nginx config validated successfully"

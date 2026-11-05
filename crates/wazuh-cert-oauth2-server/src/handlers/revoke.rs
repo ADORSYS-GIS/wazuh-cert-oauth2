@@ -61,7 +61,7 @@ async fn resolve_targets(
         } else {
             Ok(vec![s])
         };
-    };
+    }
     if let Some(subj) = subject {
         let entries = ledger.find_by_subject(&subj).await.map_err(|e| {
             error!("Failed to look up subject {}: {}", subj, e);

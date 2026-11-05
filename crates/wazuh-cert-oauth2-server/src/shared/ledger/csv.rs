@@ -49,32 +49,35 @@ pub async fn persist_csv(path: &PathBuf, inner: &Arc<RwLock<Vec<LedgerEntry>>>) 
 pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
     let mut out = Vec::new();
     for (idx, line) in s.lines().enumerate() {
-        if idx == 0 {
-            continue;
+        if let Some(entry) = parse_csv_line(idx, line) {
+            out.push(entry);
         }
-        let line = line.trim_end();
-        if line.is_empty() {
-            continue;
-        }
-        let fields = split_csv_line(line);
-        if fields.len() < 6 {
-            continue;
-        }
-        let subject = unescape_csv_field(&fields[0]);
-        let serial_hex = unescape_csv_field(&fields[1]);
-        let issued_at_unix = fields[2].parse::<u64>().unwrap_or_default();
-        let default_not_after_unix = LedgerEntry::compute_not_after(issued_at_unix);
+    }
+    Ok(out)
+}
 
-        // Detect new format (≥10 fields) which includes not_after_unix at index 3.
-        let (
-            not_after_unix,
-            revoked_idx,
-            revoked_at_idx,
-            reason_idx,
-            issuer_idx,
-            realm_idx,
-            agent_idx,
-        ) = if fields.len() >= 10 {
+/// Parses a single CSV line into a `LedgerEntry`, skipping the header, blank
+/// lines, and malformed rows (fewer than 6 fields).
+fn parse_csv_line(idx: usize, line: &str) -> Option<LedgerEntry> {
+    if idx == 0 {
+        return None;
+    }
+    let line = line.trim_end();
+    if line.is_empty() {
+        return None;
+    }
+    let fields = split_csv_line(line);
+    if fields.len() < 6 {
+        return None;
+    }
+    let subject = unescape_csv_field(&fields[0]);
+    let serial_hex = unescape_csv_field(&fields[1]);
+    let issued_at_unix = fields[2].parse::<u64>().unwrap_or_default();
+    let default_not_after_unix = LedgerEntry::compute_not_after(issued_at_unix);
+
+    // Detect new format (≥10 fields) which includes not_after_unix at index 3.
+    let (not_after_unix, revoked_idx, revoked_at_idx, reason_idx, issuer_idx, realm_idx, agent_idx) =
+        if fields.len() >= 10 {
             let raw = fields[3].trim();
             (
                 // Only an *empty* field means "missing" → reconstruct from the
@@ -98,49 +101,40 @@ pub fn parse_csv(s: &str) -> AppResult<Vec<LedgerEntry>> {
             // certificate expiry window elapses.
             (default_not_after_unix, 3, 4, 5, 6, 7, 8)
         };
-        let revoked = matches!(fields[revoked_idx].as_str(), "true" | "TRUE" | "1");
-        let revoked_at_unix = if fields[revoked_at_idx].is_empty() {
-            None
-        } else {
-            Some(fields[revoked_at_idx].parse::<u64>().unwrap_or_default())
-        };
-        let reason = {
-            let r = unescape_csv_field(&fields[reason_idx]);
-            if r.is_empty() { None } else { Some(r) }
-        };
-        // Optional fields for backward compatibility
-        let issuer = if fields.len() > issuer_idx {
-            let v = unescape_csv_field(&fields[issuer_idx]);
-            if v.is_empty() { None } else { Some(v) }
-        } else {
-            None
-        };
-        let realm = if fields.len() > realm_idx {
-            let v = unescape_csv_field(&fields[realm_idx]);
-            if v.is_empty() { None } else { Some(v) }
-        } else {
-            None
-        };
-        let wazuh_agent_name = if fields.len() > agent_idx {
-            let v = unescape_csv_field(&fields[agent_idx]);
-            if v.is_empty() { None } else { Some(v) }
-        } else {
-            None
-        };
-        out.push(LedgerEntry {
-            subject,
-            serial_hex,
-            issued_at_unix,
-            not_after_unix,
-            revoked,
-            revoked_at_unix,
-            reason,
-            issuer,
-            realm,
-            wazuh_agent_name,
-        });
+    let revoked = matches!(fields[revoked_idx].as_str(), "true" | "TRUE" | "1");
+    let revoked_at_unix = if fields[revoked_at_idx].is_empty() {
+        None
+    } else {
+        Some(fields[revoked_at_idx].parse::<u64>().unwrap_or_default())
+    };
+    let reason = optional_field(&fields, reason_idx);
+    // Optional fields for backward compatibility
+    let issuer = optional_field(&fields, issuer_idx);
+    let realm = optional_field(&fields, realm_idx);
+    let wazuh_agent_name = optional_field(&fields, agent_idx);
+    Some(LedgerEntry {
+        subject,
+        serial_hex,
+        issued_at_unix,
+        not_after_unix,
+        revoked,
+        revoked_at_unix,
+        reason,
+        issuer,
+        realm,
+        wazuh_agent_name,
+    })
+}
+
+/// Reads an optional, possibly-empty CSV field, returning `None` when the field
+/// is absent or blank.
+fn optional_field(fields: &[String], idx: usize) -> Option<String> {
+    if fields.len() > idx {
+        let v = unescape_csv_field(&fields[idx]);
+        if v.is_empty() { None } else { Some(v) }
+    } else {
+        None
     }
-    Ok(out)
 }
 
 #[cfg(test)]

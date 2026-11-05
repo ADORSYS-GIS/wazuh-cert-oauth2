@@ -221,6 +221,93 @@ mod tests {
         (builder.build(), key)
     }
 
+    #[test]
+    fn compute_etag_is_sha256_hex_and_deterministic() {
+        let a = compute_etag(b"hello");
+        let b = compute_etag(b"hello");
+        let c = compute_etag(b"world");
+        assert_eq!(a, b, "etag should be deterministic");
+        assert_ne!(a, c, "different inputs should differ");
+        assert_eq!(a.len(), 64, "sha256 hex is 64 chars");
+        assert!(a.chars().all(|ch| ch.is_ascii_hexdigit()));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn file_backend_reads_existing_crl() {
+        let path = std::env::temp_dir().join(format!(
+            "crl-read-{}-{}.der",
+            std::process::id(),
+            rand::random::<u32>()
+        ));
+        std::fs::write(&path, b"\x30\x03\x02\x01\x00").expect("write crl file");
+
+        let state = CrlState::new(CrlBackend::File(path.clone()))
+            .await
+            .expect("crl state");
+        let bytes = state.read_crl().await.expect("read crl");
+        std::fs::remove_file(&path).ok();
+
+        assert_eq!(bytes, b"\x30\x03\x02\x01\x00");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn file_backend_missing_file_returns_empty() {
+        let path = std::env::temp_dir().join(format!(
+            "crl-missing-{}-{}.der",
+            std::process::id(),
+            rand::random::<u32>()
+        ));
+        // Ensure the file does not exist.
+        std::fs::remove_file(&path).ok();
+
+        let state = CrlState::new(CrlBackend::File(path.clone()))
+            .await
+            .expect("crl state");
+        let bytes = state.read_crl().await.expect("read crl");
+
+        assert!(bytes.is_empty(), "missing file should yield an empty CRL");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn file_backend_rebuild_writes_crl_and_notifies() {
+        let path = std::env::temp_dir().join(format!(
+            "crl-rebuild-{}-{}.der",
+            std::process::id(),
+            rand::random::<u32>()
+        ));
+        std::fs::remove_file(&path).ok();
+
+        let state = CrlState::new(CrlBackend::File(path.clone()))
+            .await
+            .expect("crl state");
+        let mut rx = state.subscribe_rebuild();
+        let (ca_cert, ca_key) = test_ca();
+        let entries = vec![RevocationEntry {
+            serial_hex: "ABC123".to_string(),
+            reason: Some("test".to_string()),
+            revoked_at_unix: 100,
+        }];
+
+        state
+            .request_rebuild(Arc::new(ca_cert), Arc::new(ca_key), entries)
+            .await
+            .expect("rebuild should succeed");
+
+        // The CRL file should now exist and be non-empty.
+        let bytes = std::fs::read(&path).expect("crl file should be written");
+        assert!(!bytes.is_empty(), "CRL should be non-empty");
+
+        // The watch channel should carry the new body.
+        let (_, body) = &*rx.borrow_and_update();
+        assert!(body.is_some(), "watch channel should have a CRL body");
+
+        // read_crl should now return the persisted bytes.
+        let read = state.read_crl().await.expect("read crl");
+        assert_eq!(read, bytes);
+
+        std::fs::remove_file(&path).ok();
+    }
+
     #[tokio::test(flavor = "multi_thread")]
     async fn postgres_crl_rebuild_populates_cache_and_notifies() {
         let Some(pool) = test_pool().await else {

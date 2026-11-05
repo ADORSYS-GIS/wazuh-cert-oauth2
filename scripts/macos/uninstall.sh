@@ -9,7 +9,7 @@ fi
 
 # Global variables with defaults
 APP_NAME=${APP_NAME:-"wazuh-cert-oauth2-client"}
-WOPS_VERSION=${WOPS_VERSION:-"0.4.6"}
+WOPS_VERSION=${WOPS_VERSION:-"0.5.0"}
 WAZUH_CERT_OAUTH2_REPO_REF=${WAZUH_CERT_OAUTH2_REPO_REF:-"refs/tags/v${WOPS_VERSION}"}
 WAZUH_CERT_OAUTH2_REPO_URL="https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/${WAZUH_CERT_OAUTH2_REPO_REF}"
 WAZUH_CERT_OAUTH2_RELEASE_URL="https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v${WOPS_VERSION}"
@@ -26,10 +26,13 @@ fi
 
 # Function to calculate SHA256 (cross-platform bootstrap)
 calculate_sha256_bootstrap() {
+    local file="$1"
     if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum "$1" | awk '{print $1}'
+        sha256sum "$file" | awk '{print $1}'
+        return 0
     else
-        shasum -a 256 "$1" | awk '{print $1}'
+        shasum -a 256 "$file" | awk '{print $1}'
+        return 0
     fi
 }
 
@@ -69,6 +72,7 @@ uninstall_binary() {
     else
         warn_message "Binary not found in $BIN_DIR. Skipping."
     fi
+    return 0
 }
 
 # Clean up configuration
@@ -81,6 +85,7 @@ cleanup_configuration() {
     else
         warn_message "Configuration file not found at $OSSEC_CONF_PATH. Skipping configuration cleanup."
     fi
+    return 0
 }
 
 # Main script execution

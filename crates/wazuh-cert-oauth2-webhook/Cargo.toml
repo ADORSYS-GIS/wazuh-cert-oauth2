@@ -25,3 +25,6 @@ async-trait.workspace = true
 [dependencies.wazuh-cert-oauth2-model]
 workspace = true
 features = ["rocket", "postgres"]
+
+[dev-dependencies]
+wiremock.workspace = true
