@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[667c3f2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/667c3f2fc9da171e8c9852140c5340dd2d444f38)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[4d83de5](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4d83de5a49e617c515b796602fbaf442542e0a74)
 
 ### Bug Fixes
 
@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - Deduplicate shared utils bootstrap in windows scripts ([`fa8d5dc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fa8d5dc91f7294f3889dc63c9263b8fdcc9ac9d9))
 - Verify utils.ps1 checksum before sourcing it ([`6c2dcbe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6c2dcbecc6a14fa8d04e86c8821fe9ff5fba7c5e))
 - Bump crates and ignore advisories without a safe upgrade ([`9ccdd3d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9ccdd3d7083f63bc73346f7e3ed0201ebefc6643))
+- Exit with non-zero status code on enrollment error ([`c54a853`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c54a853e1e4d57222dba418f5318dbf876c2e441))
 
 ### Documentation
 
@@ -51,6 +52,8 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`e842a8c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e842a8c7c814a5248cc9614162175f1ca28c0988))
 - Update CHANGELOG.md and checksums [skip ci] ([`016ecb3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/016ecb302bf55850b6c6ee2433fb52ca4edacd9a))
 - Update CHANGELOG.md and checksums [skip ci] ([`587a153`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/587a153adb5814980d6be0ffcc864a9e807db931))
+- Update CHANGELOG.md and checksums [skip ci] ([`85ffb8c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/85ffb8c394ffcb5ba8d490e0921c2a1f718b14fc))
+- Add ADR-0002 for non-zero exit code on client enrollment error ([`fc48135`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fc48135bc85f359a9ede7920c173edea7f7d861c))
 
 ### Features
 
