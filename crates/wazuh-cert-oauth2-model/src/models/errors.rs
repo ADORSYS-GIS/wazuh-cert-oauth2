@@ -130,11 +130,13 @@ struct ErrorResponse {
     error: String,
 }
 
-impl<'r> Responder<'r, 'static> for AppError {
-    fn respond_to(self, req: &'r Request<'_>) -> Result<Response<'static>, Status> {
-        let message = self.to_string();
-
-        let status = match &self {
+impl AppError {
+    /// Map an error to the HTTP status code it should be served with.
+    ///
+    /// Extracted from the `Responder` impl so the mapping is unit-testable
+    /// without constructing a Rocket `Request`.
+    fn status(&self) -> Status {
+        match &self {
             AppError::UpstreamError(_) => Status::BadGateway,
             #[cfg(feature = "postgres")]
             AppError::DatabaseError(_) => Status::BadGateway,
@@ -149,7 +151,15 @@ impl<'r> Responder<'r, 'static> for AppError {
             | AppError::KeyPolicyUnsupportedKeyType { .. }
             | AppError::ValidationError(_) => Status::BadRequest,
             _ => Status::InternalServerError,
-        };
+        }
+    }
+}
+
+impl<'r> Responder<'r, 'static> for AppError {
+    fn respond_to(self, req: &'r Request<'_>) -> Result<Response<'static>, Status> {
+        let message = self.to_string();
+
+        let status = self.status();
 
         if status == Status::InternalServerError {
             tracing::error!("Internal server error: {}", message);
@@ -175,3 +185,107 @@ impl<'r> Responder<'r, 'static> for AppError {
 
 // Convenience alias used where appropriate
 pub type AppResult<T> = Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::AppError;
+    use rocket::http::Status;
+
+    #[test]
+    fn validation_error_maps_to_bad_request() {
+        assert_eq!(
+            AppError::ValidationError("bad".into()).status(),
+            Status::BadRequest
+        );
+    }
+
+    #[test]
+    fn conflict_maps_to_conflict() {
+        assert_eq!(AppError::Conflict("dup".into()).status(), Status::Conflict);
+    }
+
+    #[test]
+    fn upstream_error_maps_to_bad_gateway() {
+        assert_eq!(
+            AppError::UpstreamError("up".into()).status(),
+            Status::BadGateway
+        );
+    }
+
+    #[test]
+    fn csr_and_key_policy_errors_map_to_bad_request() {
+        assert_eq!(AppError::CsrMissingPublicKey.status(), Status::BadRequest);
+        assert_eq!(AppError::CsrVerificationFailed.status(), Status::BadRequest);
+        assert_eq!(
+            AppError::KeyPolicyRsaTooSmall { bits: 1024 }.status(),
+            Status::BadRequest
+        );
+        assert_eq!(
+            AppError::KeyPolicyUnsupportedEcCurve { nid: "x".into() }.status(),
+            Status::BadRequest
+        );
+        assert_eq!(
+            AppError::KeyPolicyUnknownEcCurve.status(),
+            Status::BadRequest
+        );
+        assert_eq!(
+            AppError::KeyPolicyUnsupportedKeyType {
+                key_type: "x".into()
+            }
+            .status(),
+            Status::BadRequest
+        );
+    }
+
+    #[test]
+    fn serde_error_maps_to_bad_request() {
+        assert_eq!(
+            AppError::SerdeError(serde_json::from_str::<u8>("nope").unwrap_err()).status(),
+            Status::BadRequest
+        );
+    }
+
+    #[test]
+    fn io_error_maps_to_internal_server_error() {
+        let err = AppError::Io(std::io::Error::other("boom"));
+        assert_eq!(err.status(), Status::InternalServerError);
+    }
+
+    #[test]
+    fn request_token_error_maps_to_service_unavailable() {
+        use oauth2::basic::BasicErrorResponseType;
+        use oauth2::{RequestTokenError, StandardErrorResponse};
+
+        let response =
+            StandardErrorResponse::new(BasicErrorResponseType::InvalidRequest, None, None);
+        let err = AppError::RequestTokenError(RequestTokenError::ServerResponse(response));
+        assert_eq!(err.status(), Status::ServiceUnavailable);
+    }
+
+    #[test]
+    fn display_messages_are_human_readable() {
+        assert_eq!(
+            AppError::ValidationError("bad".into()).to_string(),
+            "Validation error: bad"
+        );
+        assert_eq!(
+            AppError::Conflict("dup".into()).to_string(),
+            "Conflict: dup"
+        );
+        assert_eq!(
+            AppError::CsrMissingPublicKey.to_string(),
+            "CSR missing public key"
+        );
+        assert_eq!(
+            AppError::KeyPolicyRsaTooSmall { bits: 1024 }.to_string(),
+            "RSA key too small: 1024 bits (min 2048)"
+        );
+        assert_eq!(
+            AppError::KeyPolicyUnsupportedKeyType {
+                key_type: "Ed25519".into()
+            }
+            .to_string(),
+            "Unsupported key type: Ed25519"
+        );
+    }
+}

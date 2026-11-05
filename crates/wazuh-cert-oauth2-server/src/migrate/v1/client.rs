@@ -209,3 +209,177 @@ pub async fn keycloak_lookup_user(
         Some(display_name)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{KeycloakSession, keycloak_get_token, keycloak_lookup_user};
+    use crate::migrate::v1::opts::{KeycloakAuthMethod, MigrateOpt};
+    use reqwest::Client;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    fn opt(base_url: &str) -> MigrateOpt {
+        MigrateOpt {
+            input: "/data/ledger.csv".to_string(),
+            output: "ledger-migrated.csv".to_string(),
+            unresolved: "unresolved.csv".to_string(),
+            report: "migration-report.txt".to_string(),
+            wazuh_manager_url: "https://wazuh".to_string(),
+            wazuh_api_user: "user".to_string(),
+            wazuh_api_password: "pass".to_string(),
+            wazuh_tls_verify: true,
+            wazuh_ca_bundle: None,
+            keycloak_admin_url: base_url.to_string(),
+            keycloak_realm: "main".to_string(),
+            keycloak_auth_method: KeycloakAuthMethod::Password,
+            keycloak_admin_user: Some("admin".to_string()),
+            keycloak_admin_password: Some("secret".to_string()),
+            keycloak_client_id: None,
+            keycloak_client_secret: None,
+            keycloak_tls_verify: true,
+            keycloak_ca_bundle: None,
+        }
+    }
+
+    fn token_mock() -> Mock {
+        Mock::given(method("POST"))
+            .and(path("/realms/master/protocol/openid-connect/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "kc-token"
+            })))
+    }
+
+    #[tokio::test]
+    async fn keycloak_get_token_with_password_auth() {
+        let server = MockServer::start().await;
+        token_mock().mount(&server).await;
+
+        let client = Client::new();
+        let token = keycloak_get_token(&client, &opt(&server.uri()))
+            .await
+            .expect("token should be fetched");
+        assert_eq!(token.as_deref(), Some("kc-token"));
+    }
+
+    #[tokio::test]
+    async fn keycloak_get_token_with_client_credentials() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/realms/main/protocol/openid-connect/token"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "access_token": "cc-token"
+            })))
+            .mount(&server)
+            .await;
+
+        let mut o = opt(&server.uri());
+        o.keycloak_auth_method = KeycloakAuthMethod::ClientCredentials;
+        o.keycloak_client_id = Some("cid".to_string());
+        o.keycloak_client_secret = Some("csecret".to_string());
+
+        let client = Client::new();
+        let token = keycloak_get_token(&client, &o)
+            .await
+            .expect("token should be fetched");
+        assert_eq!(token.as_deref(), Some("cc-token"));
+    }
+
+    #[tokio::test]
+    async fn keycloak_get_token_errors_when_admin_url_empty() {
+        let mut o = opt("https://kc");
+        o.keycloak_admin_url = "".to_string();
+        let client = Client::new();
+        assert!(keycloak_get_token(&client, &o).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn keycloak_get_token_errors_when_password_creds_missing() {
+        let mut o = opt("https://kc");
+        o.keycloak_admin_user = None;
+        let client = Client::new();
+        assert!(keycloak_get_token(&client, &o).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn keycloak_get_token_returns_none_on_auth_failure() {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/realms/master/protocol/openid-connect/token"))
+            .respond_with(ResponseTemplate::new(401))
+            .mount(&server)
+            .await;
+
+        let client = Client::new();
+        let token = keycloak_get_token(&client, &opt(&server.uri()))
+            .await
+            .expect("should not error");
+        assert!(token.is_none());
+    }
+
+    #[tokio::test]
+    async fn keycloak_lookup_user_reconstructs_display_name() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/admin/realms/main/users/uuid-1"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "id": "uuid-1",
+                "username": "alice",
+                "firstName": "Alice",
+                "lastName": "Smith",
+                "enabled": true
+            })))
+            .mount(&server)
+            .await;
+
+        let client = Client::new();
+        let name = keycloak_lookup_user(&client, &opt(&server.uri()), "token", "uuid-1").await;
+        assert_eq!(name.as_deref(), Some("Alice Smith"));
+    }
+
+    #[tokio::test]
+    async fn keycloak_lookup_user_falls_back_to_username() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/admin/realms/main/users/uuid-2"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "id": "uuid-2",
+                "username": "bob",
+                "enabled": true
+            })))
+            .mount(&server)
+            .await;
+
+        let client = Client::new();
+        let name = keycloak_lookup_user(&client, &opt(&server.uri()), "token", "uuid-2").await;
+        assert_eq!(name.as_deref(), Some("bob"));
+    }
+
+    #[tokio::test]
+    async fn keycloak_lookup_user_returns_none_on_non_success() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/admin/realms/main/users/uuid-3"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+
+        let client = Client::new();
+        let name = keycloak_lookup_user(&client, &opt(&server.uri()), "token", "uuid-3").await;
+        assert!(name.is_none());
+    }
+
+    #[tokio::test]
+    async fn keycloak_session_caches_token_within_refresh_window() {
+        let server = MockServer::start().await;
+        token_mock().mount(&server).await;
+
+        let client = Client::new();
+        let mut session = KeycloakSession::new(client, opt(&server.uri()));
+        let first = session.get_token().await.expect("first token");
+        assert_eq!(first.as_deref(), Some("kc-token"));
+        // Second call within the refresh window should reuse the cached token
+        // without another HTTP request.
+        let second = session.get_token().await.expect("cached token");
+        assert_eq!(second.as_deref(), Some("kc-token"));
+    }
+}

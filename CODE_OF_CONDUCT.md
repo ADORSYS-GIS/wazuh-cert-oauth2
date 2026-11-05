@@ -18,49 +18,49 @@ diverse, inclusive, and healthy community.
 
 Examples of behavior that contributes to a positive environment for our community include:
 
-* **Demonstrating empathy and kindness** toward other people
-* **Being respectful** of differing opinions, viewpoints, and experiences
-* **Giving and gracefully accepting** constructive feedback
-* **Accepting responsibility** and apologizing to those affected by our mistakes,
+- **Demonstrating empathy and kindness** toward other people
+- **Being respectful** of differing opinions, viewpoints, and experiences
+- **Giving and gracefully accepting** constructive feedback
+- **Accepting responsibility** and apologizing to those affected by our mistakes,
   and learning from the experience
-* **Focusing on what is best** not just for us as individuals, but for the overall
+- **Focusing on what is best** not just for us as individuals, but for the overall
   community
-* **Using welcoming and inclusive language**
-* **Being patient** with new contributors and those learning
-* **Providing thoughtful, constructive code reviews**
-* **Respecting time zones and response times** in asynchronous communication
+- **Using welcoming and inclusive language**
+- **Being patient** with new contributors and those learning
+- **Providing thoughtful, constructive code reviews**
+- **Respecting time zones and response times** in asynchronous communication
 
 ### Unacceptable Behavior
 
 Examples of unacceptable behavior include:
 
-* The use of sexualized language or imagery, and sexual attention or advances of
+- The use of sexualized language or imagery, and sexual attention or advances of
   any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or email address,
+- Trolling, insulting or derogatory comments, and personal or political attacks
+- Public or private harassment
+- Publishing others' private information, such as a physical or email address,
   without their explicit permission
-* Deliberately misgendering or using 'dead' or rejected names
-* Physical contact and simulated physical contact (e.g., textual descriptions like
+- Deliberately misgendering or using 'dead' or rejected names
+- Physical contact and simulated physical contact (e.g., textual descriptions like
   "hug" or "backrub") without consent
-* Threats of violence or incitement of violence towards any individual
-* Sustained disruption of community discussions
-* Unwelcome comments regarding a person's lifestyle choices and practices
-* Pattern of inappropriate social contact, such as requesting/assuming inappropriate
+- Threats of violence or incitement of violence towards any individual
+- Sustained disruption of community discussions
+- Unwelcome comments regarding a person's lifestyle choices and practices
+- Pattern of inappropriate social contact, such as requesting/assuming inappropriate
   levels of intimacy with others
-* Other conduct which could reasonably be considered inappropriate in a
+- Other conduct which could reasonably be considered inappropriate in a
   professional setting
 
 ### Security-Specific Guidelines
 
 Given the security-critical nature of this project:
 
-* **Responsible disclosure**: Security vulnerabilities must be reported privately
+- **Responsible disclosure**: Security vulnerabilities must be reported privately
   to the maintainers, not publicly disclosed
-* **No malicious contributions**: Deliberately introducing vulnerabilities,
+- **No malicious contributions**: Deliberately introducing vulnerabilities,
   backdoors, or malicious code is strictly prohibited
-* **Respectful security discussions**: Critique implementations, not people
-* **Educational approach**: Help others understand security concepts without
+- **Respectful security discussions**: Critique implementations, not people
+- **Educational approach**: Help others understand security concepts without
   condescension
 
 ## Enforcement Responsibilities
@@ -81,10 +81,10 @@ This Code of Conduct applies within all community spaces, and also applies when
 an individual is officially representing the community in public spaces.
 Examples of representing our community include:
 
-* Using an official project e-mail address
-* Posting via an official social media account
-* Acting as an appointed representative at an online or offline event
-* Participation in project-related forums, mailing lists, chat channels, and issue trackers
+- Using an official project e-mail address
+- Posting via an official social media account
+- Acting as an appointed representative at an online or offline event
+- Participation in project-related forums, mailing lists, chat channels, and issue trackers
 
 ## Reporting
 
@@ -102,11 +102,11 @@ responsible disclosure process.
 
 When reporting, please include:
 
-* Your contact information
-* Names (real, nicknames, or pseudonyms) of any individuals involved
-* Your account of what occurred, including any relevant screenshots or logs
-* If you believe this incident is ongoing
-* Any other information you believe we should have
+- Your contact information
+- Names (real, nicknames, or pseudonyms) of any individuals involved
+- Your account of what occurred, including any relevant screenshots or logs
+- If you believe this incident is ongoing
+- Any other information you believe we should have
 
 ### Confidentiality
 
@@ -115,9 +115,9 @@ All complaints will be reviewed and investigated promptly and fairly.
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident. Reports will be kept confidential except:
 
-* With the explicit consent of the reporter
-* When necessary to protect others from harm
-* As required by law
+- With the explicit consent of the reporter
+- When necessary to protect others from harm
+- As required by law
 
 ## Enforcement Guidelines
 

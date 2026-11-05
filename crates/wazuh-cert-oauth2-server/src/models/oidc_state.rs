@@ -87,3 +87,74 @@ impl OidcState {
         Ok(jwks)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::OidcState;
+    use std::time::Duration;
+    use wazuh_cert_oauth2_model::services::http_client::HttpClient;
+    use wiremock::matchers::{method, path};
+    use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[tokio::test]
+    async fn get_discovery_fetches_and_caches_document() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/.well-known/openid-configuration"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "issuer": server.uri(),
+                "authorization_endpoint": format!("{}/auth", server.uri()),
+                "token_endpoint": format!("{}/token", server.uri()),
+                "jwks_uri": format!("{}/jwks", server.uri())
+            })))
+            .mount(&server)
+            .await;
+
+        let state = OidcState::new(
+            server.uri(),
+            Some(vec!["aud".to_string()]),
+            Duration::from_secs(60),
+            Duration::from_secs(60),
+            HttpClient::new_with_defaults().expect("http client"),
+        );
+
+        let doc = state.get_discovery().await.expect("discovery should load");
+        assert_eq!(doc.issuer, server.uri());
+        // Second call should hit the cache.
+        let doc2 = state.get_discovery().await.expect("cached discovery");
+        assert!(std::sync::Arc::ptr_eq(&doc, &doc2));
+    }
+
+    #[tokio::test]
+    async fn get_jwks_fetches_from_discovery_jwks_uri() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/.well-known/openid-configuration"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "issuer": server.uri(),
+                "authorization_endpoint": format!("{}/auth", server.uri()),
+                "token_endpoint": format!("{}/token", server.uri()),
+                "jwks_uri": format!("{}/jwks", server.uri())
+            })))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/jwks"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "keys": []
+            })))
+            .mount(&server)
+            .await;
+
+        let state = OidcState::new(
+            server.uri(),
+            None,
+            Duration::from_secs(60),
+            Duration::from_secs(60),
+            HttpClient::new_with_defaults().expect("http client"),
+        );
+
+        let jwks = state.get_jwks().await.expect("jwks should load");
+        assert!(jwks.keys.is_empty());
+    }
+}
