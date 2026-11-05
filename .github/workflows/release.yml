@@ -150,6 +150,10 @@ jobs:
 
   update-changelog-and-checksums:
     runs-on: ubuntu-latest
+    # Dependabot PRs run with read-only secrets, so GPG_PRIVATE_KEY is
+    # unavailable and this job cannot sign/commit. Skip it for dependabot so it
+    # does not report a spurious failure on those PRs.
+    if: github.actor != 'dependabot[bot]'
     permissions:
       contents: write
       pull-requests: write
