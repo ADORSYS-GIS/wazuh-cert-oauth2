@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[4d2845f](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4d2845ff50b7d5c2bfcd42de171231b314862655)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[33712b2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/33712b2646d386390982fcb97c32ce86a241283d)
 
 ### Bug Fixes
 
@@ -45,9 +45,9 @@ All notable changes to this project will be documented in this file.
 
 ### Miscellaneous Tasks
 
-- Remove clippy/shellcheck/psscriptanalyzer (moved to SAST) ([`056a3fe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/056a3fe5dca964863c04a985a456947fd9f5e179))
 - Ignore rustls 0.21 TLS advisories ([`1e7ab40`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e7ab40a10088c2e4ad768e966867ef908fffc57))
 - Address lightbridge review comments ([`0c1444d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0c1444d2245795e6f4183932033427accc39719a))
+- Remove clippy/shellcheck/psscriptanalyzer (moved to SAST) ([`056a3fe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/056a3fe5dca964863c04a985a456947fd9f5e179))
 - Ignore rustls-webpki emSign advisories ([`21a864f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/21a864f8b23a23d0f50e6f0f6d63bd8c1d4fb056))
 - Only run scanners for their language's changed files ([`13c13a7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/13c13a75c50b9f82e62bceb148ce254051b12684))
 - Standardize issue and PR templates with other repos ([`f6c6ff8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f6c6ff860189a1e55d60879feecc9729f766f161))
