@@ -54,7 +54,7 @@ pub async fn validate_token(
 mod tests {
     use super::validate_token;
     use crate::models::errors::AppError;
-    use jsonwebtoken::jwk::JwkSet;
+    use jsonwebtoken::jwk::{Jwk, JwkSet};
     use jsonwebtoken::{Algorithm, EncodingKey, Header, encode};
     use serde::Serialize;
 
@@ -106,5 +106,44 @@ mod tests {
 
         let err = validate_token(&token, &jwks, &None).await.unwrap_err();
         assert!(matches!(err, AppError::JwtKeyNotFound(k) if k == "missing-kid"));
+    }
+
+    #[tokio::test]
+    async fn validate_token_succeeds_with_matching_jwk() {
+        let key = EncodingKey::from_secret(b"secret");
+        let mut jwk = Jwk::from_encoding_key(&key, Algorithm::HS256).expect("jwk should build");
+        jwk.common.key_id = Some("kid-1".to_string());
+        let jwks = JwkSet { keys: vec![jwk] };
+
+        let mut header = Header::new(Algorithm::HS256);
+        header.kid = Some("kid-1".to_string());
+        let token = encode(&header, &sample_claims(), &key).expect("token should encode");
+
+        let claims = validate_token(&token, &jwks, &None)
+            .await
+            .expect("valid token should decode");
+        assert_eq!(claims.sub, "subject-1");
+        assert_eq!(claims.get_name().as_deref(), Some("Alice"));
+    }
+
+    #[tokio::test]
+    async fn validate_token_fails_on_invalid_signature() {
+        let signing_key = EncodingKey::from_secret(b"secret");
+        let mut jwk = Jwk::from_encoding_key(&signing_key, Algorithm::HS256).expect("jwk");
+        jwk.common.key_id = Some("kid-1".to_string());
+        let jwks = JwkSet { keys: vec![jwk] };
+
+        // Sign with a different secret so signature verification fails.
+        let mut header = Header::new(Algorithm::HS256);
+        header.kid = Some("kid-1".to_string());
+        let token = encode(
+            &header,
+            &sample_claims(),
+            &EncodingKey::from_secret(b"wrong-secret"),
+        )
+        .expect("token should encode");
+
+        let err = validate_token(&token, &jwks, &None).await.unwrap_err();
+        assert!(matches!(err, AppError::JwtError(_)));
     }
 }

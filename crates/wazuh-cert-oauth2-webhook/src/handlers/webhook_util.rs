@@ -97,4 +97,45 @@ mod tests {
         let req = request_with(Some("admin/realms/a/groups/abc"), None);
         assert_eq!(extract_user_id(&req), None);
     }
+
+    #[test]
+    fn prepare_issue_uses_username_and_email() {
+        let req = request_with(
+            None,
+            Some(r#"{"id":"u1","enabled":true,"username":"alice","email":"a@x.com"}"#),
+        );
+        let (title, body) = super::prepare_github_issue(&req);
+        assert_eq!(title, "New user registered: alice");
+        assert!(body.contains("**Username**: alice"));
+        assert!(body.contains("**Email**: a@x.com"));
+        assert!(body.contains("**Realm**: realm-a"));
+    }
+
+    #[test]
+    fn prepare_issue_falls_back_to_first_and_last_name() {
+        let req = request_with(
+            None,
+            Some(r#"{"id":"u1","enabled":true,"firstName":"Alice","lastName":"Smith"}"#),
+        );
+        let (title, _) = super::prepare_github_issue(&req);
+        assert_eq!(title, "New user registered: Alice Smith");
+    }
+
+    #[test]
+    fn prepare_issue_falls_back_to_first_name_only() {
+        let req = request_with(
+            None,
+            Some(r#"{"id":"u1","enabled":true,"firstName":"Alice"}"#),
+        );
+        let (title, _) = super::prepare_github_issue(&req);
+        assert_eq!(title, "New user registered: Alice");
+    }
+
+    #[test]
+    fn prepare_issue_uses_unknown_when_no_representation() {
+        let req = request_with(None, None);
+        let (title, body) = super::prepare_github_issue(&req);
+        assert_eq!(title, "New user registered: unknown");
+        assert!(body.contains("**Email**: unknown"));
+    }
 }
