@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: 'false'
@@ -30,7 +30,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Install Helm
-        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # azure/setup-helm@v5.0.1
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -41,7 +41,7 @@ jobs:
           helm repo update
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@df287104677278f869ca5480bd260358397cc3f9 # helm/chart-releaser-action@v1.8.0
+        uses: helm/chart-releaser-action@df287104677278f869ca5480bd260358397cc3f9 # v1.8.0
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
