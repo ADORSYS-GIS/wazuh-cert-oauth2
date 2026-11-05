@@ -24,6 +24,9 @@ async fn main() {
         }
         Err(e) => {
             error!("An error occurred during execution: {}", e);
+            // Ensure callers and wrappers can detect enrollment failure
+            // from the process exit code.
+            std::process::exit(1);
         }
     }
 }
