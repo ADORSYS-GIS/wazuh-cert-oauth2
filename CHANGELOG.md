@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[119a845](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/119a8455e5dc4c5bf543ad7dbc34d36df8cdf637)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[33712b2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/33712b2646d386390982fcb97c32ce86a241283d)
 
 ### Bug Fixes
 
@@ -17,13 +17,13 @@ All notable changes to this project will be documented in this file.
 
 ### Documentation
 
+- Update CHANGELOG.md and checksums [skip ci] ([`785022f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/785022fb68f155df5dc716778173aa4e491b2626))
 - Update CHANGELOG.md and checksums [skip ci] ([`370f17e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/370f17ec6ab89d070cbed4d9809b819745ab5349))
 - Update CHANGELOG.md and checksums [skip ci] ([`be92623`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/be9262385ebb694a5a5afebc69bace37ac005314))
 - Update CHANGELOG.md and checksums [skip ci] ([`e374b1c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e374b1c29ed9e3f00e33ce3518754ba6a896e2bb))
 - Update CHANGELOG.md and checksums [skip ci] ([`fa6690d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fa6690db101f7a4fa439c48316cfe63a1bdfefb7))
 - Update CHANGELOG.md and checksums [skip ci] ([`34a71f2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/34a71f23821a4026ad90802a34bf2f5727efe838))
 - Update CHANGELOG.md and checksums [skip ci] ([`63128dc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/63128dc0ef8556fab93c080e74a5499115cd26c3))
-- Update CHANGELOG.md and checksums [skip ci] ([`785022f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/785022fb68f155df5dc716778173aa4e491b2626))
 - Update CHANGELOG.md and checksums [skip ci] ([`0e83990`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0e839903b28fbb09717744f3b6e3daca11106f6f))
 - Update CHANGELOG.md and checksums [skip ci] ([`7ad8397`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7ad839738df56abc77a1b66c9bf41d13c1967d2e))
 - Improve formatting with prettier formatter ([`78d6ac9`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/78d6ac9e2d8b6527012a66807573bc6863b1c6f3))
@@ -45,9 +45,9 @@ All notable changes to this project will be documented in this file.
 
 ### Miscellaneous Tasks
 
-- Remove clippy/shellcheck/psscriptanalyzer (moved to SAST) ([`056a3fe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/056a3fe5dca964863c04a985a456947fd9f5e179))
 - Ignore rustls 0.21 TLS advisories ([`1e7ab40`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1e7ab40a10088c2e4ad768e966867ef908fffc57))
 - Address lightbridge review comments ([`0c1444d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/0c1444d2245795e6f4183932033427accc39719a))
+- Remove clippy/shellcheck/psscriptanalyzer (moved to SAST) ([`056a3fe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/056a3fe5dca964863c04a985a456947fd9f5e179))
 - Ignore rustls-webpki emSign advisories ([`21a864f`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/21a864f8b23a23d0f50e6f0f6d63bd8c1d4fb056))
 - Only run scanners for their language's changed files ([`13c13a7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/13c13a75c50b9f82e62bceb148ce254051b12684))
 - Standardize issue and PR templates with other repos ([`f6c6ff8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/f6c6ff860189a1e55d60879feecc9729f766f161))
