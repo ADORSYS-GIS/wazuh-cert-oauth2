@@ -102,3 +102,47 @@ impl Display for KeycloakAuthMethod {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::KeycloakAuthMethod;
+    use std::str::FromStr;
+
+    #[test]
+    fn parses_password_auth_method() {
+        assert!(matches!(
+            KeycloakAuthMethod::from_str("password"),
+            Ok(KeycloakAuthMethod::Password)
+        ));
+    }
+
+    #[test]
+    fn parses_client_credentials_auth_method() {
+        assert!(matches!(
+            KeycloakAuthMethod::from_str("client-credentials"),
+            Ok(KeycloakAuthMethod::ClientCredentials)
+        ));
+    }
+
+    #[test]
+    fn rejects_unknown_auth_method() {
+        let err = KeycloakAuthMethod::from_str("token").expect_err("unknown method should fail");
+        assert!(err.contains("invalid auth method 'token'"));
+        assert!(err.contains("password"));
+        assert!(err.contains("client-credentials"));
+    }
+
+    #[test]
+    fn displays_round_trip() {
+        assert_eq!(KeycloakAuthMethod::Password.to_string(), "password");
+        assert_eq!(
+            KeycloakAuthMethod::ClientCredentials.to_string(),
+            "client-credentials"
+        );
+        // Display output parses back to the same variant.
+        assert!(matches!(
+            KeycloakAuthMethod::from_str(&KeycloakAuthMethod::Password.to_string()).unwrap(),
+            KeycloakAuthMethod::Password
+        ));
+    }
+}

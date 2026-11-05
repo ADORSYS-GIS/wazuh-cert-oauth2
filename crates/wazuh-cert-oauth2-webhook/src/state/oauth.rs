@@ -142,4 +142,18 @@ mod tests {
         assert!(cached.exp > before);
         assert!(cached.exp <= before + Duration::from_secs(120));
     }
+
+    #[tokio::test]
+    async fn cache_token_applies_default_ttl_when_none() {
+        let cache: Arc<RwLock<Option<CachedToken>>> = Arc::new(RwLock::new(None));
+        let before = Instant::now();
+
+        cache_token(&cache, "token".to_string(), None).await;
+
+        let guard = cache.read().await;
+        let cached = guard.as_ref().expect("token should be cached");
+        // Default TTL is 300s minus a 30s skew.
+        assert!(cached.exp > before);
+        assert!(cached.exp <= before + Duration::from_secs(300));
+    }
 }

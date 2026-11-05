@@ -13,43 +13,18 @@ if (-not $env:WAZUH_CERT_OAUTH2_REPO_REF) {
     $env:WAZUH_CERT_OAUTH2_REPO_REF = "refs/tags/v$WOPS_VERSION"
 }
 $WAZUH_CERT_OAUTH2_REPO_REF = $env:WAZUH_CERT_OAUTH2_REPO_REF
-$WAZUH_CERT_OAUTH2_RELEASE_URL = "https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/releases/download/v$WOPS_VERSION"
+$WAZUH_CERT_OAUTH2_REPO_URL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF"
 
-# Create a secure temporary directory for utilities
+# Download the shared utils and verify their checksum before sourcing them.
 $UtilsTmp = Join-Path $env:TEMP "wazuh-cert-oauth2-utils-$(Get-Random)"
 New-Item -ItemType Directory -Path $UtilsTmp -Force | Out-Null
-
-try {
-    $ChecksumsURL = "$WAZUH_CERT_OAUTH2_RELEASE_URL/checksums.sha256"
-    $UtilsURL = "https://raw.githubusercontent.com/ADORSYS-GIS/wazuh-cert-oauth2/$WAZUH_CERT_OAUTH2_REPO_REF/scripts/shared/utils.ps1"
-
-    $global:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
-    $UtilsPath = Join-Path $UtilsTmp "utils.ps1"
-
-    Invoke-WebRequest -Uri $ChecksumsURL -OutFile $ChecksumsPath -ErrorAction Stop
-    Invoke-WebRequest -Uri $UtilsURL -OutFile $UtilsPath -ErrorAction Stop
-
-    # Verification function (bootstrap)
-    function Get-FileChecksum-Bootstrap {
-        param([string]$FilePath)
-        return (Get-FileHash -Path $FilePath -Algorithm SHA256).Hash.ToLower()
-    }
-
-    $ExpectedHash = (Select-String -Path $ChecksumsPath -Pattern "scripts/shared/utils.ps1").Line.Split(" ")[0]
-    $ActualHash = Get-FileChecksum-Bootstrap -FilePath $UtilsPath
-
-    if ([string]::IsNullOrWhiteSpace($ExpectedHash) -or ($ActualHash -ne $ExpectedHash.ToLower())) {
-        Write-Error "Checksum verification failed for utils.ps1"
-        exit 1
-    }
-
-    . $UtilsPath
-}
-catch {
-    Write-Error "Failed to initialize utilities: $($_.Exception.Message)"
-    exit 1
-}
-
+$script:ChecksumsPath = Join-Path $UtilsTmp "checksums.sha256"
+$UtilsPath = Join-Path $UtilsTmp "utils.ps1"
+Invoke-WebRequest -Uri "$WAZUH_CERT_OAUTH2_REPO_URL/checksums.sha256" -OutFile $script:ChecksumsPath -ErrorAction Stop
+Invoke-WebRequest -Uri "$WAZUH_CERT_OAUTH2_REPO_URL/scripts/shared/utils.ps1" -OutFile $UtilsPath -ErrorAction Stop
+$expectedHash = (Select-String -Path $script:ChecksumsPath -Pattern "scripts/shared/utils.ps1").Line.Split(" ")[0]
+if ([string]::IsNullOrWhiteSpace($expectedHash) -or ((Get-FileHash -Path $UtilsPath -Algorithm SHA256).Hash.ToLower() -ne $expectedHash.ToLower())) { Write-Error "Checksum verification failed for utils.ps1"; exit 1 }
+. $UtilsPath
 
 # Uninstall binary
 function UninstallBinary {

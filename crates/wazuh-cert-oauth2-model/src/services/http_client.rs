@@ -168,4 +168,92 @@ mod tests {
         assert!(req.contains("\"subject\":\"user-1\""));
         assert!(req.contains("\"reason\":\"test\""));
     }
+
+    #[tokio::test]
+    async fn post_json_auth_returns_structured_error_on_non_success() {
+        use crate::models::errors::AppError;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/api/revoke"))
+            .respond_with(ResponseTemplate::new(400).set_body_json(serde_json::json!({
+                "error": "invalid request"
+            })))
+            .mount(&server)
+            .await;
+
+        let client = HttpClient::new_with_defaults().expect("client should build");
+        let url = format!("{}/api/revoke", server.uri());
+        let body = json!({ "subject": "user-1" });
+        let err = client
+            .post_json_auth::<_, Value>(&url, "token", &body)
+            .await
+            .expect_err("should error on 400");
+        assert!(matches!(err, AppError::UpstreamError(m) if m == "invalid request"));
+    }
+
+    #[tokio::test]
+    async fn post_json_auth_returns_http_status_message_when_no_error_field() {
+        use crate::models::errors::AppError;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/api/revoke"))
+            .respond_with(ResponseTemplate::new(500).set_body_raw("oops", "text/plain"))
+            .mount(&server)
+            .await;
+
+        let client = HttpClient::new_with_defaults().expect("client should build");
+        let url = format!("{}/api/revoke", server.uri());
+        let body = json!({ "subject": "user-1" });
+        let err = client
+            .post_json_auth::<_, Value>(&url, "token", &body)
+            .await
+            .expect_err("should error on 500");
+        assert!(matches!(err, AppError::UpstreamError(m) if m == "HTTP 500"));
+    }
+
+    #[tokio::test]
+    async fn fetch_json_errors_on_non_success_status() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/health"))
+            .respond_with(ResponseTemplate::new(404))
+            .mount(&server)
+            .await;
+
+        let client = HttpClient::new_with_defaults().expect("client should build");
+        let url = format!("{}/health", server.uri());
+        assert!(client.fetch_json::<Value>(&url).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn post_json_sends_body_and_deserializes() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/submit"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "id": 42
+            })))
+            .mount(&server)
+            .await;
+
+        let client = HttpClient::new_with_defaults().expect("client should build");
+        let url = format!("{}/submit", server.uri());
+        let resp: Value = client
+            .post_json(&url, &json!({ "x": 1 }))
+            .await
+            .expect("post should succeed");
+        assert_eq!(resp["id"], 42);
+    }
 }
