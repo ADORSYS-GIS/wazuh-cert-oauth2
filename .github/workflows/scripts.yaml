@@ -65,12 +65,19 @@ jobs:
           git add CHANGELOG.md checksums.sha256
           git commit -S -m "docs: update CHANGELOG.md and checksums [skip ci]"
           if [[ "$TARGET_BRANCH" == "main" ]]; then
-            BRANCH="bot/update-checksums-${GITHUB_RUN_ID}"
-            git checkout -b "$BRANCH"
-            git push origin "$BRANCH"
-            gh pr create --base main --head "$BRANCH" \
-              --title "docs: update CHANGELOG.md and checksums" \
-              --body "Automated update of CHANGELOG.md and checksums.sha256"
+            BRANCH="bot/update-checksums"
+            # Reuse a single branch for the changelog/checksums PR. Reset it to
+            # the current commit and force-push so the PR always reflects the
+            # latest changelog and checksums.
+            git branch -f "$BRANCH" HEAD
+            git push --force origin "$BRANCH"
+            # Reuse the existing PR if one is already open for this branch.
+            PR_NUMBER=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+            if [[ -z "$PR_NUMBER" ]]; then
+              gh pr create --base main --head "$BRANCH" \
+                --title "docs: update CHANGELOG.md and checksums" \
+                --body "Automated update of CHANGELOG.md and checksums.sha256"
+            fi
           else
             git push origin "$TARGET_BRANCH"
           fi
