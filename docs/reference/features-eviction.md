@@ -27,7 +27,7 @@ For Keycloak-triggered revocations, the spool processor sets a grace deadline (`
 ## Resilience & safety
 
 - **Unreachable manager**: if the Wazuh API is unreachable, the `EvictRequest` stays in the spool and is retried with exponential backoff; rewrites are atomic (temp-file + rename) to avoid corruption on crash.
-- **TTL dead-letter**: eviction items older than the TTL (`SPOOL_EVICT_TTL_SECS`, default 24h) are moved to the dead-letter directory instead of retried forever. See [Reliability & spooling](../features-reliability).
+- **TTL dead-letter**: eviction items older than the TTL (`SPOOL_EVICT_TTL_SECS`, default 24h) are moved to the dead-letter directory instead of retried forever. See [Reliability & spooling](./features-reliability).
 - **Double-failure safety**: if both the direct eviction call and the spool queue fail, `/api/internal/evict` returns `500`, so the caller knows the request was lost and can retry.
 
 ## Wazuh API configuration

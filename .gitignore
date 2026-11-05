@@ -22,3 +22,4 @@ test.yaml
 # Jekyll build output
 _site/
 .env
+node_modules

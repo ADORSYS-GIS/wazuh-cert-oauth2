@@ -35,6 +35,14 @@ permissions:
   contents: read
 
 jobs:
+  sbom:
+    uses: ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/sbom.yml@17fe8c106fcac2a4b6ac1992cd1b89166f0eb5e2
+    with:
+      runner: ubuntu-latest
+      working-directory: "."
+    permissions:
+      contents: read
+
   # Detect which language areas changed so each scanner only runs on the code
   # it targets (e.g. a scripts-only change should not trigger the Rust scan).
   changes:
