@@ -1,9 +1,9 @@
 6056a082d121717934d1144c75e8cb0f90eea970199c58765f59e865304fe4b8  wazuh-cert-oauth2-client-x86_64-apple-darwin
-6fb1364fcc818793a4553d9ad2696633ae56ec33d15c80ad4230e8bee85b2eef  wazuh-cert-oauth2-client-aarch64-pc-windows-msvc.exe
+5f3c50ef0f76c4764b61bd26cd68bdcf18c9912e95f771d1d42ba8e6d335dba7  wazuh-cert-oauth2-client-aarch64-pc-windows-msvc.exe
 3b5f0312c8d24bd7fc399ac91f25d6f43308a46f05bba5551a9b1dde61422d99  wazuh-cert-oauth2-client-x86_64-unknown-linux-musl
 615edf9a1e2ecef75e874a2e96bbf9c8c222a021d16a40eca14b0b6e5d456955  wazuh-cert-oauth2-client-aarch64-unknown-linux-musl
 4544b5ecb4dd1233d7987631bc1115d0a993c86a6710b9a1ee31ee6c9b2bd7cb  wazuh-cert-oauth2-client-aarch64-apple-darwin
-05e551a45a65dcd092f46ffbe2fc43762ccf6a8a3e3709386c9e0a5fbab646d3  wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe
+30790b5c9ffb4b394f9a8dca0475e1623e89939faf31bfd10ec3c98c88afb396  wazuh-cert-oauth2-client-x86_64-pc-windows-msvc.exe
 bfa0b9ffb4281c5ecca9dd484336fca08094cbb959b2dca77e619d60875ae2d8  scripts/macos/install.sh
 e54fd2f56956a49a409caed43d157caf3756837d37e669f559954e1cf3704a5b  scripts/macos/update-crl.sh
 72ce1b1668f0d28b574d3b7c01c93753fa756f291b48a5745164f52e8cfd7006  scripts/macos/uninstall.sh
