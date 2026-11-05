@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[ba70935](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ba709357a0c47468182196bdd6555ae31a69f5b6)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[33712b2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/33712b2646d386390982fcb97c32ce86a241283d)
 
 ### Bug Fixes
 
