@@ -12,6 +12,7 @@ on:
       - 'crates/wazuh-cert-oauth2-metrics/**'
       - 'crates/wazuh-cert-oauth2-model/**'
       - 'crates/wazuh-cert-oauth2-webhook/**'
+      - '!crates/**/README.md'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'Dockerfile'
