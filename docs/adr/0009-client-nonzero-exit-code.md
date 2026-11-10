@@ -1,4 +1,4 @@
-# ADR-0002: Exit with non-zero status code on client enrollment error
+# ADR-0009: Exit with non-zero status code on client enrollment error
 
 > The client terminates with exit code 1 when enrollment fails, so callers and wrappers can detect the failure from the process exit status.
 
@@ -6,7 +6,7 @@
 
 | Field | Value |
 | :--- | :--- |
-| **Document ID** | ADR-0002 |
+| **Document ID** | ADR-0009 |
 | **Status** | `Accepted` |
 | **Date** | 2026-11-05 |
 | **Deciders** | Wazuh maintainers |
