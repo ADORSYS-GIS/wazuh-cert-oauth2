@@ -1,4 +1,4 @@
-# ADR-0001: Generate CycloneDX SBOM in CI
+# ADR-0008: Generate CycloneDX SBOM in CI
 
 > We generate the SBOM in CI with Trivy because the GitHub Dependency Graph alone misses dependencies for this project.
 
@@ -6,7 +6,7 @@
 
 | Field             | Value                                         |
 | :---------------- | :-------------------------------------------- |
-| **Document ID**   | ADR-0001                                      |
+| **Document ID**   | ADR-0008                                      |
 | **Status**        | `Accepted`                                    |
 | **Date**          | 2026-10-27                                    |
 | **Deciders**      | Wazuh maintainers                             |
