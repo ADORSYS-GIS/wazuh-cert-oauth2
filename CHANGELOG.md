@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[591da16](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/591da1678540e14ffc8a9a3746fa06693e7c308f)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[254846c](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/254846cdadaca9635923ec320b37c0bc26405f2e)
 
 ### Bug Fixes
 
@@ -58,6 +58,7 @@ All notable changes to this project will be documented in this file.
 - Add ADR-0002 for non-zero exit code on client enrollment error ([`fc48135`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fc48135bc85f359a9ede7920c173edea7f7d861c))
 - Import ADRs and runbooks from Confluence ([`ba6d2f0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ba6d2f0e4b412429b84fc64c32ec6362d45cdd25))
 - Update CHANGELOG.md and checksums [skip ci] ([`6913da0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6913da0b7a2408923e0463065ab5f08aa3868e05))
+- Update CHANGELOG.md and checksums [skip ci] ([`254846c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/254846cdadaca9635923ec320b37c0bc26405f2e))
 
 ### Features
 
