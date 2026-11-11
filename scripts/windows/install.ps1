@@ -106,16 +106,18 @@ function Test-ConfigPattern {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
         [Parameter(Mandatory = $true)][string]$Pattern,
-        [Parameter(Mandatory = $true)][string]$PresentMessage,
-        [Parameter(Mandatory = $true)][string]$MissingMessage,
+        [Parameter(Mandatory = $true)][string]$PassMessage,
+        [Parameter(Mandatory = $true)][string]$FailMessage,
         [switch]$ExpectAbsent
     )
 
     $found = [bool](Select-String -Path $Path -Pattern $Pattern -SimpleMatch -Quiet)
-    if ($found -ne $ExpectAbsent.IsPresent) {
-        InfoMessage $PresentMessage
+    $passed = if ($ExpectAbsent.IsPresent) { -not $found } else { $found }
+
+    if ($passed) {
+        InfoMessage $PassMessage
     } else {
-        WarnMessage $MissingMessage
+        WarnMessage $FailMessage
     }
 }
 
@@ -135,23 +137,23 @@ function Test-ConfigurationFile {
     }
 
     Test-ConfigPattern -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" `
-        -PresentMessage "Enrollment block is present in the configuration file." `
-        -MissingMessage "Enrollment block is missing in the configuration file."
+        -PassMessage "Enrollment block is present in the configuration file." `
+        -FailMessage "Enrollment block is missing in the configuration file."
 
     Test-ConfigPattern -Path $OSSEC_CONF_PATH `
         -Pattern "<agent_certificate_path>etc\sslagent.cert</agent_certificate_path>" `
-        -PresentMessage "Agent certificate path is configured correctly." `
-        -MissingMessage "Agent certificate path is missing in the configuration file."
+        -PassMessage "Agent certificate path is configured correctly." `
+        -FailMessage "Agent certificate path is missing in the configuration file."
 
     Test-ConfigPattern -Path $OSSEC_CONF_PATH `
         -Pattern "<agent_key_path>etc\sslagent.key</agent_key_path>" `
-        -PresentMessage "Agent key path is configured correctly." `
-        -MissingMessage "Agent key path is missing in the configuration file."
+        -PassMessage "Agent key path is configured correctly." `
+        -FailMessage "Agent key path is missing in the configuration file."
 
     Test-ConfigPattern -Path $OSSEC_CONF_PATH `
         -Pattern "<authorization_pass_path>etc\authd.pass</authorization_pass_path>" `
-        -PresentMessage "Authorization pass path has been correctly removed." `
-        -MissingMessage "Authorization pass path is still present in the configuration file." `
+        -PassMessage "Authorization pass path has been correctly removed." `
+        -FailMessage "Authorization pass path is still present in the configuration file." `
         -ExpectAbsent
 }
 

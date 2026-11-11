@@ -24,6 +24,68 @@ impl FileKind {
     }
 }
 
+/// Restrict a Windows private key to its owner, LocalSystem and Administrators.
+///
+/// The Wazuh agent service runs as LocalSystem by default and must keep read
+/// access, while other local users (for example the inherited `Users` group)
+/// must not be able to read the key.
+#[cfg(windows)]
+fn harden_private_key_acl(path: &Path) -> AppResult<()> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Foundation::LocalFree;
+    use windows_sys::Win32::Security::Authorization::{
+        ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
+    };
+    use windows_sys::Win32::Security::{
+        DACL_SECURITY_INFORMATION, PROTECTED_DACL_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR,
+        SetFileSecurityW,
+    };
+
+    // D:P          -> protected DACL (inheritance disabled)
+    // (A;;FA;;;SY) -> full control for LocalSystem
+    // (A;;FA;;;BA) -> full control for Administrators
+    // (A;;FA;;;OW) -> full control for the file owner (Owner Rights)
+    const PRIVATE_KEY_SDDL: &str = "D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;OW)";
+
+    let sddl: Vec<u16> = PRIVATE_KEY_SDDL
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
+    let wide_path: Vec<u16> = path
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
+    let mut descriptor: PSECURITY_DESCRIPTOR = std::ptr::null_mut();
+    unsafe {
+        if ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            sddl.as_ptr(),
+            SDDL_REVISION_1,
+            &mut descriptor,
+            std::ptr::null_mut(),
+        ) == 0
+        {
+            return Err(std::io::Error::last_os_error().into());
+        }
+
+        let result = SetFileSecurityW(
+            wide_path.as_ptr(),
+            DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+            descriptor,
+        );
+        // Capture the error before LocalFree can overwrite it.
+        let error = std::io::Error::last_os_error();
+        LocalFree(descriptor);
+
+        if result == 0 {
+            return Err(error.into());
+        }
+    }
+
+    Ok(())
+}
+
 /// Save the certificate (and optional chain) and the private key to files.
 pub async fn save_cert_and_key(
     cert_file: &str,
@@ -53,7 +115,7 @@ async fn write_with_permissions(
     contents: impl AsRef<[u8]>,
     kind: FileKind,
 ) -> AppResult<()> {
-    #[cfg(not(unix))]
+    #[cfg(not(any(unix, windows)))]
     let _ = kind;
 
     let path = file_path.as_ref();
@@ -76,6 +138,13 @@ async fn write_with_permissions(
         tokio::fs::set_permissions(path, std::fs::Permissions::from_mode(kind.unix_mode())).await?;
     }
 
+    #[cfg(windows)]
+    {
+        if matches!(kind, FileKind::PrivateKey) {
+            harden_private_key_acl(path)?;
+        }
+    }
+
     Ok(())
 }
 
@@ -91,15 +160,21 @@ async fn create_parent_dir_if_not_exists(file_path: impl AsRef<Path>) -> AppResu
 mod tests {
     use super::save_cert_and_key;
     use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
     use tokio::fs;
 
     fn unique_temp_dir() -> PathBuf {
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("time should be monotonic")
             .as_nanos();
-        std::env::temp_dir().join(format!("wazuh-client-save-test-{}", nanos))
+        let unique = COUNTER.fetch_add(1, Ordering::Relaxed);
+        std::env::temp_dir().join(format!(
+            "wazuh-client-save-test-{}-{nanos}-{unique}",
+            std::process::id()
+        ))
     }
 
     #[tokio::test]

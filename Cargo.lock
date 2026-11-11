@@ -3819,6 +3819,7 @@ dependencies = [
  "tokio",
  "url",
  "wazuh-cert-oauth2-model",
+ "windows-sys 0.61.2",
  "wiremock",
 ]
 
