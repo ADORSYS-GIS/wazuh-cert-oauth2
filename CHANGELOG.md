@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[5eaaf9b](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5eaaf9b9262b76e59979369fcf2ad8565c08595c)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[591da16](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/591da1678540e14ffc8a9a3746fa06693e7c308f)
 
 ### Bug Fixes
 
@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - Bump crates and ignore advisories without a safe upgrade ([`9ccdd3d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9ccdd3d7083f63bc73346f7e3ed0201ebefc6643))
 - Exit with non-zero status code on enrollment error ([`c54a853`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c54a853e1e4d57222dba418f5318dbf876c2e441))
 - Resolve SonarQube findings ([`5eaaf9b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5eaaf9b9262b76e59979369fcf2ad8565c08595c))
+- Harden Windows key ACLs and stabilize tests ([`591da16`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/591da1678540e14ffc8a9a3746fa06693e7c308f))
 
 ### Documentation
 
@@ -56,6 +57,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`85ffb8c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/85ffb8c394ffcb5ba8d490e0921c2a1f718b14fc))
 - Add ADR-0002 for non-zero exit code on client enrollment error ([`fc48135`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fc48135bc85f359a9ede7920c173edea7f7d861c))
 - Import ADRs and runbooks from Confluence ([`ba6d2f0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ba6d2f0e4b412429b84fc64c32ec6362d45cdd25))
+- Update CHANGELOG.md and checksums [skip ci] ([`6913da0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6913da0b7a2408923e0463065ab5f08aa3868e05))
 
 ### Features
 
