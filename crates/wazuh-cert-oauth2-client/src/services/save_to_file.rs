@@ -1,7 +1,28 @@
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 use tokio::fs::{OpenOptions, create_dir_all};
 use tokio::io::AsyncWriteExt;
 use wazuh_cert_oauth2_model::models::errors::AppResult;
+
+/// Whether a file holds a certificate (public) or a private key (secret).
+#[derive(Clone, Copy)]
+enum FileKind {
+    Certificate,
+    PrivateKey,
+}
+
+impl FileKind {
+    /// Permissions to apply on Unix. Private keys must never be readable by
+    /// group or other users.
+    #[cfg(unix)]
+    fn unix_mode(self) -> u32 {
+        match self {
+            Self::Certificate => 0o644,
+            Self::PrivateKey => 0o600,
+        }
+    }
+}
 
 /// Save the certificate (and optional chain) and the private key to files.
 pub async fn save_cert_and_key(
@@ -14,14 +35,14 @@ pub async fn save_cert_and_key(
 ) -> AppResult<()> {
     let cert = String::from(certificate_pem);
     log::info!("Writing certificate to file: {:?}", cert_file);
-    write_with_permissions(cert_file, cert).await?;
+    write_with_permissions(cert_file, cert, FileKind::Certificate).await?;
 
     log::info!("Writing private key to file: {:?}", key_file);
-    write_with_permissions(key_file, private_key_pem).await?;
+    write_with_permissions(key_file, private_key_pem, FileKind::PrivateKey).await?;
 
     if let Some(chain) = ca_chain_pem {
-        log::info!("Writing private key to file: {:?}", ca_cert_path);
-        write_with_permissions(ca_cert_path, chain).await?;
+        log::info!("Writing CA chain to file: {:?}", ca_cert_path);
+        write_with_permissions(ca_cert_path, chain, FileKind::Certificate).await?;
     }
 
     Ok(())
@@ -30,18 +51,30 @@ pub async fn save_cert_and_key(
 async fn write_with_permissions(
     file_path: impl AsRef<Path>,
     contents: impl AsRef<[u8]>,
+    kind: FileKind,
 ) -> AppResult<()> {
-    create_parent_dir_if_not_exists(file_path.as_ref()).await?;
+    #[cfg(not(unix))]
+    let _ = kind;
+
+    let path = file_path.as_ref();
+    create_parent_dir_if_not_exists(path).await?;
 
     let mut std_opts = OpenOptions::new();
     std_opts.write(true).create(true).truncate(true);
     #[cfg(unix)]
     {
-        // Create with 0640 on Unix; best-effort on other platforms
-        std_opts.mode(0o644);
+        std_opts.mode(kind.unix_mode());
     }
-    let mut file = std_opts.open(file_path).await?;
+    let mut file = std_opts.open(path).await?;
     file.write_all(contents.as_ref()).await?;
+
+    #[cfg(unix)]
+    {
+        // `OpenOptions::mode` only applies when the file is created. Enforce the
+        // policy on pre-existing files too, so a previously world-readable key
+        // is tightened on the next write.
+        tokio::fs::set_permissions(path, std::fs::Permissions::from_mode(kind.unix_mode())).await?;
+    }
 
     Ok(())
 }
@@ -128,6 +161,85 @@ mod tests {
         assert!(fs::metadata(&cert_file).await.is_ok());
         assert!(fs::metadata(&key_file).await.is_ok());
         assert!(fs::metadata(&ca_file).await.is_err());
+
+        let _ = fs::remove_dir_all(dir).await;
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn save_cert_and_key_restricts_private_key_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = unique_temp_dir();
+        let cert_file = dir.join("sslagent.cert");
+        let key_file = dir.join("sslagent.key");
+        let ca_file = dir.join("ca.pem");
+
+        save_cert_and_key(
+            &cert_file.to_string_lossy(),
+            &key_file.to_string_lossy(),
+            "CERT",
+            "KEY",
+            &ca_file.to_string_lossy(),
+            Some("CA_CHAIN"),
+        )
+        .await
+        .expect("save should succeed");
+
+        let mode = |path: &PathBuf| {
+            std::fs::metadata(path)
+                .expect("file should exist")
+                .permissions()
+                .mode()
+                & 0o777
+        };
+
+        assert_eq!(
+            mode(&key_file),
+            0o600,
+            "private key must not be readable by others"
+        );
+        assert_eq!(mode(&cert_file), 0o644);
+        assert_eq!(mode(&ca_file), 0o644);
+
+        let _ = fs::remove_dir_all(dir).await;
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn save_cert_and_key_tightens_existing_private_key_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = unique_temp_dir();
+        let cert_file = dir.join("sslagent.cert");
+        let key_file = dir.join("sslagent.key");
+        let ca_file = dir.join("ca.pem");
+
+        fs::create_dir_all(&dir).await.expect("create dir");
+        fs::write(&key_file, "OLD_KEY").await.expect("write key");
+        std::fs::set_permissions(&key_file, std::fs::Permissions::from_mode(0o644))
+            .expect("chmod key");
+
+        save_cert_and_key(
+            &cert_file.to_string_lossy(),
+            &key_file.to_string_lossy(),
+            "CERT",
+            "KEY",
+            &ca_file.to_string_lossy(),
+            None,
+        )
+        .await
+        .expect("save should succeed");
+
+        let mode = std::fs::metadata(&key_file)
+            .expect("key should exist")
+            .permissions()
+            .mode()
+            & 0o777;
+        assert_eq!(
+            mode, 0o600,
+            "an existing world-readable key must be tightened"
+        );
 
         let _ = fs::remove_dir_all(dir).await;
     }

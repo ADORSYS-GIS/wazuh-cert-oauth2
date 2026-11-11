@@ -253,7 +253,7 @@ async fn process_item(state: &ProxyState, claimed: ClaimedItem) -> AppResult<()>
 }
 
 pub(crate) fn is_json(p: &Path) -> bool {
-    p.extension().and_then(|s| s.to_str()).unwrap_or("") == "json"
+    p.extension().and_then(std::ffi::OsStr::to_str) == Some("json")
 }
 
 #[cfg(test)]
