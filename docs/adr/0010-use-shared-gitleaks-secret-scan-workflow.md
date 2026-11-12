@@ -110,4 +110,4 @@ We will remove `VALIDATE_GITLEAKS` from the super-linter environment in `.github
 | :---- | :--------------------------------------------------------------------------------------------------- | :----- | :----------------------------------------------- |
 | Epic  | [ADORSYS-GIS/wazuh#2376](https://github.com/ADORSYS-GIS/wazuh/issues/2376)                           | Open   | Enable secret scanning across Wazuh repositories |
 | Issue | [ADORSYS-GIS/wazuh-cert-oauth2#402](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/issues/402)     | Open   | Enable secret scanning and add Gitleaks CI       |
-| PR    | [ADORSYS-GIS/wazuh-cert-oauth2#<PR>](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/pull/<PR>)     | Open   | Adds the `secret-scan` job and ADR-0010          |
+| PR    | [ADORSYS-GIS/wazuh-cert-oauth2#414](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/pull/414)     | Open   | Adds the `secret-scan` job and ADR-0010          |
