@@ -318,4 +318,74 @@ mod tests {
 
         let _ = fs::remove_dir_all(dir).await;
     }
+
+    /// On Windows the private key must end up with a protected DACL that only
+    /// grants LocalSystem, Administrators and the file owner, and must not be
+    /// readable by ordinary users.
+    #[cfg(windows)]
+    #[tokio::test]
+    async fn save_cert_and_key_restricts_private_key_acl_on_windows() {
+        use std::process::Command;
+
+        let dir = unique_temp_dir();
+        let cert_file = dir.join("sslagent.cert");
+        let key_file = dir.join("sslagent.key");
+
+        save_cert_and_key(
+            &cert_file.to_string_lossy(),
+            &key_file.to_string_lossy(),
+            "CERT",
+            "KEY",
+            &dir.join("ca.pem").to_string_lossy(),
+            Some("CA_CHAIN"),
+        )
+        .await
+        .expect("save should succeed");
+
+        // Ask Windows itself, translating identities to stable SIDs so the
+        // assertions do not depend on the machine's locale.
+        let script = format!(
+            "$acl = Get-Acl -LiteralPath '{}'\n\
+             [Console]::WriteLine('protected=' + $acl.AreAccessRulesProtected)\n\
+             foreach ($ace in $acl.Access) {{ [Console]::WriteLine($ace.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value) }}",
+            key_file.display()
+        );
+        let output = Command::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+            .output()
+            .expect("powershell should run");
+        assert!(
+            output.status.success(),
+            "Get-Acl failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let protected = stdout
+            .lines()
+            .next()
+            .expect("first line is the protection state");
+        assert_eq!(
+            protected, "protected=True",
+            "private key DACL must be protected (inheritance disabled), got:\n{stdout}"
+        );
+
+        let sids: Vec<&str> = stdout.lines().skip(1).collect();
+        // LocalSystem and Administrators must be present.
+        for expected in ["S-1-5-18", "S-1-5-32-544"] {
+            assert!(
+                sids.contains(&expected),
+                "expected {expected} on the key ACL, got: {sids:?}"
+            );
+        }
+        // Ordinary users must not be able to read the key.
+        for forbidden in ["S-1-5-32-545", "S-1-5-11", "S-1-1-0"] {
+            assert!(
+                !sids.contains(&forbidden),
+                "unexpected {forbidden} on the key ACL: {sids:?}"
+            );
+        }
+
+        let _ = fs::remove_dir_all(dir).await;
+    }
 }
