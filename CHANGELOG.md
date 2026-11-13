@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[254846c](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/254846cdadaca9635923ec320b37c0bc26405f2e)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[cdafaa3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cdafaa33e69c46a80ace53353764a2489c0f424c)
 
 ### Bug Fixes
 
@@ -59,6 +59,7 @@ All notable changes to this project will be documented in this file.
 - Import ADRs and runbooks from Confluence ([`ba6d2f0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ba6d2f0e4b412429b84fc64c32ec6362d45cdd25))
 - Update CHANGELOG.md and checksums [skip ci] ([`6913da0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6913da0b7a2408923e0463065ab5f08aa3868e05))
 - Update CHANGELOG.md and checksums [skip ci] ([`254846c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/254846cdadaca9635923ec320b37c0bc26405f2e))
+- Update CHANGELOG.md and checksums [skip ci] ([`6f89012`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6f89012d8d967e0c8f5aa3274e6cc413e5393632))
 
 ### Features
 
@@ -81,6 +82,7 @@ All notable changes to this project will be documented in this file.
 ### Testing
 
 - Add Rust test coverage reporting for SonarQube ([`98e43a0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/98e43a02ed3e35295c58ecd5aa0f04cb3efc619c))
+- Add private key ACL regression test ([`cdafaa3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cdafaa33e69c46a80ace53353764a2489c0f424c))
 
 ## 0.5.0 - 2026-09-16
 
