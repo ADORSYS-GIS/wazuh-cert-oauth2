@@ -136,6 +136,25 @@ jobs:
           name: lcov.info
           path: lcov.info
 
+  test-windows:
+    name: Test (Windows)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        name: Checkout
+        with:
+          fetch-depth: "0"
+          persist-credentials: 'false'
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      - name: Run client tests (vendored OpenSSL)
+        shell: pwsh
+        run: cargo test -p wazuh-cert-oauth2-client --features openssl/vendored
+
   sonarqube:
     name: SonarQube Scan
     needs: test

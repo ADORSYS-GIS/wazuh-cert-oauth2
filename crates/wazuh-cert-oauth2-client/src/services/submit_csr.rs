@@ -15,7 +15,7 @@ pub async fn submit_csr(
     let dto = SignCsrRequest {
         csr_pem: csr_pem.to_string(),
         overwrite: Some(overwrite),
-        wazuh_agent_name: agent_name.map(|s| s.to_string()),
+        wazuh_agent_name: agent_name.map(str::to_string),
     };
     http.post_json_auth(endpoint, token, &dto).await
 }
