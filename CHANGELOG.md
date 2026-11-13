@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[cdafaa3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cdafaa33e69c46a80ace53353764a2489c0f424c)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[5661dbf](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5661dbfb4103adb3347d2186188799f60adabd1b)
 
 ### Bug Fixes
 
@@ -60,6 +60,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`6913da0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6913da0b7a2408923e0463065ab5f08aa3868e05))
 - Update CHANGELOG.md and checksums [skip ci] ([`254846c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/254846cdadaca9635923ec320b37c0bc26405f2e))
 - Update CHANGELOG.md and checksums [skip ci] ([`6f89012`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6f89012d8d967e0c8f5aa3274e6cc413e5393632))
+- Update CHANGELOG.md and checksums [skip ci] ([`564bed2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/564bed2fd26c6138006dfb137b882b7ccd651dbe))
 
 ### Features
 
@@ -78,6 +79,7 @@ All notable changes to this project will be documented in this file.
 - Fix dependabot pipeline failures ([`7b5af63`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7b5af63d318b93f76670d98009cd90abe0c93622))
 - Fix action version comments to satisfy zizmor ref-version-mismatch ([`1793e9c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1793e9cc56ec4629eac16fc39eb724dd7fe88bb2))
 - Reuse a single branch for changelog/checksums PR ([`89edf96`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/89edf9668f342a39defd76a9b9b48b9f381bd2ee))
+- Run client tests on windows-latest ([`5661dbf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5661dbfb4103adb3347d2186188799f60adabd1b))
 
 ### Testing
 
