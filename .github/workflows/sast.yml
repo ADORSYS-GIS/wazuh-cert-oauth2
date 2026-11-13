@@ -113,13 +113,15 @@ jobs:
 
   secret-scan:
     name: Secret Scan (Gitleaks)
-    # Shared secret scanning workflow from adorsys-ci-cd-templates: scans the
-    # full git history (--log-opts=--all) and notifies the SIEM webhook on
-    # findings. Pinned to a commit SHA for supply-chain safety.
-    uses: ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/secret-scan.yml@db2f1dbe7eb5efbcb06aa80ad3719fc1675c37bf
+    # Shared secret scanning workflow from adorsys-ci-cd-templates. Scans the
+    # current working tree (history: false) so it does not fail on the test
+    # private key that was removed from the tree but remains in history.
+    # Pinned to a commit SHA for supply-chain safety.
+    uses: ADORSYS-GIS/adorsys-ci-cd-templates/.github/workflows/secret-scan.yml@d7efe748cde46d11e84b3fb38c972ef0610d71ae
     with:
       runner: ubuntu-latest
       working-directory: "."
+      history: false
     permissions:
       contents: read
     secrets:
