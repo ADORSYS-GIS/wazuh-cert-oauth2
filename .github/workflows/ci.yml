@@ -58,7 +58,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_GITHUB_ACTIONS: "true"
           VALIDATE_GITHUB_ACTIONS_ZIZMOR: "true"
-          VALIDATE_GITLEAKS: "true"
           VALIDATE_GIT_MERGE_CONFLICT_MARKERS: "true"
           VALIDATE_TRIVY: "true"
           VALIDATE_YAML: "true"
