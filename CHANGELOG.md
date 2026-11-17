@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[4bfdee6](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4bfdee66c61757b4e83882f2a90091fd255c0938)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[e92da50](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e92da50018de1524f5975fb531eca7d031731e2c)
 
 ### Bug Fixes
 
@@ -65,6 +65,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`aaaafe7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/aaaafe757887ebfd072eee304458d21d62fb913c))
 - Update CHANGELOG.md and checksums [skip ci] ([`3e1a9a8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3e1a9a81f48dd37fe86d5289f7037e3741f4565d))
 - Update CHANGELOG.md and checksums [skip ci] ([`00d545d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/00d545d56337a5910f8cc1853704d5d61425bb78))
+- Update CHANGELOG.md and checksums [skip ci] ([`ef658e3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ef658e3f5a862b48b0f9aa56edfa5a7bab071141))
 
 ### Features
 
@@ -92,6 +93,7 @@ All notable changes to this project will be documented in this file.
 - Add Rust test coverage reporting for SonarQube ([`98e43a0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/98e43a02ed3e35295c58ecd5aa0f04cb3efc619c))
 - Add private key ACL regression test ([`cdafaa3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cdafaa33e69c46a80ace53353764a2489c0f424c))
 - Surface ACL probe errors instead of swallowing them ([`4bfdee6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4bfdee66c61757b4e83882f2a90091fd255c0938))
+- Avoid polluted PSModulePath when probing the ACL ([`e92da50`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e92da50018de1524f5975fb531eca7d031731e2c))
 
 ## 0.5.0 - 2026-09-16
 
