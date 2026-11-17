@@ -360,6 +360,13 @@ mod tests {
             path = key_file.display()
         );
         let output = Command::new("powershell")
+            // GitHub's Windows runners export a PSModulePath that includes
+            // PowerShell 7 module directories. Windows PowerShell 5.1 then
+            // resolves `Microsoft.PowerShell.Security` to PS7's manifest,
+            // fails to load it, and registers Get-Acl as a *missing* command.
+            // Dropping the variable lets 5.1 fall back to its own default
+            // module paths.
+            .env_remove("PSModulePath")
             .args(["-NoProfile", "-NonInteractive", "-Command", &script])
             .output()
             .expect("powershell should run");
