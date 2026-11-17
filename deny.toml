@@ -66,4 +66,13 @@ ignore = [
     # line we depend on. No safe upgrade without an upstream jsonwebtoken
     # (or elliptic-curve) bump.
     "RUSTSEC-2026-0387",
+    # https://rustsec.org/advisories/RUSTSEC-2026-0543
+    # chrono is unmaintained (all versions affected; "no safe upgrade is
+    # available"). It is a direct workspace dependency used for timestamp
+    # handling, and transitively via sqlx's `chrono` feature and oauth2.
+    # Replacing it with `time` or `jiff` is a cross-crate migration that
+    # touches the server's persistence layer, so it is tracked separately from
+    # this change. The advisory is a maintenance notice, not a known
+    # vulnerability, so it is accepted here for now.
+    "RUSTSEC-2026-0543",
 ]
