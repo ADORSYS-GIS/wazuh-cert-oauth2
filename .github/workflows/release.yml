@@ -85,8 +85,21 @@ jobs:
 
       - name: Install OpenSSL and pkg-config
         run: |
+          set -euo pipefail
           brew update
-          brew install pkg-config openssl@3
+          # Homebrew 7 returns a non-zero exit code when a formula's
+          # post-install step fails, even though the keg itself installed and
+          # is usable. That is what broke this job on the macos-15-intel runner
+          # (a Tier 3 configuration) with openssl@3, so retry the post-install
+          # steps instead of failing the whole release build.
+          brew install pkg-config openssl@3 || {
+            echo "::warning::brew install reported a failing post-install step; retrying post-install"
+            brew postinstall ca-certificates || true
+            brew postinstall openssl@3 || true
+          }
+          # Only fail if the tools the build actually needs are missing.
+          pkg-config --version
+          "${{ matrix.brew_prefix }}/bin/openssl" version
 
       - name: Build with cross
         uses: houseabsolute/actions-rust-cross@85826e468eac832e251ac58f6191ba784db237c8
