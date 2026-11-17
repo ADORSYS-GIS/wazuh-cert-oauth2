@@ -343,34 +343,48 @@ mod tests {
         .expect("save should succeed");
 
         // Ask Windows itself, translating identities to stable SIDs so the
-        // assertions do not depend on the machine's locale.
+        // assertions do not depend on the machine's locale. PowerShell errors
+        // are echoed on stdout so a CI failure explains itself instead of
+        // surfacing as an empty value.
         let script = format!(
-            "$acl = Get-Acl -LiteralPath '{}'\n\
+            "$ErrorActionPreference = 'Stop'\n\
+             try {{\n\
+             $acl = Get-Acl -LiteralPath '{path}'\n\
              [Console]::WriteLine('protected=' + $acl.AreAccessRulesProtected)\n\
-             foreach ($ace in $acl.Access) {{ [Console]::WriteLine($ace.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value) }}",
-            key_file.display()
+             [Console]::WriteLine('sddl=' + $acl.Sddl)\n\
+             foreach ($ace in $acl.Access) {{ [Console]::WriteLine('sid=' + $ace.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value) }}\n\
+             }} catch {{\n\
+             [Console]::WriteLine('ERROR: ' + $_.Exception.GetType().FullName + ': ' + $_.Exception.Message)\n\
+             exit 3\n\
+             }}",
+            path = key_file.display()
         );
         let output = Command::new("powershell")
             .args(["-NoProfile", "-NonInteractive", "-Command", &script])
             .output()
             .expect("powershell should run");
-        assert!(
-            output.status.success(),
-            "Get-Acl failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
 
         let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let report = format!(
+            "status={:?}\n--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}",
+            output.status
+        );
+        assert!(output.status.success(), "Get-Acl failed:\n{report}");
+
         let protected = stdout
             .lines()
-            .next()
-            .expect("first line is the protection state");
+            .find_map(|line| line.strip_prefix("protected="))
+            .unwrap_or_else(|| panic!("no protection state reported:\n{report}"));
         assert_eq!(
-            protected, "protected=True",
-            "private key DACL must be protected (inheritance disabled), got:\n{stdout}"
+            protected, "True",
+            "private key DACL must be protected (inheritance disabled):\n{report}"
         );
 
-        let sids: Vec<&str> = stdout.lines().skip(1).collect();
+        let sids: Vec<&str> = stdout
+            .lines()
+            .filter_map(|line| line.strip_prefix("sid="))
+            .collect();
         // LocalSystem and Administrators must be present.
         for expected in ["S-1-5-18", "S-1-5-32-544"] {
             assert!(
