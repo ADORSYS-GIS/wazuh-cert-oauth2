@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[5ab90a3](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5ab90a37452cc6fb0d4d36ae6e127f94433cdf93)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[7d9c6e2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d9c6e2f7f9e3e39d0a6ec21c36c3a48c8b36537)
 
 ### Bug Fixes
 
@@ -62,6 +62,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`6f89012`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6f89012d8d967e0c8f5aa3274e6cc413e5393632))
 - Update CHANGELOG.md and checksums [skip ci] ([`564bed2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/564bed2fd26c6138006dfb137b882b7ccd651dbe))
 - Update CHANGELOG.md and checksums [skip ci] ([`5ab90a3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5ab90a37452cc6fb0d4d36ae6e127f94433cdf93))
+- Update CHANGELOG.md and checksums [skip ci] ([`aaaafe7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/aaaafe757887ebfd072eee304458d21d62fb913c))
 
 ### Features
 
@@ -81,6 +82,7 @@ All notable changes to this project will be documented in this file.
 - Fix action version comments to satisfy zizmor ref-version-mismatch ([`1793e9c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1793e9cc56ec4629eac16fc39eb724dd7fe88bb2))
 - Reuse a single branch for changelog/checksums PR ([`89edf96`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/89edf9668f342a39defd76a9b9b48b9f381bd2ee))
 - Run client tests on windows-latest ([`5661dbf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5661dbfb4103adb3347d2186188799f60adabd1b))
+- Allow third-party linker warnings in windows job ([`7d9c6e2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d9c6e2f7f9e3e39d0a6ec21c36c3a48c8b36537))
 
 ### Testing
 
