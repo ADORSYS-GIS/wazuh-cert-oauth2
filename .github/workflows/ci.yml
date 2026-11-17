@@ -151,6 +151,12 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: false
+          # The action defaults `build.warnings` to "deny" (via
+          # CARGO_BUILD_WARNINGS), which turns third-party linker noise into a
+          # hard error. Vendored static OpenSSL ships without PDBs, so MSVC
+          # emits LNK4099 for every object file. Keep our own warnings visible
+          # but non-fatal on Windows.
+          build-warnings: "allow"
       - name: Run client tests (vendored OpenSSL)
         shell: pwsh
         run: cargo test -p wazuh-cert-oauth2-client --features openssl/vendored
