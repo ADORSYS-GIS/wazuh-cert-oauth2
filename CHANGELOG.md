@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[1138836](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1138836a782368abe581ccb22b77f6fa2f31161b)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[c527be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c527be0ada90fa6e91c5875c200cd6921d92c985)
 
 ### Bug Fixes
 
@@ -57,6 +57,8 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`85ffb8c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/85ffb8c394ffcb5ba8d490e0921c2a1f718b14fc))
 - Add ADR-0002 for non-zero exit code on client enrollment error ([`fc48135`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fc48135bc85f359a9ede7920c173edea7f7d861c))
 - Import ADRs and runbooks from Confluence ([`ba6d2f0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ba6d2f0e4b412429b84fc64c32ec6362d45cdd25))
+- Reference PR #414 in ADR-0010 solution implementation ([`db7cfc3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/db7cfc3d825565340a8c85b3a135f779961a6a48))
+- Reflect history:false current-tree scan in ADR-0010 ([`2a4b10a`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/2a4b10ac6804a06cf7621e3764b386b64538749b))
 - Update CHANGELOG.md and checksums [skip ci] ([`6913da0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6913da0b7a2408923e0463065ab5f08aa3868e05))
 - Update CHANGELOG.md and checksums [skip ci] ([`254846c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/254846cdadaca9635923ec320b37c0bc26405f2e))
 - Update CHANGELOG.md and checksums [skip ci] ([`6f89012`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6f89012d8d967e0c8f5aa3274e6cc413e5393632))
@@ -69,6 +71,7 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`875221e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/875221e99378c3c6d4433f8aa626b2e5f5618cdb))
 - Update CHANGELOG.md and checksums [skip ci] ([`a619318`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a6193189b6c0b0848b3fa6a61fb860c21565886f))
 - Update CHANGELOG.md and checksums [skip ci] ([`1138836`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1138836a782368abe581ccb22b77f6fa2f31161b))
+- Update CHANGELOG.md and checksums [skip ci] ([`dc3c1a0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/dc3c1a0a1a0a117d2e3cd648430b025e4150c04b))
 
 ### Features
 
@@ -87,6 +90,8 @@ All notable changes to this project will be documented in this file.
 - Fix dependabot pipeline failures ([`7b5af63`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7b5af63d318b93f76670d98009cd90abe0c93622))
 - Fix action version comments to satisfy zizmor ref-version-mismatch ([`1793e9c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1793e9cc56ec4629eac16fc39eb724dd7fe88bb2))
 - Reuse a single branch for changelog/checksums PR ([`89edf96`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/89edf9668f342a39defd76a9b9b48b9f381bd2ee))
+- Use shared gitleaks secret-scan workflow from ci-cd-templates ([`bba5a4b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/bba5a4b095d906dc6f6bf009f9dff9b1abeb8056))
+- Scan current tree only in secret-scan job ([`9093c5e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9093c5e18b06f420a0c53f777160632a82077ce3))
 - Run client tests on windows-latest ([`5661dbf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5661dbfb4103adb3347d2186188799f60adabd1b))
 - Allow third-party linker warnings in windows job ([`7d9c6e2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d9c6e2f7f9e3e39d0a6ec21c36c3a48c8b36537))
 - Accept RUSTSEC-2026-0543 (chrono unmaintained) ([`5f97109`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5f97109c4ce8069fedad2f639c297eeb0cfcc9b5))
