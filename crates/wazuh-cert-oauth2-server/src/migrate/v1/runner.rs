@@ -163,7 +163,7 @@ pub async fn run_migration(opt: MigrateOpt) -> AppResult<()> {
         &opt,
     );
     let report_path = PathBuf::from(&opt.report);
-    std::fs::write(&report_path, report_text.as_bytes())?;
+    tokio::fs::write(&report_path, report_text.as_bytes()).await?;
     println!("{}", report_text);
 
     info!("Migration complete");

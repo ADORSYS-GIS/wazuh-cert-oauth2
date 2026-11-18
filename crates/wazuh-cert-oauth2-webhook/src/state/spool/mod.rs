@@ -253,13 +253,14 @@ async fn process_item(state: &ProxyState, claimed: ClaimedItem) -> AppResult<()>
 }
 
 pub(crate) fn is_json(p: &Path) -> bool {
-    p.extension().and_then(|s| s.to_str()).unwrap_or("") == "json"
+    p.extension().and_then(std::ffi::OsStr::to_str) == Some("json")
 }
 
 #[cfg(test)]
 mod tests {
     use super::{EvictRequest, SpoolBackend, SpoolItem, process_once, queue_evict, queue_revoke};
     use crate::state::ProxyState;
+    use crate::state::utils::unique_temp_dir;
     use std::path::PathBuf;
     use std::time::{Duration, SystemTime, UNIX_EPOCH};
     use tokio::fs;
@@ -267,19 +268,11 @@ mod tests {
     use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
     fn unique_spool_dir() -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time should be monotonic")
-            .as_nanos();
-        std::env::temp_dir().join(format!("wazuh-webhook-spool-test-{}", nanos))
+        unique_temp_dir("wazuh-webhook-spool-test")
     }
 
     fn unique_dlq_dir() -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time should be monotonic")
-            .as_nanos();
-        std::env::temp_dir().join(format!("wazuh-webhook-dlq-test-{}", nanos))
+        unique_temp_dir("wazuh-webhook-dlq-test")
     }
 
     fn build_state(spool_dir: PathBuf) -> ProxyState {

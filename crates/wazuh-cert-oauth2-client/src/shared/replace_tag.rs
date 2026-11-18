@@ -73,7 +73,7 @@ pub async fn replace_tag(file_path: &str, tag: &str, value: &str) -> AppResult<b
 fn unique_temp_path(path: &Path) -> std::path::PathBuf {
     let mut name = path
         .file_name()
-        .map(|n| n.to_os_string())
+        .map(std::ffi::OsStr::to_os_string)
         .unwrap_or_default();
     name.push(format!(".tmp.{}", rand::random::<u64>()));
     path.with_file_name(name)

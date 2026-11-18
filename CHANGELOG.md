@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## Unreleased
 
-[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[667c3f2](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/667c3f2fc9da171e8c9852140c5340dd2d444f38)
+[01b1be0](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/01b1be02421ac014dbd6f7b79796504ab1deac80)...[1138836](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1138836a782368abe581ccb22b77f6fa2f31161b)
 
 ### Bug Fixes
 
@@ -14,6 +14,9 @@ All notable changes to this project will be documented in this file.
 - Deduplicate shared utils bootstrap in windows scripts ([`fa8d5dc`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fa8d5dc91f7294f3889dc63c9263b8fdcc9ac9d9))
 - Verify utils.ps1 checksum before sourcing it ([`6c2dcbe`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6c2dcbecc6a14fa8d04e86c8821fe9ff5fba7c5e))
 - Bump crates and ignore advisories without a safe upgrade ([`9ccdd3d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/9ccdd3d7083f63bc73346f7e3ed0201ebefc6643))
+- Exit with non-zero status code on enrollment error ([`c54a853`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/c54a853e1e4d57222dba418f5318dbf876c2e441))
+- Resolve SonarQube findings ([`5eaaf9b`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5eaaf9b9262b76e59979369fcf2ad8565c08595c))
+- Harden Windows key ACLs and stabilize tests ([`591da16`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/591da1678540e14ffc8a9a3746fa06693e7c308f))
 
 ### Documentation
 
@@ -51,6 +54,21 @@ All notable changes to this project will be documented in this file.
 - Update CHANGELOG.md and checksums [skip ci] ([`e842a8c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e842a8c7c814a5248cc9614162175f1ca28c0988))
 - Update CHANGELOG.md and checksums [skip ci] ([`016ecb3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/016ecb302bf55850b6c6ee2433fb52ca4edacd9a))
 - Update CHANGELOG.md and checksums [skip ci] ([`587a153`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/587a153adb5814980d6be0ffcc864a9e807db931))
+- Update CHANGELOG.md and checksums [skip ci] ([`85ffb8c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/85ffb8c394ffcb5ba8d490e0921c2a1f718b14fc))
+- Add ADR-0002 for non-zero exit code on client enrollment error ([`fc48135`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/fc48135bc85f359a9ede7920c173edea7f7d861c))
+- Import ADRs and runbooks from Confluence ([`ba6d2f0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ba6d2f0e4b412429b84fc64c32ec6362d45cdd25))
+- Update CHANGELOG.md and checksums [skip ci] ([`6913da0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6913da0b7a2408923e0463065ab5f08aa3868e05))
+- Update CHANGELOG.md and checksums [skip ci] ([`254846c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/254846cdadaca9635923ec320b37c0bc26405f2e))
+- Update CHANGELOG.md and checksums [skip ci] ([`6f89012`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/6f89012d8d967e0c8f5aa3274e6cc413e5393632))
+- Update CHANGELOG.md and checksums [skip ci] ([`564bed2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/564bed2fd26c6138006dfb137b882b7ccd651dbe))
+- Update CHANGELOG.md and checksums [skip ci] ([`5ab90a3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5ab90a37452cc6fb0d4d36ae6e127f94433cdf93))
+- Update CHANGELOG.md and checksums [skip ci] ([`aaaafe7`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/aaaafe757887ebfd072eee304458d21d62fb913c))
+- Update CHANGELOG.md and checksums [skip ci] ([`3e1a9a8`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/3e1a9a81f48dd37fe86d5289f7037e3741f4565d))
+- Update CHANGELOG.md and checksums [skip ci] ([`00d545d`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/00d545d56337a5910f8cc1853704d5d61425bb78))
+- Update CHANGELOG.md and checksums [skip ci] ([`ef658e3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/ef658e3f5a862b48b0f9aa56edfa5a7bab071141))
+- Update CHANGELOG.md and checksums [skip ci] ([`875221e`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/875221e99378c3c6d4433f8aa626b2e5f5618cdb))
+- Update CHANGELOG.md and checksums [skip ci] ([`a619318`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/a6193189b6c0b0848b3fa6a61fb860c21565886f))
+- Update CHANGELOG.md and checksums [skip ci] ([`1138836`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1138836a782368abe581ccb22b77f6fa2f31161b))
 
 ### Features
 
@@ -69,10 +87,17 @@ All notable changes to this project will be documented in this file.
 - Fix dependabot pipeline failures ([`7b5af63`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7b5af63d318b93f76670d98009cd90abe0c93622))
 - Fix action version comments to satisfy zizmor ref-version-mismatch ([`1793e9c`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/1793e9cc56ec4629eac16fc39eb724dd7fe88bb2))
 - Reuse a single branch for changelog/checksums PR ([`89edf96`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/89edf9668f342a39defd76a9b9b48b9f381bd2ee))
+- Run client tests on windows-latest ([`5661dbf`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5661dbfb4103adb3347d2186188799f60adabd1b))
+- Allow third-party linker warnings in windows job ([`7d9c6e2`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/7d9c6e2f7f9e3e39d0a6ec21c36c3a48c8b36537))
+- Accept RUSTSEC-2026-0543 (chrono unmaintained) ([`5f97109`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/5f97109c4ce8069fedad2f639c297eeb0cfcc9b5))
+- Tolerate Homebrew post-install failures for openssl@3 ([`5537164`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/553716468d10b59682a04620135c1aeb61adc1f4))
 
 ### Testing
 
 - Add Rust test coverage reporting for SonarQube ([`98e43a0`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/98e43a02ed3e35295c58ecd5aa0f04cb3efc619c))
+- Add private key ACL regression test ([`cdafaa3`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/cdafaa33e69c46a80ace53353764a2489c0f424c))
+- Surface ACL probe errors instead of swallowing them ([`4bfdee6`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/4bfdee66c61757b4e83882f2a90091fd255c0938))
+- Avoid polluted PSModulePath when probing the ACL ([`e92da50`](https://github.com/ADORSYS-GIS/wazuh-cert-oauth2/commit/e92da50018de1524f5975fb531eca7d031731e2c))
 
 ## 0.5.0 - 2026-09-16
 

@@ -11,18 +11,31 @@ pub(crate) fn ensure_spool_dir(spool_dir: &Path) {
     }
 }
 
+/// Build a unique temporary directory for tests.
+///
+/// The clock alone is not unique enough: tests run in parallel and can observe
+/// the same timestamp, which makes them share (and delete) each other's dirs.
 #[cfg(test)]
-mod tests {
-    use super::ensure_spool_dir;
-    use std::path::PathBuf;
+pub(crate) fn unique_temp_dir(prefix: &str) -> std::path::PathBuf {
+    use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("time should be monotonic")
+        .as_nanos();
+    let unique = COUNTER.fetch_add(1, Ordering::Relaxed);
+    std::env::temp_dir().join(format!("{prefix}-{}-{nanos}-{unique}", std::process::id()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ensure_spool_dir, unique_temp_dir};
+    use std::path::PathBuf;
+
     fn unique_dir() -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time should be monotonic")
-            .as_nanos();
-        std::env::temp_dir().join(format!("wazuh-webhook-utils-test-{}", nanos))
+        unique_temp_dir("wazuh-webhook-utils-test")
     }
 
     #[test]

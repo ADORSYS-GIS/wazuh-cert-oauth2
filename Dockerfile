@@ -19,10 +19,10 @@ RUN \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update && \
   apt-get install -y --no-install-recommends \
-    musl-tools \
     build-essential \
-    pkg-config \
+    musl-tools \
     perl \
+    pkg-config \
   && rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
 
 RUN \

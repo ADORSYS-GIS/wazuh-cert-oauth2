@@ -67,7 +67,7 @@ pub async fn run_oauth2_flow(params: &FlowParams) -> AppResult<()> {
     let kc_audiences = params
         .audience_csv
         .split(',')
-        .map(|s| s.to_string())
+        .map(str::to_string)
         .collect::<Vec<String>>();
     let http = HttpClient::new_with_defaults()?;
     let document: DiscoveryDocument = http

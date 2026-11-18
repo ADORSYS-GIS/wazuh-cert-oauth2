@@ -270,17 +270,14 @@ pub enum EventAction {
 mod tests {
     use super::{EventAction, ProxyState};
     use crate::models::WebhookRequest;
+    use crate::state::utils::unique_temp_dir;
     use std::collections::HashMap;
     use std::path::PathBuf;
-    use std::time::{Duration, SystemTime, UNIX_EPOCH};
+    use std::time::Duration;
     use wazuh_cert_oauth2_model::services::http_client::HttpClient;
 
     fn unique_spool_dir() -> PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("time should be monotonic")
-            .as_nanos();
-        std::env::temp_dir().join(format!("wazuh-webhook-state-core-{}", nanos))
+        unique_temp_dir("wazuh-webhook-state-core")
     }
 
     fn build_state(

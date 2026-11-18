@@ -102,42 +102,64 @@ function ConfigureEnrollment {
     }
 }
 
-function ValidateInstallation {
-    # Check if the binary exists
+function Test-ConfigPattern {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Pattern,
+        [Parameter(Mandatory = $true)][string]$PassMessage,
+        [Parameter(Mandatory = $true)][string]$FailMessage,
+        [switch]$ExpectAbsent
+    )
+
+    $found = [bool](Select-String -Path $Path -Pattern $Pattern -SimpleMatch -Quiet)
+    $passed = if ($ExpectAbsent.IsPresent) { -not $found } else { $found }
+
+    if ($passed) {
+        InfoMessage $PassMessage
+    } else {
+        WarnMessage $FailMessage
+    }
+}
+
+function Test-BinaryInstallation {
     if (Test-Path "$BIN_DIR\$APP_NAME.exe") {
         InfoMessage "Binary exists at $BIN_DIR\$APP_NAME.exe."
     } else {
         WarnMessage "Binary is missing at $BIN_DIR\$APP_NAME.exe."
     }
+}
 
+function Test-ConfigurationFile {
     # Verify the configuration file contains the required updates
-    if (Test-Path $OSSEC_CONF_PATH) {
-        if (Select-String -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" -Quiet) {
-            InfoMessage "Enrollment block is present in the configuration file."
-        } else {
-            WarnMessage "Enrollment block is missing in the configuration file."
-        }
-
-        if (Select-String -Path $OSSEC_CONF_PATH -Pattern "<agent_certificate_path>etc\sslagent.cert</agent_certificate_path>" -SimpleMatch -Quiet) {
-            InfoMessage "Agent certificate path is configured correctly."
-        } else {
-            WarnMessage "Agent certificate path is missing in the configuration file."
-        }
-
-        if (Select-String -Path $OSSEC_CONF_PATH -Pattern "<agent_key_path>etc\sslagent.key</agent_key_path>" -SimpleMatch -Quiet) {
-            InfoMessage "Agent key path is configured correctly."
-        } else {
-            WarnMessage "Agent key path is missing in the configuration file."
-        }
-
-        if (-not (Select-String -Path $OSSEC_CONF_PATH -Pattern "<authorization_pass_path>etc\authd.pass</authorization_pass_path>" -SimpleMatch -Quiet)) {
-            InfoMessage "Authorization pass path has been correctly removed."
-        } else {
-            WarnMessage "Authorization pass path is still present in the configuration file."
-        }
-    } else {
+    if (-not (Test-Path $OSSEC_CONF_PATH)) {
         WarnMessage "Configuration file not found at $OSSEC_CONF_PATH."
+        return
     }
+
+    Test-ConfigPattern -Path $OSSEC_CONF_PATH -Pattern "<enrollment>" `
+        -PassMessage "Enrollment block is present in the configuration file." `
+        -FailMessage "Enrollment block is missing in the configuration file."
+
+    Test-ConfigPattern -Path $OSSEC_CONF_PATH `
+        -Pattern "<agent_certificate_path>etc\sslagent.cert</agent_certificate_path>" `
+        -PassMessage "Agent certificate path is configured correctly." `
+        -FailMessage "Agent certificate path is missing in the configuration file."
+
+    Test-ConfigPattern -Path $OSSEC_CONF_PATH `
+        -Pattern "<agent_key_path>etc\sslagent.key</agent_key_path>" `
+        -PassMessage "Agent key path is configured correctly." `
+        -FailMessage "Agent key path is missing in the configuration file."
+
+    Test-ConfigPattern -Path $OSSEC_CONF_PATH `
+        -Pattern "<authorization_pass_path>etc\authd.pass</authorization_pass_path>" `
+        -PassMessage "Authorization pass path has been correctly removed." `
+        -FailMessage "Authorization pass path is still present in the configuration file." `
+        -ExpectAbsent
+}
+
+function ValidateInstallation {
+    Test-BinaryInstallation
+    Test-ConfigurationFile
 
     SuccessMessage "Validation of installation and configuration completed successfully."
 }
